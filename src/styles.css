@@ -1,0 +1,276 @@
+@import "tailwindcss";
+
+@theme {
+  /* Brand */
+  --color-sidra: #034638;
+  --color-sidra-deep: #02332a;
+  --color-cream: #f6f1e7;
+  --color-card: #ffffff;
+  --color-ink: #122822;
+  --color-ink-soft: #47605a;
+  --color-ink-mute: #7e938d;
+  /* Semantic — reserved, never thematic */
+  --color-lime: #78be20;
+  --color-maroon: #8a1538;
+  --color-up-text: #3c6a5f;
+  --color-down-text: #b02a37;
+  --color-nochange: #b3c9c6;
+  --color-warn: #ffc107;
+  /* Theme hues */
+  --color-th-social: #556bb4;
+  --color-th-sustain: #2e7d5b;
+  --color-th-edu: #c98f1b;
+  --color-th-edu-fill: #e5a823;
+  --color-th-ai: #0e93b5;
+  --color-th-ai-fill: #0cc1e9;
+  --color-th-health: #5b2e8a;
+  --color-th-oe: #1f2a44;
+  /* Chart neutrals */
+  --color-grid: #e5e7eb;
+  --color-axis: #666666;
+  --color-tooltip: #1a4a3e;
+
+  --font-ui: "Instrument Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-num: "Space Grotesk", ui-monospace, monospace;
+  --font-voice: "Fraunces", ui-serif, Georgia, serif;
+
+  --radius-chip: 8px;
+  --radius-input: 12px;
+  --radius-card: 16px;
+  --radius-panel: 20px;
+  --radius-stat: 24px;
+
+  --shadow-card: 0 1px 2px rgba(23, 32, 61, 0.05), 0 10px 30px -12px rgba(23, 32, 61, 0.16);
+  --shadow-card-hover: 0 2px 4px rgba(23, 32, 61, 0.06), 0 18px 44px -14px rgba(23, 32, 61, 0.22);
+  --shadow-loud: 0 2px 6px rgba(23, 32, 61, 0.07), 0 24px 60px -18px rgba(85, 107, 180, 0.35);
+
+  /* The AI voice — QF mint, unused in R1, claimed as the AI signature. Nowhere else. */
+  --color-ai-mint: #50e2c3;
+}
+
+:root {
+  /* one AI signature across the product — indigo → purple from the QF data-viz
+     palette (R4 fix 1; the teal-mint gradient competed with the content) */
+  --ai-gradient: linear-gradient(118deg, #556bb4 0%, #5b2e8a 100%);
+  --ai-gradient-subtle: linear-gradient(118deg, rgba(85, 107, 180, 0.08), rgba(91, 46, 138, 0.1));
+}
+
+html {
+  background: var(--color-cream);
+  color: var(--color-ink);
+  font-family: var(--font-ui);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+}
+
+.num {
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+.voice {
+  font-family: var(--font-voice);
+  font-weight: 340;
+  font-variation-settings: "opsz" 40;
+}
+
+.label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+/* Evidence links inside the AI's prose */
+.evidence {
+  color: inherit;
+  font-weight: 460;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, currentColor 32%, transparent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  cursor: pointer;
+  transition: text-decoration-color 180ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+.evidence:hover {
+  text-decoration-color: currentColor;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--color-sidra) 18%, transparent);
+}
+
+/* AI-authored surface: 2px gradient rule on the leading edge + subtle wash */
+.ai-surface {
+  position: relative;
+  background: var(--ai-gradient-subtle), var(--color-card);
+  border-radius: var(--radius-panel);
+}
+.ai-surface::before {
+  content: '';
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--ai-gradient);
+}
+
+/* AI summary surface (R5 fix 2): a restrained indigo→purple gradient border
+   over a liquid-glass fill with an inner top highlight. Marks the card as the
+   AI layer without competing with the spotlight tiles inside. */
+/* Glass surface + gradient border, without the gradient tinting the fill.
+   The gradient is a masked RING on ::before (hollow centre), so nothing
+   coloured sits behind the content area — which means the surface itself can
+   stay translucent and keep a real backdrop blur. */
+.ai-frame {
+  position: relative;
+  border-radius: var(--radius-panel);
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(22px) saturate(1.08);
+  -webkit-backdrop-filter: blur(22px) saturate(1.08);
+  /* unlayered rules beat Tailwind's utility layer, so restate the card shadow */
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    var(--shadow-card);
+}
+.ai-frame::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 1.5px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, #556bb4 0%, #8a63c9 45%, #5b2e8a 100%);
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+}
+.ai-frame > .ai-glass {
+  position: relative;
+  background: transparent;
+}
+
+/* Small AI-powered input: same masked gradient ring, pill-shaped */
+.ai-field {
+  position: relative;
+  border-radius: 999px;
+  background: #ffffff;
+}
+.ai-field::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 1.5px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, #556bb4 0%, #8a63c9 45%, #5b2e8a 100%);
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* The AI Summary icon: a scale pulse, a gradient glow that breathes, and a
+   sparkle accent every few seconds. Periodic beats the eye notices far more
+   than uniform motion (R5.1 fix 2). Second permitted loop in the build. */
+@keyframes spark-pulse {
+  0%,
+  74%,
+  100% {
+    transform: scale(1);
+  }
+  85% {
+    transform: scale(1.08);
+  }
+}
+@keyframes spark-glow {
+  0%,
+  74%,
+  100% {
+    opacity: 0.16;
+    transform: scale(0.95);
+  }
+  85% {
+    opacity: 0.34;
+    transform: scale(1.06);
+  }
+}
+.spark-anim {
+  animation: spark-pulse 6s ease-in-out infinite;
+  transform-origin: center;
+}
+.spark-glow {
+  animation: spark-glow 6s ease-in-out infinite;
+  transform-origin: center;
+}
+@media (prefers-reduced-motion: reduce) {
+  .spark-anim,
+  .spark-glow {
+    animation: none;
+  }
+}
+
+/* Gradient drift while generating — the only looping animation in the build */
+@keyframes ai-drift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+.ai-ring {
+  background: var(--ai-gradient);
+  background-size: 220% 220%;
+}
+.ai-ring.generating {
+  animation: ai-drift 2.4s ease-in-out infinite;
+}
+
+/* The lamp — lit when a brief waits. A warm steady glow (the only warm colour
+   in the chrome) with a single soft catch when it first lights. Never loops. */
+@keyframes lamp-catch {
+  0% {
+    filter: drop-shadow(0 0 0 rgba(229, 168, 35, 0));
+  }
+  45% {
+    filter: drop-shadow(0 0 14px rgba(229, 168, 35, 0.95));
+  }
+  100% {
+    filter: drop-shadow(0 0 7px rgba(229, 168, 35, 0.65));
+  }
+}
+.lamp-lit {
+  animation: lamp-catch 1.6s ease-out 1 forwards;
+}
+
+/* glass — earns its place only where it floats over content */
+.glass {
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85), 0 12px 34px -10px rgba(23, 32, 61, 0.28);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -1,0 +1,414 @@
+/**
+ * Global shell.
+ * Bottom nav: a dark Sidra glass pill — it floats over white cards, so it must
+ * contrast with them, not borrow their surface. Active item is a sliding cream
+ * chip (layout-animated). Top bar: logo, period chip, a notifications bell fed
+ * by the real findings engine (never fabricated activity), and the profile.
+ */
+import { useEffect, useRef, useState } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
+import { LayoutDashboard, Layers, Crown, Handshake, Bell, CalendarDays, ChevronDown, Search } from 'lucide-react'
+import { findings, kpis, fmt, THEMES } from '../model/data'
+import type { Kpi } from '../model/types'
+
+export type RouteId = 'themes' | 'exec' | 'bdo'
+
+// TODO: Home content model — removed from the nav entirely for now; restore an
+// item here once its scope is decided.
+const ITEMS: { id: RouteId; label: string; Icon: typeof LayoutDashboard }[] = [
+  { id: 'themes', label: 'Thematic View', Icon: Layers },
+  { id: 'exec', label: 'Executive View', Icon: Crown },
+  { id: 'bdo', label: 'BDO', Icon: Handshake },
+]
+
+export function NavPill({
+  active,
+  onGo,
+  shift = 0,
+}: {
+  active: RouteId | null
+  onGo: (r: RouteId) => void
+  shift?: number
+}) {
+  const [hidden, setHidden] = useState(false)
+  const lastY = useRef(0)
+  const graceUntil = useRef(0)
+  useEffect(() => {
+    const onScroll = () => {
+      const y = window.scrollY
+      // programmatic scrolls right after navigation (BOTaina's handoff, scroll
+      // restore) must not read as "user scrolled down" and hide the nav
+      if (performance.now() < graceUntil.current) {
+        lastY.current = y
+        return
+      }
+      setHidden(y > lastY.current && y > 120)
+      lastY.current = y
+    }
+    const onHash = () => {
+      // long enough to cover the delayed smooth scroll of BOTaina's handoff
+      graceUntil.current = performance.now() + 3200
+      setHidden(false)
+    }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    window.addEventListener('hashchange', onHash)
+    return () => {
+      window.removeEventListener('scroll', onScroll)
+      window.removeEventListener('hashchange', onHash)
+    }
+  }, [])
+
+  return (
+    <motion.nav
+      className="fixed bottom-4 left-1/2 z-40 flex items-center gap-1 rounded-full p-1.5 max-md:w-[calc(100%-32px)] max-md:justify-between"
+      style={{
+        // lifted brand green — clearly QF, without the near-black weight
+        background: 'linear-gradient(180deg, rgba(16,118,96,0.95) 0%, rgba(9,92,74,0.95) 100%)',
+        backdropFilter: 'blur(14px)',
+        WebkitBackdropFilter: 'blur(14px)',
+        boxShadow:
+          'inset 0 1px 0 rgba(255,255,255,0.22), 0 1px 2px rgba(2,44,36,0.18), 0 14px 36px -12px rgba(3,70,56,0.4)',
+        border: '1px solid rgba(255,255,255,0.14)',
+      }}
+      animate={{ y: hidden ? 110 : 0, x: `calc(-50% + ${shift}px)` }}
+      transition={{ duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
+      aria-label="Primary navigation"
+    >
+      {ITEMS.map(({ id, label, Icon }) => {
+        const on = active === id
+        return (
+          <button
+            key={id}
+            onClick={() => onGo(id)}
+            className="group relative flex items-center gap-2 rounded-full px-4 py-2.5 text-[13px] transition-colors duration-200"
+            style={{ color: on ? 'var(--color-sidra)' : 'rgba(255,255,255,0.85)' }}
+            aria-current={on ? 'page' : undefined}
+          >
+            {on && (
+              <motion.span
+                layoutId="nav-active"
+                className="absolute inset-0 rounded-full"
+                style={{
+                  background: '#ffffff',
+                  boxShadow: '0 2px 8px rgba(2,44,36,0.4)',
+                }}
+                transition={{ type: 'spring', stiffness: 420, damping: 34 }}
+              />
+            )}
+            <span className="relative z-10 flex items-center gap-2 transition-colors duration-200 group-hover:text-white" style={on ? { color: 'var(--color-sidra)' } : undefined}>
+              <Icon
+                size={19}
+                strokeWidth={on ? 2.1 : 1.7}
+                className="transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:-translate-y-[1px]"
+              />
+              <span className={`whitespace-nowrap max-[440px]:hidden ${on ? 'font-semibold' : 'font-medium'}`}>{label}</span>
+            </span>
+          </button>
+        )
+      })}
+    </motion.nav>
+  )
+}
+
+function NotificationsBell({ light }: { light?: boolean }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const onDoc = (e: MouseEvent) => {
+      if (!ref.current?.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', onDoc)
+    return () => document.removeEventListener('mousedown', onDoc)
+  }, [])
+
+  const THEME_BY_NAME = Object.fromEntries(THEMES.map((t) => [t.name, t.id]))
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className={`relative flex h-10 w-10 items-center justify-center rounded-full transition-all duration-200 hover:-translate-y-[1px] ${
+          light ? 'text-white/85 hover:bg-white/15 hover:text-white' : 'bg-card text-ink-soft shadow-(--shadow-card) hover:text-sidra hover:shadow-(--shadow-card-hover)'
+        }`}
+        style={light ? { border: '1px solid rgba(255,255,255,0.28)' } : undefined}
+        aria-label={`${findings.length} findings need you`}
+      >
+        <Bell size={18} strokeWidth={1.7} />
+        {findings.length > 0 && (
+          <span
+            className="num absolute -right-0.5 -top-0.5 flex h-[17px] min-w-[17px] items-center justify-center rounded-full px-1 text-[10px] font-bold"
+            style={
+              light
+                ? { background: '#fff', color: 'var(--color-sidra)' }
+                : { background: 'var(--color-sidra)', color: '#fff', boxShadow: '0 0 0 2px var(--color-cream)' }
+            }
+          >
+            {findings.length}
+          </span>
+        )}
+      </button>
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: 6, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 6, scale: 0.98 }}
+            transition={{ duration: 0.2, ease: [0.32, 0.72, 0, 1] }}
+            className="absolute right-0 top-[calc(100%+8px)] z-50 w-[340px] overflow-hidden rounded-panel bg-card shadow-(--shadow-card-hover)"
+          >
+            <div className="label border-b border-cream px-4 py-2.5 text-ink-mute">
+              Needs you · computed from cells, never manufactured
+            </div>
+            {findings.map((f) => (
+              <button
+                key={f.id}
+                onClick={() => {
+                  const tid = THEME_BY_NAME[f.kpi.theme]
+                  if (tid) location.hash = `t/${tid}`
+                  setOpen(false)
+                }}
+                className="block w-full border-b border-cream px-4 py-3 text-left transition-colors last:border-0 hover:bg-cream/60"
+              >
+                <div className="text-[13px] font-medium leading-snug text-ink">{f.headline}</div>
+                <div className="voice mt-1 text-[12px] italic leading-snug text-ink-soft">{f.ask}</div>
+              </button>
+            ))}
+            {findings.length === 0 && (
+              <div className="px-4 py-5 text-[13px] italic text-ink-mute">Nothing needs you today.</div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
+/**
+ * Global KPI search — fills the header centre with something useful: any of the
+ * 151 indicators, found from anywhere, straight into its evidence drawer.
+ */
+export function GlobalSearch({ onPick, light }: { onPick: (k: Kpi) => void; light?: boolean }) {
+  const [q, setQ] = useState('')
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    const onDoc = (e: MouseEvent) => {
+      if (!ref.current?.contains(e.target as Node)) setOpen(false)
+    }
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        inputRef.current?.focus()
+        setOpen(true)
+      }
+    }
+    document.addEventListener('mousedown', onDoc)
+    window.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onDoc)
+      window.removeEventListener('keydown', onKey)
+    }
+  }, [])
+
+  const results = q.trim()
+    ? kpis
+        .map((k) => {
+          const hay = [k.name, k.entity, k.category, k.definition ?? '']
+          const idx = hay.findIndex((h) => h.toLowerCase().includes(q.toLowerCase()))
+          return idx >= 0 ? { k, field: idx } : null
+        })
+        .filter(Boolean)
+        .sort((a, b) => a!.field - b!.field)
+        .slice(0, 7)
+    : []
+
+  const hi = (text: string) => {
+    const i = text.toLowerCase().indexOf(q.toLowerCase())
+    if (i < 0) return text
+    return (
+      <>
+        {text.slice(0, i)}
+        <mark className="rounded bg-[rgba(80,226,195,0.35)] px-0.5">{text.slice(i, i + q.length)}</mark>
+        {text.slice(i + q.length)}
+      </>
+    )
+  }
+
+  return (
+    <div ref={ref} className="relative w-full max-w-[400px] max-md:hidden">
+      <div
+        className={`flex h-10 items-center gap-2 rounded-full px-3.5 transition-shadow duration-200 ${
+          light ? '' : 'bg-card shadow-(--shadow-card) focus-within:shadow-(--shadow-card-hover)'
+        }`}
+        style={light ? { background: 'rgba(255,255,255,0.16)', border: '1px solid rgba(255,255,255,0.28)' } : undefined}
+      >
+        <Search size={15} strokeWidth={1.7} className={`shrink-0 ${light ? 'text-white/70' : 'text-ink-mute'}`} />
+        <input
+          ref={inputRef}
+          value={q}
+          onChange={(e) => {
+            setQ(e.target.value)
+            setOpen(true)
+          }}
+          onFocus={() => setOpen(true)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && results[0]) {
+              onPick(results[0]!.k)
+              setOpen(false)
+              setQ('')
+            }
+            if (e.key === 'Escape') setOpen(false)
+          }}
+          placeholder="Find any of the 151 indicators"
+          className={`w-full bg-transparent text-[13px] outline-none ${light ? 'text-white placeholder:text-white/60' : 'placeholder:text-ink-mute'}`}
+          aria-label="Search all indicators"
+        />
+        <kbd className={`rounded px-1.5 py-0.5 text-[10px] ${light ? 'bg-white/15 text-white/70' : 'bg-cream text-ink-mute'}`}>⌘K</kbd>
+      </div>
+      <AnimatePresence>
+        {open && q.trim() && (
+          <motion.div
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 4 }}
+            transition={{ duration: 0.18 }}
+            className="absolute inset-x-0 top-[calc(100%+6px)] z-50 overflow-hidden rounded-input bg-card shadow-(--shadow-card-hover)"
+          >
+            {results.length ? (
+              results.map((r) => (
+                <button
+                  key={r!.k.id}
+                  onClick={() => {
+                    onPick(r!.k)
+                    setOpen(false)
+                    setQ('')
+                  }}
+                  className="flex w-full items-baseline justify-between gap-3 px-3.5 py-2.5 text-left transition-colors hover:bg-cream"
+                >
+                  <span className="min-w-0 text-[13px] text-ink">
+                    {hi(r!.k.name)}
+                    <span className="ml-2 text-[11px] text-ink-mute">
+                      {r!.k.entity} · {r!.k.theme}
+                    </span>
+                  </span>
+                  <span className="num shrink-0 text-[12.5px] text-sidra">
+                    {r!.k.actuals['2026Q1'].value !== null ? fmt(r!.k.actuals['2026Q1'].value) : r!.k.actuals['2026Q1'].raw ?? '—'}
+                  </span>
+                </button>
+              ))
+            ) : (
+              <div className="px-3.5 py-3 text-[12.5px] text-ink-mute">No indicator matches "{q}".</div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
+/**
+ * The lamp — Al Mishkat's identity device. Lit when a brief the reader hasn't
+ * seen is waiting; tapping opens the briefing from anywhere and returns them
+ * exactly where they were.
+ */
+export function Lamp({ light }: { light?: boolean }) {
+  const [lit, setLit] = useState(true)
+  useEffect(() => {
+    import('../briefing/engine').then((m) => setLit(m.hasUnseenBrief()))
+    const refresh = () => import('../briefing/engine').then((m) => setLit(m.hasUnseenBrief()))
+    window.addEventListener('brief-read', refresh)
+    return () => window.removeEventListener('brief-read', refresh)
+  }, [])
+  return (
+    <button
+      onClick={() => window.dispatchEvent(new CustomEvent('open-brief'))}
+      className="flex h-10 items-center gap-2 rounded-full px-3 transition-all duration-200 hover:-translate-y-[1px]"
+      style={
+        light
+          ? { border: '1px solid rgba(255,255,255,0.28)', background: 'rgba(255,255,255,0.14)' }
+          : { background: 'var(--color-card)', boxShadow: 'var(--shadow-card)' }
+      }
+      aria-label={lit ? 'Brief ready — open the briefing' : 'Open the briefing'}
+      title={lit ? 'Brief ready · Q1 2026' : "You're up to date"}
+    >
+      <svg width="19" height="19" viewBox="0 0 24 24" aria-hidden className={lit ? 'lamp-lit' : ''}>
+        <path d="M4 21 V10 a8 8 0 0 1 16 0 V21" fill="none" stroke={light ? '#ffffff' : '#034638'} strokeWidth="1.8" />
+        <path d="M12 14.6 c-1.8-1.5-1.4-3.6 0-5 c1.4 1.4 1.8 3.5 0 5 Z" fill={lit ? '#e5a823' : light ? 'rgba(255,255,255,0.4)' : '#c8c9c7'} />
+        <line x1="8.5" y1="18" x2="15.5" y2="18" stroke={light ? '#ffffff' : '#034638'} strokeWidth="1.8" />
+      </svg>
+      <span className={`text-[11.5px] max-lg:hidden ${light ? 'text-white/80' : 'text-ink-mute'}`}>
+        {lit ? 'Brief ready · Q1 2026' : "You're up to date"}
+      </span>
+    </button>
+  )
+}
+
+/** Period chip + notifications + profile — shared by AppHeader, the Thematic
+ * View header zone, and (as a light-on-dark variant) the L2 theme band. */
+export function HeaderCluster({ hidePeriod, light }: { hidePeriod?: boolean; light?: boolean }) {
+  return (
+    <div className="flex items-center gap-2.5">
+      <Lamp light={light} />
+      {!hidePeriod && (
+        <span
+          className={`flex h-10 items-center gap-2 rounded-full px-3.5 text-[12.5px] ${light ? 'text-white/85' : 'bg-card text-ink-soft shadow-(--shadow-card)'}`}
+          style={light ? { background: 'rgba(255,255,255,0.14)', border: '1px solid rgba(255,255,255,0.24)' } : undefined}
+        >
+          <CalendarDays size={15} strokeWidth={1.7} className={light ? 'text-white/85' : 'text-sidra'} />
+          <span className={`font-semibold ${light ? 'text-white' : 'text-ink'}`}>Q1 2026</span>
+          <span className={`max-sm:hidden ${light ? 'text-white/60' : 'text-ink-mute'}`}>· updated 8 Aug</span>
+        </span>
+      )}
+      <NotificationsBell light={light} />
+      <button
+        className={`flex h-10 items-center gap-2.5 rounded-full py-1 pe-3 ps-1 transition-all duration-200 hover:-translate-y-[1px] ${
+          light ? 'hover:bg-white/15' : 'bg-card shadow-(--shadow-card) hover:shadow-(--shadow-card-hover)'
+        }`}
+        style={light ? { border: '1px solid rgba(255,255,255,0.28)' } : undefined}
+        aria-label="Executive Office account"
+      >
+        <span
+          className="flex h-8 w-8 items-center justify-center rounded-full text-[11px] font-bold text-white"
+          style={{ background: light ? 'rgba(255,255,255,0.22)' : 'linear-gradient(135deg, #045a48, #023328)' }}
+        >
+          EO
+        </span>
+        <span className={`text-[12.5px] font-medium max-md:hidden ${light ? 'text-white' : 'text-ink'}`}>Executive Office</span>
+        <ChevronDown size={14} strokeWidth={1.7} className={`max-md:hidden ${light ? 'text-white/60' : 'text-ink-mute'}`} />
+      </button>
+    </div>
+  )
+}
+
+/** The supplied wordmark, rendered white for dark bands (CSS filter — the asset itself is untouched). */
+export function LogoWhite({ className = 'h-9 w-auto' }: { className?: string }) {
+  return (
+    <img src="/al-mishkat.png" alt="Al-Mishkat" className={className} style={{ filter: 'brightness(0) invert(1)' }} />
+  )
+}
+
+export function AppHeader() {
+  return (
+    <header className="flex items-center justify-between py-5">
+      <img src="/al-mishkat.png" alt="Al-Mishkat" className="h-11 w-auto" />
+      <HeaderCluster />
+    </header>
+  )
+}
+
+/** The gradient spark — replaces the bullet on every inline AI line. */
+export function Spark({ size = 13 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" aria-hidden style={{ display: 'inline-block', flexShrink: 0 }}>
+      <defs>
+        <linearGradient id="ai-spark" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#556bb4" />
+          <stop offset="100%" stopColor="#5b2e8a" />
+        </linearGradient>
+      </defs>
+      <path d="M8 0 L9.8 6.2 L16 8 L9.8 9.8 L8 16 L6.2 9.8 L0 8 L6.2 6.2 Z" fill="url(#ai-spark)" />
+    </svg>
+  )
+}
