@@ -4,7 +4,7 @@
  * is glass. She greets by name once, answers from cells, renders a live chart
  * in-panel, and on "Take me to Social Progress" she navigates and points.
  */
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { X, Send } from 'lucide-react'
 import { EChart, AXIS } from './charts/EChart'
@@ -102,6 +102,17 @@ const SEEDS = [
   'Which 2026 targets look wrong?',
 ]
 
+/**
+ * Streams her answer word by word on a duration budget rather than a fixed
+ * characters-per-second rate, so a long insight resolves nearly as fast as a
+ * short greeting instead of taking proportionally longer. Whole tokens land at
+ * once — "QAR 27.4m" and "23,150" never trickle in digit by digit — and the
+ * reveal is driven by rAF, so there is no interval jitter.
+ */
+const STREAM_BASE_MS = 460 // a short line still visibly streams
+const STREAM_PER_CHAR = 2.1
+const STREAM_MAX_MS = 2200 // the longest insight is never a wait
+
 function Stream({ text, onDone }: { text: string; onDone: () => void }) {
   const [n, setN] = useState(0)
   const done = n >= text.length
@@ -109,14 +120,54 @@ function Stream({ text, onDone }: { text: string; onDone: () => void }) {
     if (done) onDone()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [done])
+
+  // reveal boundaries: the end of each word (with its trailing space)
+  const stops = useMemo(() => {
+    const out: number[] = []
+    const re = /\S+\s*/g
+    let m: RegExpExecArray | null
+    while ((m = re.exec(text)) !== null) out.push(m.index + m[0].length)
+    return out
+  }, [text])
+
   useEffect(() => {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    // rAF is starved while the page is hidden, so an unattended tab would leave
+    // her answer blank and `busy` stuck — show it whole instead of animating
+    // something nobody is watching.
+    if (reduced || document.hidden) {
       setN(text.length)
       return
     }
-    const iv = setInterval(() => setN((p) => Math.min(text.length, p + 2)), 70) // ~28 chars/sec
-    return () => clearInterval(iv)
-  }, [text])
+    setN(0)
+    const dur = Math.min(STREAM_MAX_MS, STREAM_BASE_MS + text.length * STREAM_PER_CHAR)
+    const t0 = performance.now()
+    let raf = 0
+    let i = 0 // only ever advances — no per-frame rescan
+    const finish = () => setN(text.length)
+    const tick = (t: number) => {
+      const p = Math.min(1, (t - t0) / dur)
+      if (p >= 1) {
+        finish()
+        return
+      }
+      const target = p * text.length
+      while (i < stops.length && stops[i] <= target) i++
+      setN(i > 0 ? stops[i - 1] : 0)
+      raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    // belt and braces: if frames stop arriving (backgrounded, throttled), the
+    // answer still resolves rather than hanging
+    const safety = setTimeout(finish, dur + 400)
+    document.addEventListener('visibilitychange', finish)
+    return () => {
+      cancelAnimationFrame(raf)
+      clearTimeout(safety)
+      document.removeEventListener('visibilitychange', finish)
+    }
+  }, [text, stops])
+
   return <>{text.slice(0, n)}</>
 }
 
@@ -223,7 +274,9 @@ export function BotainaDock({
       else reply = route(q)
       setMsgs((m) => [...m, reply])
       if (reply.chart) setBusy(false)
-    }, 650)
+      // short enough that the ring drift reads as part of the same motion as the
+      // streaming that follows, rather than a wait stacked in front of it
+    }, 260)
   }
 
   const last = msgs[msgs.length - 1]
