@@ -109,9 +109,13 @@ const SEEDS = [
  * once — "QAR 27.4m" and "23,150" never trickle in digit by digit — and the
  * reveal is driven by rAF, so there is no interval jitter.
  */
-const STREAM_BASE_MS = 460 // a short line still visibly streams
-const STREAM_PER_CHAR = 2.1
-const STREAM_MAX_MS = 2200 // the longest insight is never a wait
+// Tuning: raise PER_CHAR to slow her down, lower it to speed her up.
+// At these values a short line takes ~0.55s, the greeting ~1.4s, and the
+// longest insight ~3.0s — comfortably ahead of reading speed, still visibly
+// composing rather than appearing all at once.
+const STREAM_BASE_MS = 420 // a short line still visibly streams
+const STREAM_PER_CHAR = 5.6
+const STREAM_MAX_MS = 3200 // the longest insight is never a wait
 
 function Stream({ text, onDone }: { text: string; onDone: () => void }) {
   const [n, setN] = useState(0)
