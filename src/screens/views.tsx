@@ -10,7 +10,7 @@ import { useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { LayoutGrid, List as ListIcon, BarChart3, Building2, Plus, X, ChevronDown, ChevronUp } from 'lucide-react'
 import type { Kpi } from '../model/types'
-import type { YearKey } from '../components/charts/builders'
+import { statusOf, STATUS_COLOR, type YearKey } from '../components/charts/builders'
 import { AXIS } from '../components/charts/EChart'
 import { EChart } from '../components/charts/EChart'
 import { BulletMicro } from '../components/marks'
@@ -128,7 +128,15 @@ function Row({
           {k.actuals['2026Q1'].value !== null &&
           (k.targets['2026'].value ?? 0) > 0 &&
           (k.actuals['2026Q1'].value !== 0 || k.movementSeries[k.movementSeries.length - 1]?.[0] === '2026Q1') ? (
-            <BulletMicro actual={k.actuals['2026Q1'].value as number} target={k.targets['2026'].value as number} hue={hue} />
+            <BulletMicro
+              actual={k.actuals['2026Q1'].value as number}
+              target={k.targets['2026'].value as number}
+              /* R10 fix 7: rows speak the same status language as the cards */
+              hue={(() => {
+                const st = statusOf(k)
+                return st === 'met' || st === 'behind' || st === 'breach' ? STATUS_COLOR[st].fill : hue
+              })()}
+            />
           ) : null}
         </span>
         <span className="num text-right text-[12.5px] font-semibold" style={{ color: mv.tone }}>
@@ -300,16 +308,23 @@ export function CompareView({
                 xAxis: { type: 'value', ...AXIS, axisLabel: { ...AXIS.axisLabel, formatter: '{value}%' } },
                 yAxis: {
                   type: 'category',
-                  data: rows.map((r) => `${r.k.name.length > 26 ? r.k.name.slice(0, 24) + '…' : r.k.name}  ·  ${r.k.entity}`).reverse(),
+                  // R10 fix 1: names wrap instead of being sliced mid-word
+                  data: rows.map((r) => `${r.k.name}  ·  ${r.k.entity}`).reverse(),
                   ...AXIS,
-                  axisLabel: { ...AXIS.axisLabel, fontFamily: 'Instrument Sans', fontSize: 11.5 },
+                  axisLabel: { ...AXIS.axisLabel, fontFamily: 'Instrument Sans', fontSize: 11.5, width: 195, overflow: 'break' as const },
                 },
                 series: [
                   {
                     type: 'bar',
-                    data: rows.map((r) => r.pct).reverse(),
+                    // R10 fix 7: each bar carries its own verdict colour
+                    data: rows
+                      .map((r) => {
+                        const st = statusOf(r.k)
+                        const fill = st === 'met' || st === 'behind' || st === 'breach' ? STATUS_COLOR[st].fill : hue
+                        return { value: r.pct, itemStyle: { color: fill, borderRadius: [0, 4, 4, 0] } }
+                      })
+                      .reverse(),
                     barMaxWidth: 18,
-                    itemStyle: { color: hue, borderRadius: [0, 4, 4, 0] },
                     label: {
                       show: true,
                       position: 'right',

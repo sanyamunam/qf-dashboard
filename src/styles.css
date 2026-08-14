@@ -274,3 +274,15 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* R10: the ledger bar grows in on load — transform-only, and the global
+   reduced-motion rule above zeroes it for users who ask for stillness */
+.ledger-fill {
+  transform-origin: left center;
+  animation: ledger-grow 0.7s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+@keyframes ledger-grow {
+  from {
+    transform: scaleX(0);
+  }
+}

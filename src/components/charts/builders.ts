@@ -168,23 +168,150 @@ function yearLine(group: Kpi[], year: YearKey): string {
   return `${reported.length} of ${group.length} reported in ${year}; the rest are marked, not hidden.`
 }
 
+/* ————————————————————————————————————————————————————————————————
+ * R10: executive snapshot charts. The chart itself carries the verdict —
+ * colour and shape say met / on pace / behind before any number is read,
+ * driven by the SAME status logic as the card's polarity arrow so the two
+ * never disagree.
+ * ———————————————————————————————————————————————————————————————— */
+
+/** The chart's verdict about one indicator's Q1 position. */
+export type ChartStatus = 'met' | 'onpace' | 'behind' | 'neutral' | 'breach'
+
+/** Status colours: fill for marks, text dark enough to carry the number. */
+export const STATUS_COLOR: Record<'met' | 'behind' | 'breach', { fill: string; text: string }> = {
+  met: { fill: '#78be20', text: '#3f7300' }, // QF semantic lime — reserved for genuinely good news
+  behind: { fill: '#dda32e', text: '#8a6512' }, // muted amber — visibly not the confident state
+  breach: { fill: '#8a1538', text: '#8a1538' }, // maroon — the one real red
+}
+
 /**
- * R8 snapshot charts: cards show current position only — never a multi-point
- * history. Representation follows the data shape (Fix 2), not the sheet's
- * literal chart-type column: a group renders as one compact actual-vs-target
- * row set; a single %-like metric gets an arc; a single count gets a bullet.
+ * Status for the chart, from the same engine that drives the arrow.
+ * Honesty rules: pace is judged against elapsed time (Q1 = 25% of the year)
+ * and ONLY for continuously-reporting indicators — an annual indicator can't
+ * be "behind" in March. Ceilings never earn the lime "done" state: under a
+ * ceiling is fine, not finished.
  */
+export function statusOf(k: Kpi): ChartStatus {
+  const v = k.actuals['2026Q1'].value
+  const t = k.targets['2026'].value
+  if (k.state === 'ABOVE_CEILING') return 'breach'
+  if (k.polarity === 'Red') return 'neutral'
+  if (k.state === 'TARGET_ALREADY_MET' || k.exactHit || (v !== null && t !== null && t > 0 && v >= t)) return 'met'
+  if (k.cadence !== 'continuous') return 'neutral'
+  if (v !== null && t !== null && t > 0) return v / t >= 0.25 ? 'onpace' : 'behind'
+  return 'neutral'
+}
+
+const fillFor = (s: ChartStatus, hue: string) => (s === 'met' || s === 'behind' || s === 'breach' ? STATUS_COLOR[s].fill : hue)
+const textFor = (s: ChartStatus) => (s === 'met' || s === 'behind' || s === 'breach' ? STATUS_COLOR[s].text : '#122822')
+
+/**
+ * A member's label inside a grouped card: the card title already says the
+ * group, so words the title carries are removed ("International Partnerships"
+ * under "Partnerships" → "International"). A deliberate edit, never a CSS
+ * slice — if the edit leaves nothing meaningful, the full name stays.
+ */
+export function memberLabel(k: Kpi, title?: string): string {
+  const name = k.name.replace(/^[#%]\s*/, '')
+  if (!title) return name
+  const titleWords = new Set(
+    title
+      .toLowerCase()
+      .split(/\W+/)
+      .filter((w) => w.length > 3),
+  )
+  const kept = name.split(' ').filter((w) => !titleWords.has(w.toLowerCase().replace(/\W/g, '')))
+  const out = kept
+    .join(' ')
+    .replace(/^(?:in|of|the|for|and)\s+/i, '')
+    .replace(/^[()\s]+|[()\s]+$/g, '')
+    .trim()
+  // "Reports and Strategic Publications" minus "Publications" leaves a
+  // conjunction with no head noun — when the edit would break a phrase like
+  // that, the full name is the honest label
+  const removedSomething = kept.length < name.split(' ').length
+  const danglingConjunction = removedSomething && /\s(?:and|or|&)\s/i.test(out)
+  return out.length >= 4 && !danglingConjunction ? out : name
+}
+
+/** One indicator's standing, ready for either grouped treatment. */
+export interface SnapshotRow {
+  label: string
+  value: number
+  target: number
+  status: ChartStatus
+}
+
 export type SnapshotRep =
-  | { kind: 'group-bars'; option: EChartsOption; height: number }
+  /* grouped, treatment A: small-multiple arcs in one canvas, labels as HTML */
+  | { kind: 'group-arcs'; option: EChartsOption; height: number; rows: SnapshotRow[] }
+  /* grouped, treatment B: status-ledger rows, rendered in HTML by the card */
+  | { kind: 'group-ledger'; rows: SnapshotRow[]; max: number }
   | { kind: 'bullet'; option: EChartsOption; height: number }
   | { kind: 'arc'; option: EChartsOption; height: number }
   | { kind: 'none' }
 
-const short = (s: string, n = 22) => (s.length > n ? s.slice(0, n - 1) + '…' : s)
+export type GroupStyle = 'arcs' | 'bars'
 
 const isRateLike = (k: Kpi) => k.name.includes('%') || /rate|ratio|index|nps|satisfaction/i.test(k.name)
 
-export function snapshotFor(group: Kpi[], hue: string): SnapshotRep {
+const TRACK = 'rgba(200,201,199,0.4)'
+
+/**
+ * One gauge: full sweep = the target, so a full arc IS the target reached.
+ * Overshoot rescales to the value and marks the target as a notch on the
+ * track — the arc never lies about where the finish line was.
+ */
+function gaugeFor(row: SnapshotRow, hue: string, center: [string, string], radius: string, big: boolean) {
+  const over = row.value > row.target
+  const max = over ? row.value : row.target
+  const fill = fillFor(row.status, hue)
+  const met = row.status === 'met'
+  const axisColor: [number, string][] = over
+    ? [
+        [Math.max(0.01, row.target / row.value - 0.008), TRACK],
+        [Math.min(1, row.target / row.value + 0.008), '#122822'],
+        [1, TRACK],
+      ]
+    : [[1, TRACK]]
+  return {
+    type: 'gauge' as const,
+    startAngle: 200,
+    endAngle: -20,
+    min: 0,
+    max,
+    center,
+    radius,
+    progress: {
+      show: true,
+      width: big ? 10 : 8,
+      roundCap: true,
+      itemStyle: met
+        ? { color: fill, shadowColor: 'rgba(120,190,32,0.5)', shadowBlur: 9 }
+        : { color: fill },
+    },
+    axisLine: { lineStyle: { width: big ? 10 : 8, color: axisColor } },
+    pointer: { show: false },
+    axisTick: { show: false },
+    splitLine: { show: false },
+    axisLabel: { show: false },
+    anchor: { show: false },
+    title: { show: false },
+    detail: {
+      offsetCenter: [0, big ? '-8%' : '0%'],
+      formatter: met ? `{v|${nf(row.value)}}{c| ✓}\n{s|of ${nf(row.target)}}` : `{v|${nf(row.value)}}\n{s|of ${nf(row.target)}}`,
+      rich: {
+        v: { fontSize: big ? 19 : 17, fontWeight: 700, fontFamily: 'Space Grotesk', color: textFor(row.status) },
+        c: { fontSize: big ? 14 : 12, fontWeight: 700, fontFamily: 'Space Grotesk', color: STATUS_COLOR.met.fill },
+        s: { fontSize: 10, fontFamily: 'Space Grotesk', color: '#7e938d', padding: [2, 0, 0, 0] },
+      },
+    },
+    data: [{ value: Math.min(row.value, max) }],
+  }
+}
+
+export function snapshotFor(group: Kpi[], hue: string, style: GroupStyle = 'arcs', title?: string): SnapshotRep {
   // a year-end or idle KPI's Q1 cell is an artifact, not a position — drawing
   // "0 of 50" for an indicator that reports in December would be a lie. The
   // same applies to any Q1 zero the parser judged "not yet reported": if the
@@ -205,49 +332,30 @@ export function snapshotFor(group: Kpi[], hue: string): SnapshotRep {
   )
   if (withQ1.length === 0) return { kind: 'none' }
 
-  if (withQ1.length > 1) {
-    // one compact row per indicator: actual bar + target tick, shared axis
-    const rows = withQ1.slice(0, 4)
-    const max = Math.max(...rows.map((k) => Math.max(k.actuals['2026Q1'].value as number, k.targets['2026'].value as number)))
+  // a grouped CARD always gets the labelled treatment — even when only one
+  // member has a real Q1 position, an unlabelled mark could be read as any of
+  // the members, so the label stays (the R9-found ambiguity, fixed for good)
+  if (withQ1.length > 1 || group.length > 1) {
+    const rows: SnapshotRow[] = withQ1.slice(0, 3).map((k) => ({
+      label: memberLabel(k, title),
+      value: k.actuals['2026Q1'].value as number,
+      target: k.targets['2026'].value as number,
+      status: statusOf(k),
+    }))
+
+    if (style === 'bars') {
+      return { kind: 'group-ledger', rows, max: Math.max(...rows.map((r) => Math.max(r.value, r.target))) * 1.05 }
+    }
+
+    const n = rows.length
     return {
-      kind: 'group-bars',
-      height: rows.length * 30 + 14,
+      kind: 'group-arcs',
+      height: 96,
+      rows,
       option: {
-        grid: { left: 4, right: 44, top: 4, bottom: 4, containLabel: true },
-        xAxis: { type: 'value', max: max * 1.05, show: false },
-        yAxis: {
-          type: 'category',
-          data: rows.map((k) => short(k.name)).reverse(),
-          axisLine: { show: false },
-          axisTick: { show: false },
-          axisLabel: { color: '#666', fontFamily: 'Instrument Sans', fontSize: 10.5 },
-        },
-        series: [
-          {
-            type: 'bar',
-            data: rows.map((k) => k.actuals['2026Q1'].value as number).reverse(),
-            barWidth: 8,
-            itemStyle: { color: hue, borderRadius: [0, 3, 3, 0] },
-            label: {
-              show: true,
-              position: 'right',
-              fontFamily: 'Space Grotesk',
-              fontWeight: 700,
-              fontSize: 10.5,
-              color: '#47605a',
-              formatter: (p: unknown) => nf((p as { value: number }).value),
-            },
-          },
-          {
-            type: 'scatter',
-            symbol: 'rect',
-            symbolSize: [2.5, 16],
-            data: rows.map((k) => k.targets['2026'].value as number).reverse(),
-            itemStyle: { color: '#9ca3af' },
-            tooltip: { show: false },
-            silent: true,
-          },
-        ],
+        series: rows.map((r, i) =>
+          gaugeFor(r, hue, [`${((i + 0.5) / n) * 100}%`, '72%'], n === 1 ? '105%' : n === 2 ? '92%' : '86%', false),
+        ),
       },
     }
   }
@@ -255,74 +363,61 @@ export function snapshotFor(group: Kpi[], hue: string): SnapshotRep {
   const k = withQ1[0]
   const a = k.actuals['2026Q1'].value as number
   const t = k.targets['2026'].value as number
+  const st = statusOf(k)
 
   if (isRateLike(k)) {
     return {
       kind: 'arc',
-      height: 74,
+      height: 84,
       option: {
-        series: [
-          {
-            type: 'gauge',
-            startAngle: 200,
-            endAngle: -20,
-            min: 0,
-            max: Math.max(a, t) * 1.1,
-            radius: '135%',
-            center: ['50%', '78%'],
-            progress: { show: true, width: 9, roundCap: true, itemStyle: { color: hue } },
-            axisLine: { lineStyle: { width: 9, color: [[1, 'rgba(200,201,199,0.4)']] } },
-            pointer: { show: false },
-            axisTick: { show: false },
-            splitLine: { show: false },
-            axisLabel: { show: false },
-            anchor: { show: false },
-            title: { show: false },
-            detail: {
-              offsetCenter: [0, '-12%'],
-              formatter: `{v|${nf(a)}}{s| of ${nf(t)}}`,
-              rich: {
-                v: { fontSize: 16, fontWeight: 700, fontFamily: 'Space Grotesk', color: '#122822' },
-                s: { fontSize: 10, fontFamily: 'Space Grotesk', color: '#7e938d' },
-              },
-            },
-            data: [{ value: a }],
-          },
-        ],
+        series: [gaugeFor({ label: '', value: a, target: t, status: st }, hue, ['50%', '76%'], '120%', true)],
       },
     }
   }
 
+  // single count: bullet whose fill, number and dashed target all carry status
+  const met = st === 'met'
   const max = Math.max(a, t)
   return {
     kind: 'bullet',
-    height: 54,
+    height: 58,
     option: {
-      grid: { left: 4, right: 44, top: 18, bottom: 16 },
+      grid: { left: 4, right: 48, top: 21, bottom: 15 },
       xAxis: { type: 'value', max: max * 1.05, show: false },
       yAxis: { type: 'category', data: [''], show: false },
       series: [
         {
           type: 'bar',
           data: [a],
-          barWidth: 10,
-          itemStyle: { color: hue, borderRadius: [0, 3, 3, 0] },
+          barWidth: 12,
+          itemStyle: met
+            ? { color: fillFor(st, hue), borderRadius: [0, 4, 4, 0], shadowColor: 'rgba(120,190,32,0.45)', shadowBlur: 7 }
+            : { color: fillFor(st, hue), borderRadius: [0, 4, 4, 0] },
           showBackground: true,
-          backgroundStyle: { color: 'rgba(200,201,199,0.25)', borderRadius: [0, 3, 3, 0] },
+          backgroundStyle: { color: 'rgba(200,201,199,0.25)', borderRadius: [0, 4, 4, 0] },
           label: {
             show: true,
             position: 'right',
             fontFamily: 'Space Grotesk',
             fontWeight: 700,
-            fontSize: 11,
-            color: '#47605a',
-            formatter: (p: unknown) => nf((p as { value: number }).value),
+            fontSize: 14,
+            color: textFor(st),
+            formatter: () => (met ? `${nf(a)} ✓` : nf(a)),
           },
           markLine: {
             silent: true,
             symbol: 'none',
-            lineStyle: { type: 'solid', color: '#9ca3af', width: 2 },
-            label: { formatter: `target ${nf(t)}`, position: 'end', color: '#9ca3af', fontSize: 9.5, fontFamily: 'Instrument Sans' },
+            lineStyle: { type: 'dashed', color: '#47605a', width: 2 },
+            label: {
+              formatter: `target ${nf(t)}`,
+              position: 'end',
+              // a target near either edge would push its label off the card
+              align: (t / (max * 1.05) < 0.35 ? 'left' : t / (max * 1.05) > 0.75 ? 'right' : 'center') as 'left' | 'center' | 'right',
+              color: '#47605a',
+              fontSize: 11,
+              fontWeight: 600,
+              fontFamily: 'Instrument Sans',
+            },
             data: [{ xAxis: t }],
           },
         },
@@ -336,6 +431,9 @@ export function snapshotFor(group: Kpi[], hue: string): SnapshotRep {
  * Actuals render as solid bars (honest at any point count); targets 2022–2028
  * as a dashed line with hollow markers — never styled like real data.
  */
+/* series legend names only — axis/card labels are never sliced (R10 fix 1) */
+const short = (s: string, n = 30) => (s.length > n ? s.slice(0, n - 1) + '…' : s)
+
 export function overlayTrendOption(group: Kpi[], hue: string): EChartsOption {
   const AXIS_YEARS = ['2022', '2023', '2024', '2025', '2026', '2027', '2028']
   const label = (y: string) => (y === '2026' ? '2026 (Q1)' : y)
