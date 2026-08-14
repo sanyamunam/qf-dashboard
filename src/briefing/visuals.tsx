@@ -3,8 +3,17 @@
  * drawn once on entry (600–800ms) and then at rest. No legends, no gridlines.
  */
 import { motion, useReducedMotion } from 'framer-motion'
-import type { VisualSpec } from './engine'
 import { kpis } from '../model/data'
+
+/** The chart vocabulary of the brief — one spec per finding, rendered here and
+ *  nowhere else. Owned by this file so engines can come and go. */
+export type VisualSpec =
+  | { type: 'exact-targets' }
+  | { type: 'slope'; peak: number; peakLabel: string; now: number; nowLabel: string; target: number }
+  | { type: 'quiet-rows'; rows: { label: string; series: [string, number][]; unit?: string }[] }
+  | { type: 'dot-grid'; total: number; filled: number; filledLabel: string; restLabel: string; headline: number }
+  | { type: 'columns'; series: [string, number][]; unit: string; target?: number; fmt?: 'pct' }
+  | { type: 'ceilings'; names: string[] }
 
 const INK = '#122822'
 const MUTE = '#7e938d'
@@ -256,16 +265,26 @@ function BigDotGrid({ total, filled, filledLabel, restLabel, headline, active }:
   )
 }
 
-/* A short climb or overshoot — fat columns, last emphasised. */
-function BigColumns({ series, unit, active }: { series: [string, number][]; unit: string; active: boolean }) {
+/* A short climb or overshoot — fat columns, last emphasised. Optional dashed
+   target line (same idiom as Slope) and percent formatting for fraction data. */
+function BigColumns({ series, unit, target, fmt, active }: { series: [string, number][]; unit: string; target?: number; fmt?: 'pct'; active: boolean }) {
   const W = 760
   const H = 290
-  const max = Math.max(...series.map(([, v]) => v))
+  const max = Math.max(...series.map(([, v]) => v), target ?? 0)
   const bw = 64
   const step = (W - 120) / series.length
   const h = (v: number) => Math.max(4, (v / max) * 190)
+  const label = (v: number) => (fmt === 'pct' ? `${Math.round(v * 100)}%` : new Intl.NumberFormat('en').format(v))
   return (
     <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ maxHeight: 310 }} aria-label={`Series in ${unit}`}>
+      {target != null && (
+        <g>
+          <line x1={40} y1={240 - h(target)} x2={W - 40} y2={240 - h(target)} stroke={MUTE} strokeWidth="1.2" strokeDasharray="6 5" />
+          <text x={W - 40} y={240 - h(target) - 8} textAnchor="end" fontSize="11.5" fontFamily="var(--font-ui)" fill={MUTE}>
+            full-year target {label(target)}
+          </text>
+        </g>
+      )}
       {series.map(([yr, v], i) => {
         const x = 70 + i * step + (step - bw) / 2
         const last = i === series.length - 1
@@ -293,7 +312,7 @@ function BigColumns({ series, unit, active }: { series: [string, number][]; unit
               animate={active ? { opacity: 1 } : {}}
               transition={{ delay: 0.5 + i * 0.1 }}
             >
-              {new Intl.NumberFormat('en').format(v)}
+              {label(v)}
             </motion.text>
             <text x={x + bw / 2} y={266} textAnchor="middle" fontSize="12" fontFamily="var(--font-ui)" fill={MUTE}>
               {yr === '2026Q1' ? 'Q1 26' : yr}
