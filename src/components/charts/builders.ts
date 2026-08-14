@@ -209,23 +209,6 @@ const textFor = (s: ChartStatus) => (s === 'met' || s === 'behind' || s === 'bre
 export const yearLabel = (y: string) => (y === '2026Q1' ? 'Q1 2026' : y)
 
 /**
- * How far past target, when it is past at all — `1.5×`, `6.3×`. Null for an
- * exact match, so anything carrying this label is by definition an overshoot
- * and the cleanest outcome keeps the plainest mark.
- *
- * Deliberately a label and nothing else: clearing a target by half and by six
- * times are different findings, but the bar stays exactly as it is. One
- * subordinate figure, no second colour, no second bar treatment.
- */
-export function overshootLabel(value: number, target: number): string | null {
-  if (!(target > 0) || value <= target) return null
-  const ratio = value / target
-  // below a 5% beat the label would round to "1.0×" — a multiple that reads
-  // as "on target" while implying it isn't. Effectively on target: say nothing.
-  return ratio < 1.05 ? null : `${ratio.toFixed(1)}×`
-}
-
-/**
  * Status for a CLOSED year (R13). Pace has no meaning once a year is over —
  * the year either landed on its target or it didn't, so there is no
  * "behind pace" here, only met or missed. Ceilings keep their rule: under a
@@ -349,14 +332,10 @@ function gaugeFor(
     title: { show: false },
     detail: {
       offsetCenter: [0, sz.offset],
-      formatter: `{v|${nf(row.value)}}${met ? '{c| ✓}' : ''}${
-        met && overshootLabel(row.value, row.target) ? `{x| ${overshootLabel(row.value, row.target)}}` : ''
-      }\n{s|of ${nf(row.target)}${sub ? ` · ${sub}` : ''}}`,
+      formatter: `{v|${nf(row.value)}}${met ? '{c| ✓}' : ''}\n{s|of ${nf(row.target)}${sub ? ` · ${sub}` : ''}}`,
       rich: {
         v: { fontSize: sz.v, fontWeight: 700, fontFamily: 'Space Grotesk', color: textFor(row.status) },
         c: { fontSize: sz.c, fontWeight: 700, fontFamily: 'Space Grotesk', color: STATUS_COLOR.met.fill },
-        // the multiple sits under the figure's weight, never beside it
-        x: { fontSize: sz.s + 1, fontWeight: 600, fontFamily: 'Space Grotesk', color: STATUS_COLOR.met.text },
         s: { fontSize: sz.s, fontFamily: 'Space Grotesk', color: '#7e938d', padding: [2, 0, 0, 0] },
       },
     },
@@ -508,10 +487,7 @@ export function snapshotFor(group: Kpi[], hue: string, title?: string, scale: Ch
             fontWeight: 700,
             fontSize: big ? 26 : 14,
             color: textFor(st),
-            formatter: () => {
-              const over = overshootLabel(a, t)
-              return met ? `${nf(a)} ✓${over ? ` ${over}` : ''}` : nf(a)
-            },
+            formatter: () => (met ? `${nf(a)} ✓` : nf(a)),
           },
           markLine: {
             silent: true,

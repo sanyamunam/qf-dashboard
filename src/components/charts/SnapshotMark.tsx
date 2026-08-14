@@ -9,7 +9,7 @@
  */
 import type { Kpi } from '../../model/types'
 import { EChart } from './EChart'
-import { snapshotFor, overshootLabel, STATUS_COLOR, type ChartScale, type SnapshotRow } from './builders'
+import { snapshotFor, STATUS_COLOR, type ChartScale, type SnapshotRow } from './builders'
 
 const nf = (n: number) => new Intl.NumberFormat('en', { maximumFractionDigits: 1 }).format(n)
 
@@ -60,12 +60,6 @@ export function LedgerRows({
                 {r.status === 'met' && (
                   <span className="ml-0.5" style={{ fontSize: z.check }}>
                     ✓
-                  </span>
-                )}
-                {r.status === 'met' && overshootLabel(r.value, r.target) && (
-                  /* how far past, kept subordinate to the figure it follows */
-                  <span className="ml-1 font-semibold" style={{ fontSize: z.of + 1 }}>
-                    {overshootLabel(r.value, r.target)}
                   </span>
                 )}
                 <span className="ml-1 font-normal text-ink-mute" style={{ fontSize: z.of }}>
