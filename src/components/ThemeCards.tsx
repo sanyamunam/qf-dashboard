@@ -1,14 +1,8 @@
 /**
- * Theme cards — hero plus four. Every card is obviously a door:
+ * R2 theme cards — hero plus four. Every card is obviously a door:
  * whole-card target, accent bar that grows on hover, a persistent
  * "Explore N indicators →" CTA, and a chip naming why its spotlight
  * indicator was chosen. Cards of a tier share one internal grid.
- *
- * R15: the grid holds the FIVE thematic areas and nothing else.
- * Organizational Excellence is an enabling function, not a sixth theme, and
- * renders below the grid as a wide band (`OEBand`) whose silhouette says so
- * before any label is read. R4 had folded it in as a sixth tile purely to
- * fill a 3×2 grid; that fixed the layout and broke the meaning.
  */
 import { ChevronRight } from 'lucide-react'
 import { TrajectoryMark, ProgressMark, SparseMark } from './marks'
@@ -42,9 +36,6 @@ export function buildCards(): CardDef[] {
     {
       themeId: 'social',
       themeName: 'Social Progress',
-      // the hero: this theme carries the portfolio's lead finding (WISH down
-      // 96% from its peak), so it is the one that earns the extra width
-      hero: true,
       chip: spotlightFor('Social Progress').chip,
       figure: fmt(facts.wish.q1),
       sentence: (
@@ -148,76 +139,31 @@ export function buildCards(): CardDef[] {
       count: 0,
       entities: 0,
     },
-  ]
-}
-
-/**
- * Organizational Excellence (R15). Not a card — a band: full width, and short
- * enough that its silhouette alone reads as a different kind of thing from the
- * theme cards above it, before any label is parsed. Same content as the tile it
- * replaces, laid out along the horizontal rather than stacked down a card.
- */
-export function OEBand({ onOpen }: { onOpen: (themeId: string) => void }) {
-  const oeCount = themeKpis('Organizational Excellence').length
-  const oeEntities = new Set(themeKpis('Organizational Excellence').map((k) => k.entity)).size
-  const turnover = facts.oe.turnover.series
-  const training = facts.oe.training.series
-  const latest = turnover[turnover.length - 1]?.[1]
-
-  return (
-    <button
-      onClick={() => onOpen('oe')}
-      /* wraps rather than crushes: when the row runs out of width the CTA
-         drops to its own line, instead of three columns each being squeezed */
-      className="group relative flex w-full flex-col gap-5 overflow-hidden rounded-card p-6 text-left transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-0.5 @xl:flex-row @xl:flex-wrap @xl:items-center @xl:gap-x-8 @xl:gap-y-4"
-      style={{ background: 'var(--color-th-oe)', boxShadow: 'var(--shadow-card)' }}
-      onMouseEnter={(e) => (e.currentTarget.style.boxShadow = 'var(--shadow-card-hover)')}
-      onMouseLeave={(e) => (e.currentTarget.style.boxShadow = 'var(--shadow-card)')}
-      aria-label={`Organizational Excellence — enabling function, explore ${oeCount} indicators`}
-    >
-      <span aria-hidden className="absolute inset-x-0 top-0 h-[4px] transition-all duration-300 group-hover:h-[5px]" style={{ background: '#8fa3d4' }} />
-
-      {/* identity + the headline figure, reading across rather than down */}
-      <div className="min-w-0 @xl:min-w-[280px] @xl:max-w-[34ch] @xl:flex-1">
-        <h3 className="text-[17px] font-semibold leading-tight tracking-tight text-white">
-          Organizational Excellence
-        </h3>
-        <div className="mt-1 text-[11.5px] text-white/50">
-          {oeCount} indicators · {oeEntities} entities · enabling function
-        </div>
-        <div className="mt-3 flex items-baseline gap-2.5">
-          <span className="num text-[30px] font-bold leading-none text-white">{fmt(latest)}%</span>
-          <span className="text-[12.5px] leading-snug text-white/70">
-            employee turnover at end-2025, its best of four reported years
-          </span>
-        </div>
-      </div>
-
-      {/* the trend alongside the figure, not beneath it */}
-      <div className="w-full @xl:min-w-[230px] @xl:max-w-[280px] @xl:flex-1">
-        <div className="text-[10.5px] font-semibold uppercase tracking-wider text-white/45">
-          Turnover, 2022 → 2025
-        </div>
+    {
+      // OE joins the grid as the sixth tile (R4 fix 2) — navy and internally
+      // distinct: an enabling function, not a thematic area
+      themeId: 'oe',
+      themeName: 'Organizational Excellence',
+      dark: true,
+      subtitle: 'enabling function',
+      chip: null,
+      figure: `${fmt(facts.oe.turnover.series[facts.oe.turnover.series.length - 1]?.[1])}%`,
+      sentence: (
+        <>
+          employee turnover at end-2025, its best of four reported years; training hours have climbed{' '}
+          <span className="num">{fmt(facts.oe.training.series[0]?.[1])}</span> to{' '}
+          <span className="num">{fmt(facts.oe.training.series[facts.oe.training.series.length - 1]?.[1])}</span>
+        </>
+      ),
+      mark: (
         <div className="[&_text]:!fill-white/70">
-          <TrajectoryMark series={turnover} hue="#8fa3d4" fmtVal={(n) => `${n}%`} H={64} />
+          <TrajectoryMark series={facts.oe.turnover.series} hue="#8fa3d4" fmtVal={(n) => `${n}%`} />
         </div>
-        <div className="text-[11px] text-white/50">
-          Training hours per employee up from <span className="num">{fmt(training[0]?.[1])}</span> to{' '}
-          <span className="num">{fmt(training[training.length - 1]?.[1])}</span>
-        </div>
-      </div>
-
-      <span
-        className="flex shrink-0 items-center justify-center gap-1.5 rounded-input border-[1.5px] px-4 py-2 text-[13px] font-semibold text-white transition-colors duration-200 @xl:ml-auto"
-        style={{ borderColor: 'rgba(255,255,255,0.35)', background: 'rgba(255,255,255,0.08)' }}
-        onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.18)')}
-        onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
-      >
-        Explore {oeCount} indicators
-        <ChevronRight size={16} strokeWidth={2} className="transition-transform duration-300 group-hover:translate-x-1" />
-      </span>
-    </button>
-  )
+      ),
+      count: count('Organizational Excellence'),
+      entities: entities('Organizational Excellence'),
+    },
+  ]
 }
 
 const CHIP_STYLE: Record<ChipReason, string> = {

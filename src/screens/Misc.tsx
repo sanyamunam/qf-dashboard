@@ -8,7 +8,7 @@ import { motion } from 'framer-motion'
 import { Handshake } from 'lucide-react'
 import { AppHeader, Spark, HeaderCluster, GlobalSearch } from '../components/Shell'
 import { PortfolioBrief } from '../components/PortfolioBrief'
-import { buildCards, ThemeCard, OEBand } from '../components/ThemeCards'
+import { buildCards, ThemeCard } from '../components/ThemeCards'
 import { Standing } from '../components/Standing'
 import { inventory } from '../model/data'
 import type { Kpi } from '../model/types'
@@ -58,11 +58,8 @@ export function ThematicView({
         <PortfolioBrief onEvidence={onEvidence} />
       </motion.div>
 
-      {/* FIVE thematic areas, composed for five (R15). The hero spans two
-          columns, so 3 columns resolve as hero+1 then 3, and 2 columns as a
-          full-width hero then 2×2 — no empty cell at any width, and no sixth
-          slot for anything to be filed into. Container-queried so the grid
-          reflows when BOTaina's panel takes space. */}
+      {/* six equal tiles fill a 3×2 grid exactly — no hero, no dead space (R4 fix 2);
+          container-queried so the grid reflows when BOTaina's panel takes space */}
       <motion.div
         className="mt-14 grid grid-cols-1 gap-4 @xl:grid-cols-2 @4xl:grid-cols-3"
         initial="off"
@@ -72,26 +69,11 @@ export function ThematicView({
         {cards.map((c) => (
           <motion.div
             key={c.themeId}
-            className={c.hero ? '@xl:col-span-2' : undefined}
             variants={{ off: { opacity: 0, y: 16 }, on: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.32, 0.72, 0, 1] } } }}
           >
             <ThemeCard def={c} onOpen={onOpenTheme} />
           </motion.div>
         ))}
-      </motion.div>
-
-      {/* the structural break, stated rather than implied */}
-      <motion.div
-        className="mt-14"
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.15, ease: [0.32, 0.72, 0, 1] }}
-      >
-        <div className="mb-3 flex items-center gap-4">
-          <span className="label shrink-0 text-ink-mute">Enabling function</span>
-          <span aria-hidden className="h-px flex-1" style={{ background: 'rgba(18,40,34,0.14)' }} />
-        </div>
-        <OEBand onOpen={onOpenTheme} />
       </motion.div>
 
       <footer className="mt-9 text-center text-[11px] text-ink-mute/80">
