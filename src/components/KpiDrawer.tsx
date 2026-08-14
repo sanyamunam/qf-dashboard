@@ -207,23 +207,26 @@ export function KpiDetailBody({ kpi, group: given }: { kpi: Kpi; group?: Kpi[] |
           </p>
         </div>
 
-        <div className="mt-5 flex gap-4 rounded-panel bg-sidra p-5 text-white">
-          <div className="shrink-0">
-            <BotainaFigure size={62} state="speaking" />
-          </div>
-          <div>
-            <div className="text-[10.5px] font-semibold uppercase tracking-wide text-white/60">
+        {/* BOTaina's own surface — the one AI green, and her avatar reduced to a
+            signature badge beside the label: she attributes this text, she does
+            not compete with it (R12 fix 4) */}
+        <div className="mt-5 rounded-panel p-5 text-white" style={{ background: 'var(--ai-panel-gradient)' }}>
+          <div className="flex items-center gap-2">
+            <span className="block h-[26px] w-[26px] shrink-0 overflow-hidden rounded-full bg-white/15">
+              <BotainaFigure size={26} state="speaking" />
+            </span>
+            <span className="text-[10.5px] font-semibold uppercase tracking-wide text-white/70">
               BOTaina · AI highlights
-            </div>
-            <ul className="mt-2.5 flex flex-col gap-2.5">
-              {aiHighlights(kpi).map((h) => (
-                <li key={h} className="flex gap-2.5 text-[13px] leading-relaxed text-white/90">
-                  <span aria-hidden className="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-white/45" />
-                  <span>{h}</span>
-                </li>
-              ))}
-            </ul>
+            </span>
           </div>
+          <ul className="mt-3 flex flex-col gap-2.5">
+            {aiHighlights(kpi).map((h) => (
+              <li key={h} className="flex gap-2.5 text-[13px] leading-relaxed text-white/90">
+                <span aria-hidden className="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-white/45" />
+                <span>{h}</span>
+              </li>
+            ))}
+          </ul>
         </div>
       </section>
 

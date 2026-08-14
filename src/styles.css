@@ -44,15 +44,29 @@
   --shadow-card-hover: 0 2px 4px rgba(23, 32, 61, 0.06), 0 18px 44px -14px rgba(23, 32, 61, 0.22);
   --shadow-loud: 0 2px 6px rgba(23, 32, 61, 0.07), 0 24px 60px -18px rgba(85, 107, 180, 0.35);
 
-  /* The AI voice — QF mint, unused in R1, claimed as the AI signature. Nowhere else. */
-  --color-ai-mint: #50e2c3;
 }
 
 :root {
-  /* one AI signature across the product — indigo → purple from the QF data-viz
-     palette (R4 fix 1; the teal-mint gradient competed with the content) */
-  --ai-gradient: linear-gradient(118deg, #556bb4 0%, #5b2e8a 100%);
-  --ai-gradient-subtle: linear-gradient(118deg, rgba(85, 107, 180, 0.08), rgba(91, 46, 138, 0.1));
+  /**
+   * ONE AI identity, platform-wide (R12). Green, because it sits next to Sidra
+   * Green — the AI layer reads as an extension of Al Mishkat's own voice rather
+   * than an accent bolted on. Replaces the indigo→purple signature AND the
+   * bespoke forest fill BOTaina's panel used to carry: two colours for one
+   * meaning was a contradiction a careful reader would notice.
+   *
+   * Reserved for AI-authored content and BOTaina's own chrome. Never a section
+   * header, a theme card, or general UI. The indigo and purple values live on
+   * as THEME hues (Social Progress, Precision Health) and in the chart series
+   * palette — they simply no longer mean "AI" anywhere.
+   */
+  --ai-green-deep: #073b31;
+  --ai-green-mid: #146152;
+  --ai-green-bright: #2fa98a;
+  --ai-green-mint: #3fcba0;
+
+  --ai-border-gradient: linear-gradient(120deg, var(--ai-green-deep), var(--ai-green-mid), var(--ai-green-bright));
+  --ai-panel-gradient: linear-gradient(135deg, #0b2a24 0%, var(--ai-green-mid) 60%, #1f8f72 100%);
+  --ai-wash-subtle: linear-gradient(120deg, rgba(7, 59, 49, 0.05), rgba(63, 203, 160, 0.1));
 }
 
 html {
@@ -109,7 +123,7 @@ body {
 /* AI-authored surface: 2px gradient rule on the leading edge + subtle wash */
 .ai-surface {
   position: relative;
-  background: var(--ai-gradient-subtle), var(--color-card);
+  background: var(--ai-wash-subtle), var(--color-card);
   border-radius: var(--radius-panel);
 }
 .ai-surface::before {
@@ -119,10 +133,10 @@ body {
   inset-inline-start: 0;
   width: 2px;
   border-radius: 2px;
-  background: var(--ai-gradient);
+  background: var(--ai-border-gradient);
 }
 
-/* AI summary surface (R5 fix 2): a restrained indigo→purple gradient border
+/* AI summary surface (R5 fix 2, recoloured green in R12): a restrained gradient border
    over a liquid-glass fill with an inner top highlight. Marks the card as the
    AI layer without competing with the spotlight tiles inside. */
 /* Glass surface + gradient border, without the gradient tinting the fill.
@@ -146,7 +160,7 @@ body {
   inset: 0;
   padding: 1.5px;
   border-radius: inherit;
-  background: linear-gradient(135deg, #556bb4 0%, #8a63c9 45%, #5b2e8a 100%);
+  background: var(--ai-border-gradient);
   -webkit-mask:
     linear-gradient(#000 0 0) content-box,
     linear-gradient(#000 0 0);
@@ -174,7 +188,7 @@ body {
   inset: 0;
   padding: 1.5px;
   border-radius: inherit;
-  background: linear-gradient(135deg, #556bb4 0%, #8a63c9 45%, #5b2e8a 100%);
+  background: var(--ai-border-gradient);
   -webkit-mask:
     linear-gradient(#000 0 0) content-box,
     linear-gradient(#000 0 0);
@@ -233,7 +247,7 @@ body {
   100% { background-position: 0% 50%; }
 }
 .ai-ring {
-  background: var(--ai-gradient);
+  background: var(--ai-border-gradient);
   background-size: 220% 220%;
 }
 .ai-ring.generating {

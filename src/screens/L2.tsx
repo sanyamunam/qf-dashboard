@@ -729,7 +729,7 @@ function AiSearchBar({
         <button
           type="submit"
           className="shrink-0 rounded-full px-4 py-2 text-[12.5px] font-medium text-white"
-          style={{ background: 'var(--ai-gradient)' }}
+          style={{ background: 'var(--ai-border-gradient)' }}
         >
           Ask
         </button>
@@ -1232,7 +1232,10 @@ function AnnotatedSlot({ annotated, children }: { annotated: boolean; children: 
         transition={{ delay: 0.55, duration: 0.5, ease: [0.32, 0.72, 0, 1] }}
       >
         <BotainaFigure size={52} state="pointing" />
-        <div className="mb-4 max-w-[170px] rounded-input bg-sidra px-2.5 py-1.5 text-[11px] leading-snug text-white shadow-md">
+        <div
+          className="mb-4 max-w-[170px] rounded-input px-2.5 py-1.5 text-[11px] leading-snug text-white shadow-md"
+          style={{ background: 'var(--ai-panel-gradient)' }}
+        >
           This is the number I would raise first.
         </div>
       </motion.div>

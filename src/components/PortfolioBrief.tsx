@@ -213,7 +213,7 @@ export function PortfolioBrief({ onEvidence }: { onEvidence: (kpi: Kpi) => void 
           <button
             onClick={askBotaina}
             className="ms-auto flex shrink-0 items-center gap-2 rounded-full py-1 pe-3.5 ps-1 text-[12.5px] font-medium text-white transition-transform duration-200 hover:scale-[1.03]"
-            style={{ background: 'var(--ai-gradient)' }}
+            style={{ background: 'var(--ai-border-gradient)' }}
           >
             <span className="block h-7 w-7 overflow-hidden rounded-full bg-cream">
               <img src="/botaina.gif" alt="" className="h-full w-full object-cover" />

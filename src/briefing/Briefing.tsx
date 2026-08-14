@@ -113,7 +113,7 @@ export function Briefing({
                     <button
                       onClick={() => setStep(0)}
                       className="flex items-center gap-2 rounded-full px-6 py-3 text-[14.5px] font-semibold text-white transition-transform hover:scale-[1.03]"
-                      style={{ background: 'var(--ai-gradient)' }}
+                      style={{ background: 'var(--ai-border-gradient)' }}
                     >
                       Begin <ArrowRight size={16} strokeWidth={2} />
                     </button>
@@ -271,7 +271,7 @@ function ItemScreen({
         <button
           onClick={() => onAskBotaina(`Tell me more: ${item.finding}`)}
           className="flex items-center gap-2 rounded-full py-1 pe-3.5 ps-1 font-medium text-white transition-transform hover:scale-[1.03]"
-          style={{ background: 'var(--ai-gradient)' }}
+          style={{ background: 'var(--ai-border-gradient)' }}
         >
           <span className="block h-6 w-6 overflow-hidden rounded-full bg-cream">
             <img src="/botaina.gif" alt="" className="h-full w-full object-cover" />

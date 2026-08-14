@@ -31,18 +31,18 @@ export function AiRead({
               <span
                 aria-hidden
                 className="spark-glow absolute inset-0 rounded-full"
-                style={{ background: 'var(--ai-gradient)', filter: 'blur(5px)' }}
+                style={{ background: 'var(--ai-border-gradient)', filter: 'blur(5px)' }}
               />
               <span
                 className="relative flex h-6 w-6 items-center justify-center rounded-chip"
-                style={{ background: 'var(--ai-gradient-subtle)' }}
+                style={{ background: 'var(--ai-wash-subtle)' }}
               >
                 <span className="spark-anim flex">
                   <Spark size={13} />
                 </span>
               </span>
             </span>
-            <span className="label" style={{ color: '#556bb4' }}>
+            <span className="label" style={{ color: 'var(--ai-green-mid)' }}>
               {title}
             </span>
           </span>

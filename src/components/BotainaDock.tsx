@@ -1,6 +1,6 @@
 /**
  * BOTaina — floating presence, bottom-right, above the nav pill.
- * The launcher runs the supplied GIF inside an --ai-gradient ring; the panel
+ * The launcher runs the supplied GIF inside an --ai-border-gradient ring; the panel
  * is glass. She greets by name once, answers from cells, renders a live chart
  * in-panel, and on "Take me to Social Progress" she navigates and points.
  */
@@ -499,7 +499,7 @@ export function BotainaDock({
         <button
           onClick={() => setOpen(true)}
           className="ai-ring fixed bottom-24 right-6 z-40 rounded-full p-[3px] transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:scale-105"
-          style={{ boxShadow: '0 10px 30px -8px rgba(85,107,180,0.45)' }}
+          style={{ boxShadow: '0 10px 30px -8px rgba(20,97,82,0.45)' }}
           aria-label="Talk to BOTaina"
         >
           <span className="block h-[58px] w-[58px] overflow-hidden rounded-full bg-cream">
@@ -517,7 +517,7 @@ export function BotainaDock({
               background: 'rgba(252,251,247,0.92)',
               backdropFilter: 'blur(24px)',
               WebkitBackdropFilter: 'blur(24px)',
-              borderInlineStart: '1px solid rgba(85,107,180,0.18)',
+              borderInlineStart: '1px solid rgba(20,97,82,0.18)',
               boxShadow: '-16px 0 44px -18px rgba(23,32,61,0.3)',
             }}
             initial={{ x: '105%' }}
@@ -528,7 +528,7 @@ export function BotainaDock({
             aria-label="BOTaina"
           >
             {/* the AI family's gradient edge, matching the summary card */}
-            <span aria-hidden className="absolute inset-x-0 top-0 h-[2.5px]" style={{ background: 'var(--ai-gradient)' }} />
+            <span aria-hidden className="absolute inset-x-0 top-0 h-[2.5px]" style={{ background: 'var(--ai-border-gradient)' }} />
             <span
               aria-hidden
               onPointerDown={onDragStart}
@@ -559,8 +559,18 @@ export function BotainaDock({
                       <div className="rounded-input bg-sidra px-3 py-2 text-[13px] text-white">{m.text}</div>
                     ) : (
                       <div
-                        className="rounded-input bg-white/85 px-3 py-2.5 text-[13px] leading-relaxed text-ink"
-                        style={{ borderInlineStart: '2px solid transparent', borderImage: 'var(--ai-gradient) 1', borderImageSlice: 1, borderInlineStartWidth: 2, borderInlineStartStyle: 'solid' }}
+                        /* her own surface: the green wash + gradient edge put it
+                           in the AI family while keeping streamed, structured
+                           answers as readable as they are on a light card */
+                        className="rounded-input px-3 py-2.5 text-[13px] leading-relaxed text-ink"
+                        style={{
+                          background: 'var(--ai-wash-subtle), rgba(255,255,255,0.85)',
+                          borderInlineStart: '2px solid transparent',
+                          borderImage: 'var(--ai-border-gradient) 1',
+                          borderImageSlice: 1,
+                          borderInlineStartWidth: 2,
+                          borderInlineStartStyle: 'solid',
+                        }}
                       >
                         {m.chart ? (
                           <div>
