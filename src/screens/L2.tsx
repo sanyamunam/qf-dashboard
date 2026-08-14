@@ -144,7 +144,7 @@ export function L2({
   onBack,
 }: {
   themeId: string
-  onOpenKpi: (kpi: Kpi) => void
+  onOpenKpi: (kpi: Kpi, group?: Kpi[]) => void
   pointFocus?: string | null
   onBack: () => void
 }) {
@@ -460,7 +460,7 @@ export function L2({
             </p>
             <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {aiResult.kpis.map((k) => (
-                <KpiCard key={k.id} group={[k]} hue={theme.fill} size="sm" onOpen={() => onOpenKpi(k)} />
+                <KpiCard key={k.id} group={[k]} hue={theme.fill} size="sm" onOpen={() => onOpenKpi(k, [k])} />
               ))}
               {aiResult.kpis.length === 0 && (
                 <div className="col-span-full rounded-card bg-card p-6 text-[13.5px] italic text-ink-mute shadow-(--shadow-card)">
@@ -971,7 +971,7 @@ function MoverColumn({
   tone: string
   kpis: Kpi[]
   hue: string
-  onOpen: (k: Kpi) => void
+  onOpen: (k: Kpi, group?: Kpi[]) => void
   emptyNote: string
 }) {
   return (
@@ -991,7 +991,7 @@ function MoverColumn({
            items-stretch keeps the four cards level without hard-coding a height */
         <div className="grid flex-1 grid-cols-1 items-stretch gap-4 sm:grid-cols-2">
           {kpis.map((k) => (
-            <KpiCard key={k.id} group={[k]} hue={hue} size="lg" className="h-full" onOpen={() => onOpen(k)} />
+            <KpiCard key={k.id} group={[k]} hue={hue} size="lg" className="h-full" onOpen={() => onOpen(k, [k])} />
           ))}
           {/* the shorter section keeps its slot rather than stretching */}
           {kpis.length === 1 && (
@@ -1046,7 +1046,7 @@ function Bands({
   visible: Kpi[]
   isOE: boolean
   hue: string
-  onOpenKpi: (kpi: Kpi) => void
+  onOpenKpi: (kpi: Kpi, group?: Kpi[]) => void
   annotate: string | null
   sort: Filters['sort']
   year: YearKey
@@ -1137,7 +1137,7 @@ function BandBody({
 }: {
   kpis: Kpi[]
   hue: string
-  onOpenKpi: (kpi: Kpi) => void
+  onOpenKpi: (kpi: Kpi, group?: Kpi[]) => void
   annotateKpiId: string | null
   sort: Filters['sort']
   year: YearKey
@@ -1182,7 +1182,7 @@ function BandBody({
                 /* a historical year keeps its uniform value tiles (R6 fix 5) */
                 <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
                   {cards.map((c) => (
-                    <GroupCardView key={c.key} card={c} onOpen={() => onOpenKpi(c.kpis[0])} />
+                    <GroupCardView key={c.key} card={c} onOpen={() => onOpenKpi(c.kpis[0], c.kpis)} />
                   ))}
                 </div>
               ) : (
@@ -1196,7 +1196,7 @@ function BandBody({
                         hue={hue}
                         size="sm"
                         className="h-full"
-                        onOpen={() => onOpenKpi(c.kpis[0])}
+                        onOpen={() => onOpenKpi(c.kpis[0], c.kpis)}
                         meta={c.rep.kind === 'idle' || c.rep.kind === 'not-reported' ? c.rep.note : undefined}
                       />
                     </AnnotatedSlot>

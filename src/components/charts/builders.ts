@@ -256,12 +256,21 @@ const isRateLike = (k: Kpi) => k.name.includes('%') || /rate|ratio|index|nps|sat
 
 const TRACK = 'rgba(200,201,199,0.4)'
 
+/** Where a snapshot is being drawn: the card, or the overlay's larger anchor. */
+export type ChartScale = 'card' | 'overlay'
+
 /**
  * One gauge: full sweep = the target, so a full arc IS the target reached.
  * Overshoot rescales to the value and marks the target as a notch on the
  * track — the arc never lies about where the finish line was.
  */
-function gaugeFor(row: SnapshotRow, hue: string, center: [string, string], radius: string, big: boolean) {
+function gaugeFor(
+  row: SnapshotRow,
+  hue: string,
+  center: [string, string],
+  radius: string,
+  sz: { ring: number; v: number; c: number; s: number; offset: string },
+) {
   const over = row.value > row.target
   const max = over ? row.value : row.target
   const fill = fillFor(row.status, hue)
@@ -283,13 +292,13 @@ function gaugeFor(row: SnapshotRow, hue: string, center: [string, string], radiu
     radius,
     progress: {
       show: true,
-      width: big ? 10 : 8,
+      width: sz.ring,
       roundCap: true,
       itemStyle: met
         ? { color: fill, shadowColor: 'rgba(120,190,32,0.5)', shadowBlur: 9 }
         : { color: fill },
     },
-    axisLine: { lineStyle: { width: big ? 10 : 8, color: axisColor } },
+    axisLine: { lineStyle: { width: sz.ring, color: axisColor } },
     pointer: { show: false },
     axisTick: { show: false },
     splitLine: { show: false },
@@ -297,19 +306,21 @@ function gaugeFor(row: SnapshotRow, hue: string, center: [string, string], radiu
     anchor: { show: false },
     title: { show: false },
     detail: {
-      offsetCenter: [0, big ? '-8%' : '0%'],
+      offsetCenter: [0, sz.offset],
       formatter: met ? `{v|${nf(row.value)}}{c| ✓}\n{s|of ${nf(row.target)}}` : `{v|${nf(row.value)}}\n{s|of ${nf(row.target)}}`,
       rich: {
-        v: { fontSize: big ? 19 : 17, fontWeight: 700, fontFamily: 'Space Grotesk', color: textFor(row.status) },
-        c: { fontSize: big ? 14 : 12, fontWeight: 700, fontFamily: 'Space Grotesk', color: STATUS_COLOR.met.fill },
-        s: { fontSize: 10, fontFamily: 'Space Grotesk', color: '#7e938d', padding: [2, 0, 0, 0] },
+        v: { fontSize: sz.v, fontWeight: 700, fontFamily: 'Space Grotesk', color: textFor(row.status) },
+        c: { fontSize: sz.c, fontWeight: 700, fontFamily: 'Space Grotesk', color: STATUS_COLOR.met.fill },
+        s: { fontSize: sz.s, fontFamily: 'Space Grotesk', color: '#7e938d', padding: [2, 0, 0, 0] },
       },
     },
     data: [{ value: Math.min(row.value, max) }],
   }
 }
 
-export function snapshotFor(group: Kpi[], hue: string, title?: string): SnapshotRep {
+export function snapshotFor(group: Kpi[], hue: string, title?: string, scale: ChartScale = 'card'): SnapshotRep {
+  // the overlay draws the same mark as the card, larger (R11 fix 2)
+  const big = scale === 'overlay'
   // a year-end or idle KPI's Q1 cell is an artifact, not a position — drawing
   // "0 of 50" for an indicator that reports in December would be a lie. The
   // same applies to any Q1 zero the parser judged "not yet reported": if the
@@ -334,7 +345,14 @@ export function snapshotFor(group: Kpi[], hue: string, title?: string): Snapshot
   // member has a real Q1 position, an unlabelled mark could be read as any of
   // the members, so the label stays (the R9-found ambiguity, fixed for good)
   if (withQ1.length > 1 || group.length > 1) {
-    const rows: SnapshotRow[] = withQ1.slice(0, 3).map((k) => ({
+    // Sheet order, always. The card receives its group already sorted by
+    // whatever L2 sort is active while the overlay reads the raw set, so
+    // without this the same group's rows appear in two different orders
+    // between the card and the overlay opened from it (R11 fix 2).
+    const ordered = [...withQ1].sort((a, b) => a.row - b.row)
+    // the card caps at three rows to keep its footprint fixed; the overlay has
+    // the room to show every member of the group
+    const rows: SnapshotRow[] = ordered.slice(0, big ? 8 : 3).map((k) => ({
       label: memberLabel(k, title),
       value: k.actuals['2026Q1'].value as number,
       target: k.targets['2026'].value as number,
@@ -351,9 +369,19 @@ export function snapshotFor(group: Kpi[], hue: string, title?: string): Snapshot
   if (isRateLike(k)) {
     return {
       kind: 'arc',
-      height: 84,
+      height: big ? 172 : 84,
       option: {
-        series: [gaugeFor({ label: '', value: a, target: t, status: st }, hue, ['50%', '76%'], '120%', true)],
+        series: [
+          gaugeFor(
+            { label: '', value: a, target: t, status: st },
+            hue,
+            ['50%', '76%'],
+            big ? '126%' : '120%',
+            big
+              ? { ring: 17, v: 36, c: 25, s: 15, offset: '-6%' }
+              : { ring: 10, v: 19, c: 14, s: 10, offset: '-8%' },
+          ),
+        ],
       },
     }
   }
@@ -363,41 +391,43 @@ export function snapshotFor(group: Kpi[], hue: string, title?: string): Snapshot
   const max = Math.max(a, t)
   return {
     kind: 'bullet',
-    height: 58,
+    height: big ? 104 : 58,
     option: {
-      grid: { left: 4, right: 48, top: 21, bottom: 15 },
+      grid: big
+        ? { left: 6, right: 88, top: 38, bottom: 26 }
+        : { left: 4, right: 48, top: 21, bottom: 15 },
       xAxis: { type: 'value', max: max * 1.05, show: false },
       yAxis: { type: 'category', data: [''], show: false },
       series: [
         {
           type: 'bar',
           data: [a],
-          barWidth: 12,
+          barWidth: big ? 22 : 12,
           itemStyle: met
-            ? { color: fillFor(st, hue), borderRadius: [0, 4, 4, 0], shadowColor: 'rgba(120,190,32,0.45)', shadowBlur: 7 }
-            : { color: fillFor(st, hue), borderRadius: [0, 4, 4, 0] },
+            ? { color: fillFor(st, hue), borderRadius: [0, 6, 6, 0], shadowColor: 'rgba(120,190,32,0.45)', shadowBlur: 7 }
+            : { color: fillFor(st, hue), borderRadius: [0, 6, 6, 0] },
           showBackground: true,
-          backgroundStyle: { color: 'rgba(200,201,199,0.25)', borderRadius: [0, 4, 4, 0] },
+          backgroundStyle: { color: 'rgba(200,201,199,0.25)', borderRadius: [0, 6, 6, 0] },
           label: {
             show: true,
             position: 'right',
             fontFamily: 'Space Grotesk',
             fontWeight: 700,
-            fontSize: 14,
+            fontSize: big ? 26 : 14,
             color: textFor(st),
             formatter: () => (met ? `${nf(a)} ✓` : nf(a)),
           },
           markLine: {
             silent: true,
             symbol: 'none',
-            lineStyle: { type: 'dashed', color: '#47605a', width: 2 },
+            lineStyle: { type: 'dashed', color: '#47605a', width: big ? 2.5 : 2 },
             label: {
               formatter: `target ${nf(t)}`,
               position: 'end',
               // a target near either edge would push its label off the card
               align: (t / (max * 1.05) < 0.35 ? 'left' : t / (max * 1.05) > 0.75 ? 'right' : 'center') as 'left' | 'center' | 'right',
               color: '#47605a',
-              fontSize: 11,
+              fontSize: big ? 13 : 11,
               fontWeight: 600,
               fontFamily: 'Instrument Sans',
             },
@@ -420,6 +450,18 @@ const short = (s: string, n = 30) => (s.length > n ? s.slice(0, n - 1) + '…' :
 export function overlayTrendOption(group: Kpi[], hue: string): EChartsOption {
   const AXIS_YEARS = ['2022', '2023', '2024', '2025', '2026', '2027', '2028']
   const label = (y: string) => (y === '2026' ? '2026 (Q1)' : y)
+  /**
+   * The Q1 cell of an indicator that hasn't reported this quarter holds a 0
+   * the parser judged an artifact. Plotting it draws a zero-height bar
+   * labelled "0" — a reading that doesn't exist, directly contradicting the
+   * summary above it. Absent is absent (R11).
+   */
+  const q1Actual = (k: Kpi) => {
+    const v = k.actuals['2026Q1'].value
+    if (v === null || v !== 0) return v
+    const last = k.movementSeries[k.movementSeries.length - 1]
+    return last?.[0] === '2026Q1' ? 0 : null
+  }
   const series: object[] = []
   group.forEach((k, i) => {
     const color = group.length === 1 ? hue : SERIES_PALETTE[i % SERIES_PALETTE.length]
@@ -427,7 +469,7 @@ export function overlayTrendOption(group: Kpi[], hue: string): EChartsOption {
       name: `${short(k.name, 30)} — actual`,
       type: 'bar',
       barMaxWidth: 22,
-      data: AXIS_YEARS.map((y) => (y === '2026' ? k.actuals['2026Q1'].value : (k.actuals[y]?.value ?? null))),
+      data: AXIS_YEARS.map((y) => (y === '2026' ? q1Actual(k) : (k.actuals[y]?.value ?? null))),
       itemStyle: { color, borderRadius: [3, 3, 0, 0] },
       label: {
         show: true,
@@ -469,6 +511,11 @@ export function buildGroupCards(kpis: Kpi[], hue: string, year: YearKey = '2026Q
     const key = k.chartGroup ? `g:${k.chartGroup}:${k.entity}` : `s:${k.id}`
     byGroup.set(key, [...(byGroup.get(key) ?? []), k])
   }
+  // Members go in sheet order, whatever sort produced the list. The active L2
+  // sort orders the CARDS; letting it also decide which member lands at
+  // group[0] made the card's caption — and the KPI a click opens — change with
+  // the sort, so a card and its overlay could state different verdicts (R11).
+  for (const [key, members] of byGroup) byGroup.set(key, [...members].sort((a, b) => a.row - b.row))
 
   // a historical year renders as uniform value tiles — that year's actual
   // against that year's target, with absences marked plainly (R6 fix 5)

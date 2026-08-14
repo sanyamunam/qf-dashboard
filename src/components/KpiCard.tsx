@@ -15,59 +15,9 @@ import type { Kpi } from '../model/types'
 import { fmt } from '../model/data'
 import { EntityIcon } from './EntityIcon'
 import { KpiIdentity } from './KpiIdentity'
-import { EChart } from './charts/EChart'
-import { snapshotFor, aiLineFor, STATUS_COLOR, type SnapshotRow } from './charts/builders'
+import { aiLineFor } from './charts/builders'
+import { SnapshotMark } from './charts/SnapshotMark'
 import { Spark } from './Shell'
-
-const nfLedger = (n: number) => new Intl.NumberFormat('en', { maximumFractionDigits: 1 }).format(n)
-
-/**
- * The status ledger (R10 fix 5 — the client's chosen grouped-chart treatment,
- * picked after comparing it live against a small-multiple-arc alternative;
- * see docs/r10-notes.md). HTML, not canvas: full labels that never truncate,
- * numbers with real weight, a dashed target the eye can find. Rows share one
- * axis so members stay comparable.
- */
-function LedgerRows({ rows, max, hue }: { rows: SnapshotRow[]; max: number; hue: string }) {
-  return (
-    <div className="flex flex-col gap-2.5">
-      {rows.map((r) => {
-        const fill = r.status === 'met' || r.status === 'behind' || r.status === 'breach' ? STATUS_COLOR[r.status].fill : hue
-        const text = r.status === 'met' || r.status === 'behind' || r.status === 'breach' ? STATUS_COLOR[r.status].text : '#122822'
-        const w = Math.max(2, (r.value / max) * 100)
-        const tx = (r.target / max) * 100
-        return (
-          <div key={r.label}>
-            <div className="flex items-baseline justify-between gap-3">
-              <span className="min-w-0 text-[11.5px] leading-tight text-ink-soft">{r.label}</span>
-              <span className="num shrink-0 text-[15px] font-bold leading-none" style={{ color: text }}>
-                {nfLedger(r.value)}
-                {r.status === 'met' && <span className="ml-0.5 text-[11px]">✓</span>}
-                <span className="ml-1 text-[10.5px] font-normal text-ink-mute">of {nfLedger(r.target)}</span>
-              </span>
-            </div>
-            <div className="relative mt-1 h-[12px] overflow-visible rounded-full" style={{ background: 'rgba(200,201,199,0.3)' }}>
-              <div
-                className="ledger-fill h-full rounded-full"
-                style={{
-                  width: `${w}%`,
-                  background: fill,
-                  boxShadow: r.status === 'met' ? '0 0 7px rgba(120,190,32,0.45)' : undefined,
-                }}
-              />
-              {/* the target marker: dashed, darker than the bar, unmissable */}
-              <span
-                aria-hidden
-                className="absolute -top-[3px] h-[18px] w-0 border-l-2 border-dashed"
-                style={{ left: `${Math.min(99, tx)}%`, borderColor: '#47605a' }}
-              />
-            </div>
-          </div>
-        )
-      })}
-    </div>
-  )
-}
 
 const GOOD = '#3c6a5f'
 const BAD = '#8a1538'
@@ -128,7 +78,6 @@ export function KpiCard({
   const k = group[0]
   const pol = polarityOf(k)
   const loud = isLoud(group)
-  const snap = snapshotFor(group, hue, title)
   const lg = size === 'lg'
   const s = k.movementSeries
   const figure =
@@ -180,19 +129,9 @@ export function KpiCard({
         </div>
       )}
 
-      {snap.kind === 'group-ledger' ? (
-        <div className="mt-2.5">
-          <LedgerRows rows={snap.rows} max={snap.max} hue={hue} />
-        </div>
-      ) : snap.kind !== 'none' ? (
-        <div className="mt-2" onClick={(e) => e.stopPropagation()}>
-          <div onClick={onOpen}>
-            <EChart option={snap.option} height={snap.height} />
-          </div>
-        </div>
-      ) : meta ? (
-        <div className="mt-2 rounded-input bg-cream/60 px-2.5 py-1.5 text-[11px] italic text-ink-mute">{meta}</div>
-      ) : null}
+      <div className="mt-2.5">
+        <SnapshotMark group={group} hue={hue} title={title} scale="card" emptyNote={meta} />
+      </div>
 
       <p className={`mt-2 flex items-start gap-1.5 border-t border-cream pt-2 text-[11.5px] italic leading-snug text-ink-soft`}>
         <span className="mt-0.5 shrink-0">

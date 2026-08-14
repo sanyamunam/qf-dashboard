@@ -33,6 +33,18 @@ export default function App() {
   const [loaded, setLoaded] = useState(() => sessionStorage.getItem('almishkat.loaded') === '1')
   const [route, setRoute] = useState<Route>(parseHash)
   const [drawerKpi, setDrawerKpi] = useState<Kpi | null>(null)
+  /**
+   * The scope the reader actually clicked. A grouped card hands over its whole
+   * group; a spotlight card hands over the single indicator it showed. The
+   * overlay summarises exactly that, so its verdict can never differ from the
+   * caption the reader just read (R11 fix 4). Null = derive the full group,
+   * which is right for a list row or a BOTaina handoff.
+   */
+  const [drawerGroup, setDrawerGroup] = useState<Kpi[] | null>(null)
+  const openKpi = (k: Kpi, group?: Kpi[]) => {
+    setDrawerKpi(k)
+    setDrawerGroup(group ?? null)
+  }
   const [pointFocus, setPointFocus] = useState<string | null>(null)
   // BOTaina's docked panel: state lives here so it survives navigation
   const [botainaOpen, setBotainaOpen] = useState(false)
@@ -147,7 +159,7 @@ export default function App() {
             {route.screen === 'l2' && (
               <L2
                 themeId={route.themeId}
-                onOpenKpi={setDrawerKpi}
+                onOpenKpi={openKpi}
                 pointFocus={pointFocus}
                 onBack={() => go({ screen: 'themes' })}
               />
@@ -178,7 +190,7 @@ export default function App() {
           />
         </>
       )}
-      <KpiDrawer kpi={drawerKpi} onClose={() => setDrawerKpi(null)} />
+      <KpiDrawer kpi={drawerKpi} group={drawerGroup} onClose={() => setDrawerKpi(null)} />
     </LayoutGroup>
   )
 }
