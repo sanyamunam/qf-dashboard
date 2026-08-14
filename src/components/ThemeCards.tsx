@@ -5,7 +5,8 @@
  * indicator was chosen. Cards of a tier share one internal grid.
  */
 import { ChevronRight } from 'lucide-react'
-import { TrajectoryMark, DotGridMark, ProgressMark, SparseMark } from './marks'
+import { TrajectoryMark, ProgressMark, SparseMark } from './marks'
+import { RingMark } from './charts/RingMark'
 import { facts, fmt } from '../model/facts'
 import { themeKpis, themeById } from '../model/data'
 import { spotlightFor, type ChipReason } from '../model/spotlight'
@@ -59,12 +60,12 @@ export function buildCards(): CardDef[] {
         </>
       ),
       mark: (
-        <DotGridMark
+        <RingMark
+          value={facts.eco.certified ?? 0}
           total={facts.eco.registered ?? 0}
-          filled={facts.eco.certified ?? 0}
           hue={themeById('sustain').fill}
-          filledLabel="Green Flag certified"
-          restLabel="registered"
+          valueLabel="Green Flag certified"
+          totalLabel="schools registered"
         />
       ),
       count: count('Sustainability'),

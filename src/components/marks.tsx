@@ -69,57 +69,9 @@ export function MiniLine({ series, hue, w = 120, h = 28 }: { series: [string, nu
   )
 }
 
-/* 2 · Composition — a whole made of named parts, single reading. Literal dot grid. */
-export function DotGridMark({
-  total,
-  filled,
-  hue,
-  filledLabel,
-  restLabel,
-}: {
-  total: number
-  filled: number
-  hue: string
-  filledLabel: string
-  restLabel: string
-}) {
-  const cols = Math.ceil(Math.sqrt(total * 2.8))
-  const rows = Math.ceil(total / cols)
-  const cell = Math.min(300 / cols, 74 / rows)
-  const r = cell * 0.32
-  return (
-    <div aria-hidden>
-      <svg viewBox={`0 0 300 ${rows * cell + 2}`} width="100%" height="74">
-        {Array.from({ length: total }, (_, i) => {
-          const cx = (i % cols) * cell + cell / 2
-          const cy = Math.floor(i / cols) * cell + cell / 2
-          const isFilled = i < filled
-          return (
-            <circle
-              key={i}
-              cx={cx}
-              cy={cy}
-              r={r}
-              fill={isFilled ? hue : 'none'}
-              stroke={isFilled ? 'none' : NEUTRAL}
-              strokeWidth="1.1"
-            />
-          )
-        })}
-      </svg>
-      <div className="mt-1.5 flex gap-4 text-[10.5px] text-ink-mute">
-        <span className="flex items-center gap-1.5">
-          <span className="inline-block h-2 w-2 rounded-full" style={{ background: hue }} />
-          {filledLabel}
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="inline-block h-2 w-2 rounded-full border" style={{ borderColor: NEUTRAL }} />
-          {restLabel}
-        </span>
-      </div>
-    </div>
-  )
-}
+/* 2 · Composition — a whole made of named parts, single reading.
+   Now an ECharts ring: see components/charts/RingMark.tsx. A literal dot per
+   school stopped reading as a count at 86 marks and became texture. */
 
 /* 3 · Progress to a real commitment — single reading + credible target. */
 export function ProgressMark({
