@@ -27,8 +27,14 @@ Three were considered: (A) status-ledger rows, (B) small-multiple arcs,
 "lead" indicator is a judgement the workbook doesn't contain. The client asked
 for **A and B both, behind a live toggle** ("Group charts: Arcs · Bars" in the
 explore header, persisted in `localStorage almishkat.groupstyle`) so the two
-can be compared on the real page before one is chosen. Remove the loser and
-the toggle once the client decides.
+could be compared on the real page before one was chosen.
+
+**Decision: A, the status-ledger bars.** After comparing both live, the client
+chose the ledger treatment. The toggle, the small-multiple-arc option, and the
+`GroupStyle` plumbing were removed; `snapshotFor()` now always returns
+`group-ledger` for a multi-indicator card. `gaugeFor()` is kept — it still
+renders the single-KPI rate-like arc (Fix 6), which was never part of this
+choice.
 
 ## Labels (fix 1)
 

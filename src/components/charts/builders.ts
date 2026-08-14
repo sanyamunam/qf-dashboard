@@ -244,15 +244,13 @@ export interface SnapshotRow {
 }
 
 export type SnapshotRep =
-  /* grouped, treatment A: small-multiple arcs in one canvas, labels as HTML */
-  | { kind: 'group-arcs'; option: EChartsOption; height: number; rows: SnapshotRow[] }
-  /* grouped, treatment B: status-ledger rows, rendered in HTML by the card */
+  /* grouped: status-ledger rows, rendered in HTML by the card (R10 fix 5 — the
+     client's chosen treatment; the small-multiple-arc alternative was removed
+     once the two were compared live, see docs/r10-notes.md) */
   | { kind: 'group-ledger'; rows: SnapshotRow[]; max: number }
   | { kind: 'bullet'; option: EChartsOption; height: number }
   | { kind: 'arc'; option: EChartsOption; height: number }
   | { kind: 'none' }
-
-export type GroupStyle = 'arcs' | 'bars'
 
 const isRateLike = (k: Kpi) => k.name.includes('%') || /rate|ratio|index|nps|satisfaction/i.test(k.name)
 
@@ -311,7 +309,7 @@ function gaugeFor(row: SnapshotRow, hue: string, center: [string, string], radiu
   }
 }
 
-export function snapshotFor(group: Kpi[], hue: string, style: GroupStyle = 'arcs', title?: string): SnapshotRep {
+export function snapshotFor(group: Kpi[], hue: string, title?: string): SnapshotRep {
   // a year-end or idle KPI's Q1 cell is an artifact, not a position — drawing
   // "0 of 50" for an indicator that reports in December would be a lie. The
   // same applies to any Q1 zero the parser judged "not yet reported": if the
@@ -342,22 +340,7 @@ export function snapshotFor(group: Kpi[], hue: string, style: GroupStyle = 'arcs
       target: k.targets['2026'].value as number,
       status: statusOf(k),
     }))
-
-    if (style === 'bars') {
-      return { kind: 'group-ledger', rows, max: Math.max(...rows.map((r) => Math.max(r.value, r.target))) * 1.05 }
-    }
-
-    const n = rows.length
-    return {
-      kind: 'group-arcs',
-      height: 96,
-      rows,
-      option: {
-        series: rows.map((r, i) =>
-          gaugeFor(r, hue, [`${((i + 0.5) / n) * 100}%`, '72%'], n === 1 ? '105%' : n === 2 ? '92%' : '86%', false),
-        ),
-      },
-    }
+    return { kind: 'group-ledger', rows, max: Math.max(...rows.map((r) => Math.max(r.value, r.target))) * 1.05 }
   }
 
   const k = withQ1[0]

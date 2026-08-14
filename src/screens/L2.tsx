@@ -13,7 +13,7 @@ import { themeById, themeKpis } from '../model/data'
 import { facts, fmt, wishDropPct } from '../model/facts'
 import { topMovers } from '../model/spotlight'
 import type { Kpi } from '../model/types'
-import { buildGroupCards, type GroupCard, type YearKey, type GroupStyle } from '../components/charts/builders'
+import { buildGroupCards, type GroupCard, type YearKey } from '../components/charts/builders'
 import { EChart } from '../components/charts/EChart'
 import { BotainaFigure } from '../components/Botaina'
 import { KpiCard } from '../components/KpiCard'
@@ -161,15 +161,6 @@ export function L2({
   const [stuck, setStuck] = useState(false)
   const [prog, setProg] = useState(0)
   const [aiResult, setAiResult] = useState<Interp | null>(null)
-  // R10 review toggle: which treatment grouped cards render, page-wide,
-  // persisted so it survives navigation while the two options are compared
-  const [groupStyle, setGroupStyle] = useState<GroupStyle>(
-    () => (localStorage.getItem('almishkat.groupstyle') as GroupStyle) || 'arcs',
-  )
-  const changeGroupStyle = (g: GroupStyle) => {
-    setGroupStyle(g)
-    localStorage.setItem('almishkat.groupstyle', g)
-  }
   // the arrangement, not the data: persists per theme for the session (R8)
   const [view, setView] = useState<ViewId>(() => loadView(themeId))
   const changeView = (v: ViewId) => {
@@ -374,28 +365,7 @@ export function L2({
             <h2 className="text-[20px] font-semibold tracking-tight text-ink">
               Explore all {all.length} indicators
             </h2>
-            <div className="flex flex-wrap items-center gap-3">
-              {/* R10 review toggle: the two grouped-chart treatments, live */}
-              <div className="flex items-center gap-1.5 rounded-chip bg-cream px-1 py-1 text-[11.5px]">
-                <span className="px-1.5 text-ink-mute">Group charts</span>
-                {(['arcs', 'bars'] as const).map((g) => (
-                  <button
-                    key={g}
-                    onClick={() => changeGroupStyle(g)}
-                    className="rounded-chip px-2.5 py-1 font-medium capitalize transition-colors"
-                    style={
-                      groupStyle === g
-                        ? { background: '#fff', color: 'var(--color-sidra)', boxShadow: '0 1px 3px rgba(18,40,34,0.12)' }
-                        : { color: 'var(--color-ink-soft)' }
-                    }
-                    aria-pressed={groupStyle === g}
-                  >
-                    {g}
-                  </button>
-                ))}
-              </div>
-              <ViewSwitcher view={view} onChange={changeView} hue={theme.fill} multiEntity={entities.length > 1} />
-            </div>
+            <ViewSwitcher view={view} onChange={changeView} hue={theme.fill} multiEntity={entities.length > 1} />
           </div>
           <div className="mt-5">
             <AiSearchBar all={all} themeName={name} hue={theme.fill} onResult={setAiResult} active={aiResult} inputRef={aiFieldRef} />
@@ -521,7 +491,6 @@ export function L2({
             year={filters.yr}
             filtersActive={activeChips.length > 0 || filters.yr !== '2026Q1' || filters.sort !== 'mover'}
             focusId={pointFocus ?? null}
-            groupStyle={groupStyle}
             onRelax={() => setFilters((f) => ({ ...EMPTY, sort: f.sort }))}
           />
         )}
@@ -1072,7 +1041,6 @@ function Bands({
   year,
   filtersActive,
   focusId,
-  groupStyle,
   onRelax,
 }: {
   visible: Kpi[]
@@ -1084,7 +1052,6 @@ function Bands({
   year: YearKey
   filtersActive: boolean
   focusId: string | null
-  groupStyle: GroupStyle
   onRelax: () => void
 }) {
   // CEO-first density: bands are closed until asked for; the spotlights above
@@ -1148,7 +1115,7 @@ function Bands({
               </span>
             </button>
             {open ? (
-              <BandBody kpis={bandKpis} hue={hue} onOpenKpi={onOpenKpi} annotateKpiId={annotate} sort={sort} year={year} groupStyle={groupStyle} />
+              <BandBody kpis={bandKpis} hue={hue} onOpenKpi={onOpenKpi} annotateKpiId={annotate} sort={sort} year={year} />
             ) : (
               /* the collapsed state is a characterisation, not a teaser */
               <div className="py-3.5 text-[13.5px] leading-snug text-ink-soft">{bandLine(bandKpis)}</div>
@@ -1167,7 +1134,6 @@ function BandBody({
   annotateKpiId,
   sort,
   year,
-  groupStyle,
 }: {
   kpis: Kpi[]
   hue: string
@@ -1175,7 +1141,6 @@ function BandBody({
   annotateKpiId: string | null
   sort: Filters['sort']
   year: YearKey
-  groupStyle: GroupStyle
 }) {
   const groups = useMemo(() => {
     const sorted = [...kpis]
@@ -1231,7 +1196,6 @@ function BandBody({
                         hue={hue}
                         size="sm"
                         className="h-full"
-                        groupStyle={groupStyle}
                         onOpen={() => onOpenKpi(c.kpis[0])}
                         meta={c.rep.kind === 'idle' || c.rep.kind === 'not-reported' ? c.rep.note : undefined}
                       />

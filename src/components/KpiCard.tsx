@@ -4,6 +4,11 @@
  * arrow whose colour reflects the judgement (favourable given the indicator's
  * direction — a falling number can be good news), the comparison basis in
  * words, and a snapshot chart only — trends live in the overlay.
+ *
+ * R10: chart colour/shape carries the verdict (statusOf in builders.ts) so it
+ * never disagrees with the arrow. Grouped cards render the status-ledger
+ * treatment — the client's pick after comparing it live against a
+ * small-multiple-arc alternative (docs/r10-notes.md).
  */
 import { ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react'
 import type { Kpi } from '../model/types'
@@ -11,15 +16,17 @@ import { fmt } from '../model/data'
 import { EntityIcon } from './EntityIcon'
 import { KpiIdentity } from './KpiIdentity'
 import { EChart } from './charts/EChart'
-import { snapshotFor, aiLineFor, STATUS_COLOR, type GroupStyle, type SnapshotRow } from './charts/builders'
+import { snapshotFor, aiLineFor, STATUS_COLOR, type SnapshotRow } from './charts/builders'
 import { Spark } from './Shell'
 
 const nfLedger = (n: number) => new Intl.NumberFormat('en', { maximumFractionDigits: 1 }).format(n)
 
 /**
- * Treatment B — the status ledger (R10 fix 5). HTML, not canvas: full labels
- * that never truncate, numbers with real weight, a dashed target the eye can
- * find. Rows share one axis so members stay comparable.
+ * The status ledger (R10 fix 5 — the client's chosen grouped-chart treatment,
+ * picked after comparing it live against a small-multiple-arc alternative;
+ * see docs/r10-notes.md). HTML, not canvas: full labels that never truncate,
+ * numbers with real weight, a dashed target the eye can find. Rows share one
+ * axis so members stay comparable.
  */
 function LedgerRows({ rows, max, hue }: { rows: SnapshotRow[]; max: number; hue: string }) {
   return (
@@ -109,7 +116,6 @@ export function KpiCard({
   onOpen,
   meta,
   className = '',
-  groupStyle = 'arcs',
 }: {
   group: Kpi[]
   title?: string
@@ -118,13 +124,11 @@ export function KpiCard({
   onOpen: () => void
   meta?: string
   className?: string
-  /** R10 review toggle: which treatment grouped cards render */
-  groupStyle?: GroupStyle
 }) {
   const k = group[0]
   const pol = polarityOf(k)
   const loud = isLoud(group)
-  const snap = snapshotFor(group, hue, groupStyle, title)
+  const snap = snapshotFor(group, hue, title)
   const lg = size === 'lg'
   const s = k.movementSeries
   const figure =
@@ -179,22 +183,6 @@ export function KpiCard({
       {snap.kind === 'group-ledger' ? (
         <div className="mt-2.5">
           <LedgerRows rows={snap.rows} max={snap.max} hue={hue} />
-        </div>
-      ) : snap.kind === 'group-arcs' ? (
-        <div className="mt-1.5">
-          <div onClick={(e) => e.stopPropagation()}>
-            <div onClick={onOpen}>
-              <EChart option={snap.option} height={snap.height} />
-            </div>
-          </div>
-          {/* labels live in HTML so they wrap instead of truncating (fix 1) */}
-          <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${snap.rows.length}, minmax(0, 1fr))` }}>
-            {snap.rows.map((r) => (
-              <span key={r.label} className="text-center text-[10.5px] leading-tight text-ink-soft">
-                {r.label}
-              </span>
-            ))}
-          </div>
         </div>
       ) : snap.kind !== 'none' ? (
         <div className="mt-2" onClick={(e) => e.stopPropagation()}>
