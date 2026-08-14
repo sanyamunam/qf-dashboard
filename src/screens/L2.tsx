@@ -16,7 +16,8 @@ import type { Kpi } from '../model/types'
 import { buildGroupCards, type GroupCard, type YearKey } from '../components/charts/builders'
 import { EChart } from '../components/charts/EChart'
 import { BotainaFigure } from '../components/Botaina'
-import { KpiCard } from '../components/KpiCard'
+import { KpiCard, CARD_H } from '../components/KpiCard'
+import { BUDGET, assertFits } from '../model/prose'
 import { ViewSwitcher, ListView, CompareView, EntityView, type ViewId, loadView, saveView } from './views'
 import { Spark } from '../components/Shell'
 
@@ -41,21 +42,21 @@ function themeRead(themeId: string): { verdict: string; evidence: string; ask: s
     case 'social':
       return {
         verdict: 'One programme is shrinking faster than anything else in the portfolio is moving.',
-        evidence: `WISH beneficiaries fell from ${fmt(facts.wish.peak)} at peak to ${fmt(facts.wish.q1)} this quarter, ${wishDropPct}% down, while its full-year target is ${fmt(facts.wish.target26)}. The theme's other 60 indicators are quieter, several sitting exactly on their annual numbers.`,
+        evidence: `WISH beneficiaries fell from ${fmt(facts.wish.peak)} at peak to ${fmt(facts.wish.q1)} this quarter — ${wishDropPct}% down against a full-year target of ${fmt(facts.wish.target26)}. The other 60 indicators are quieter; several sit exactly on their annual numbers.`,
         ask: 'Ask WISH what changed in the delivery model, and ask who set the exactly-met 2026 targets.',
         confidence: 'Medium — 4 of 4 years reported for the driving indicator; Q1 is one quarter of twelve months.',
       }
     case 'sustain':
       return {
         verdict: 'A first quarter of baselines, with one genuinely climbing series.',
-        evidence: `Eco-Schools stands at ${fmt(facts.eco.beneficiaries)} students and teachers across ${fmt(facts.eco.registered)} schools (${fmt(facts.eco.certified)} Green Flags) — first readings. Research publications are the exception: 4, then 9, then 14 papers across three years.`,
+        evidence: `Eco-Schools stands at ${fmt(facts.eco.beneficiaries)} students and teachers across ${fmt(facts.eco.registered)} schools, ${fmt(facts.eco.certified)} of them Green Flags — all first readings. Research publications are the exception: 4, then 9, then 14 papers.`,
         ask: 'Ask Earthna what Green Flag renewal costs at this scale.',
         confidence: 'Low on trend — most of this theme has a single reading. High on the figures themselves.',
       }
     case 'edu':
       return {
         verdict: 'The legacy programmes are essentially complete; the new measures are just starting.',
-        evidence: `WISE Prize funding stands at QAR ${fmt((facts.wise.prizeValue ?? 0) / 1e6)}m across ${fmt(facts.wise.prizeCount)} recipients, and all ${facts.wise.testbeds} Edtech testbed schools are running — both exactly at their full-year numbers in the first quarter.`,
+        evidence: `WISE Prize funding stands at QAR ${fmt((facts.wise.prizeValue ?? 0) / 1e6)}m across ${fmt(facts.wise.prizeCount)} recipients, and all ${facts.wise.testbeds} Edtech testbed schools are running — both exactly at their full-year numbers in Q1.`,
         ask: 'Ask WISE which testbed tools schools kept after the pilots ended.',
         confidence: 'Medium — the completed programmes are certain; the in-progress ones have one reading.',
       }
@@ -69,7 +70,7 @@ function themeRead(themeId: string): { verdict: string; evidence: string; ask: s
     default:
       return {
         verdict: 'The engine room is quiet, and quiet is what it is for.',
-        evidence: 'All nine hard-ceiling indicators report at year end, so no Q1 reading exists. The history is mostly favourable: turnover ended 2025 at 7.0%, its best of four reported years; training hours have climbed from 6.0 to 15.0.',
+        evidence: 'All nine hard-ceiling indicators report at year end, so no Q1 reading exists. The history is favourable: turnover ended 2025 at 7.0%, its best of four years, and training hours climbed from 6.0 to 15.0.',
         ask: 'Ask Human Capital whether the 2025 turnover improvement held through the hiring season.',
         confidence: 'Medium — annual indicators, judged on complete prior years, none on this quarter.',
       }
@@ -80,14 +81,14 @@ function themeRead(themeId: string): { verdict: string; evidence: string; ask: s
 
 interface Filters {
   e: string[] // entities
-  fw: string[] // frameworks
+  pf: string[] // performance framework
   cat: string[] // categories
   av: string[] // availability: trend | first | nr
   sort: 'mover' | 'gap' | 'alpha' | 'entity'
   yr: YearKey
 }
 
-const EMPTY: Filters = { e: [], fw: [], cat: [], av: [], sort: 'mover', yr: '2026Q1' }
+const EMPTY: Filters = { e: [], pf: [], cat: [], av: [], sort: 'mover', yr: '2026Q1' }
 const YEARS: YearKey[] = ['2022', '2023', '2024', '2025', '2026Q1']
 
 function readFilters(themeId: string): Filters {
@@ -97,7 +98,7 @@ function readFilters(themeId: string): Filters {
   const p = new URLSearchParams(q)
   return {
     e: p.get('e')?.split('|').filter(Boolean) ?? [],
-    fw: p.get('fw')?.split('|').filter(Boolean) ?? [],
+    pf: p.get('pf')?.split('|').filter(Boolean) ?? [],
     cat: p.get('cat')?.split('|').filter(Boolean) ?? [],
     av: p.get('av')?.split('|').filter(Boolean) ?? [],
     sort: (p.get('sort') as Filters['sort']) ?? 'mover',
@@ -108,7 +109,7 @@ function readFilters(themeId: string): Filters {
 function writeFilters(themeId: string, f: Filters) {
   const p = new URLSearchParams()
   if (f.e.length) p.set('e', f.e.join('|'))
-  if (f.fw.length) p.set('fw', f.fw.join('|'))
+  if (f.pf.length) p.set('pf', f.pf.join('|'))
   if (f.cat.length) p.set('cat', f.cat.join('|'))
   if (f.av.length) p.set('av', f.av.join('|'))
   if (f.sort !== 'mover') p.set('sort', f.sort)
@@ -128,7 +129,7 @@ const AV_DEFS: { id: string; label: string; test: (k: Kpi) => boolean }[] = [
 function applyFilters(list: Kpi[], f: Filters, skip?: keyof Filters): Kpi[] {
   return list.filter((k) => {
     if (skip !== 'e' && f.e.length && !f.e.includes(k.entity)) return false
-    if (skip !== 'fw' && f.fw.length && !f.fw.includes(k.framework)) return false
+    if (skip !== 'pf' && f.pf.length && !f.pf.includes(k.framework)) return false
     if (skip !== 'cat' && f.cat.length && !f.cat.includes(k.category)) return false
     if (skip !== 'av' && f.av.length && !f.av.some((a) => AV_DEFS.find((d) => d.id === a)?.test(k))) return false
     return true
@@ -241,17 +242,17 @@ export function L2({
     }
   }, [filters.yr, all, name])
 
-  const toggle = (key: 'e' | 'fw' | 'cat' | 'av', v: string) =>
+  const toggle = (key: 'e' | 'pf' | 'cat' | 'av', v: string) =>
     setFilters((f) => ({ ...f, [key]: f[key].includes(v) ? f[key].filter((x) => x !== v) : [...f[key], v] }))
 
   const activeChips = [
     ...filters.e.map((v) => ({ key: 'e' as const, v })),
-    ...filters.fw.map((v) => ({ key: 'fw' as const, v })),
+    ...filters.pf.map((v) => ({ key: 'pf' as const, v })),
     ...filters.cat.map((v) => ({ key: 'cat' as const, v })),
     ...filters.av.map((v) => ({ key: 'av' as const, v: AV_DEFS.find((d) => d.id === v)?.label ?? v })),
   ]
 
-  const count = (key: 'e' | 'fw' | 'cat' | 'av', test: (k: Kpi) => boolean) =>
+  const count = (key: 'e' | 'pf' | 'cat' | 'av', test: (k: Kpi) => boolean) =>
     applyFilters(all, filters, key).filter(test).length
 
   return (
@@ -317,9 +318,14 @@ export function L2({
         {/* the one summary component — regenerates when a historical year is selected */}
         <AiRead
           overlap
-          verdict={yearRead ? yearRead.verdict : read.verdict}
-          body={<p className="max-w-[80ch]">{yearRead ? yearRead.evidence : read.evidence}</p>}
-          ask={yearRead ? yearRead.ask : read.ask}
+          fixed
+          verdict={assertFits(yearRead ? yearRead.verdict : read.verdict, BUDGET.verdict, 'theme verdict')}
+          body={
+            <p className="max-w-[80ch]">
+              {assertFits(yearRead ? yearRead.evidence : read.evidence, BUDGET.evidence, 'theme evidence')}
+            </p>
+          }
+          ask={assertFits(yearRead ? yearRead.ask : read.ask, BUDGET.ask, 'theme ask')}
           meta={
             yearRead ? (
               <>{yearRead.confidence}</>
@@ -399,9 +405,9 @@ export function L2({
             </FilterMenu>
           )}
           {!isOE && (
-            <FilterMenu label="Framework" hue={theme.fill} active={filters.fw.length > 0}>
+            <FilterMenu label="Performance Framework" hue={theme.fill} active={filters.pf.length > 0}>
               {['Impact', 'Strategic', 'Operational'].map((f) => (
-                <Opt key={f} on={filters.fw.includes(f)} onClick={() => toggle('fw', f)} label={f} n={count('fw', (k) => k.framework === f)} />
+                <Opt key={f} on={filters.pf.includes(f)} onClick={() => toggle('pf', f)} label={f} n={count('pf', (k) => k.framework === f)} />
               ))}
             </FilterMenu>
           )}
@@ -458,12 +464,14 @@ export function L2({
               </span>
               <span>{aiResult.answer}</span>
             </p>
-            <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="mt-4 flex flex-wrap items-stretch" style={{ gap: GAP.card }}>
               {aiResult.kpis.map((k) => (
-                <KpiCard key={k.id} group={[k]} hue={theme.fill} size="sm" onOpen={() => onOpenKpi(k)} />
+                <CardSlot key={k.id} basis={300}>
+                  <KpiCard group={[k]} hue={theme.fill} size="sm" className="w-full" onOpen={() => onOpenKpi(k)} />
+                </CardSlot>
               ))}
               {aiResult.kpis.length === 0 && (
-                <div className="col-span-full rounded-card bg-card p-6 text-[13.5px] italic text-ink-mute shadow-(--shadow-card)">
+                <div className="w-full rounded-card bg-card p-6 text-[13.5px] italic text-ink-mute shadow-(--shadow-card)">
                   Nothing in {name} matches that reading of the question — try removing a chip above.
                 </div>
               )}
@@ -980,22 +988,49 @@ function MoverColumn({
         {title}
       </h3>
       {kpis.length === 0 ? (
-        <div className="rounded-card bg-card p-5 text-[13px] italic text-ink-mute shadow-(--shadow-card)" style={{ minHeight: 200 }}>
+        <div
+          className="flex items-center rounded-card bg-card p-5 text-[13px] italic text-ink-mute shadow-(--shadow-card)"
+          style={{ height: CARD_H.lg }}
+        >
           {emptyNote}
         </div>
       ) : (
-        /* spotlight = the same card as the explore grid, one size up (R8 fix 6);
-           items-stretch keeps the four cards level without hard-coding a height */
-        <div className="grid grid-cols-1 items-stretch gap-4 sm:grid-cols-2">
+        /* spotlight = the same card as the explore grid, one size up, and the
+           same fill-the-row rule: one card takes the full width rather than
+           leaving a dead slot beside it (R9 fixes 3/4) */
+        <CardRow gap={GAP.card}>
           {kpis.map((k) => (
-            <KpiCard key={k.id} group={[k]} hue={hue} size="lg" className="h-full" onOpen={() => onOpen(k)} />
+            <CardSlot key={k.id} basis={300}>
+              <KpiCard group={[k]} hue={hue} size="lg" className="w-full" onOpen={() => onOpen(k)} />
+            </CardSlot>
           ))}
-          {/* the shorter section keeps its slot rather than stretching */}
-          {kpis.length === 1 && (
-            <div aria-hidden className="min-h-[200px] rounded-card border border-dashed" style={{ borderColor: 'rgba(18,40,34,0.1)' }} />
-          )}
-        </div>
+        </CardRow>
       )}
+    </div>
+  )
+}
+
+/**
+ * The spacing scale for card surfaces (R9 fix 3). One gap between cards in a
+ * row, one larger gap between category sections, one larger still between
+ * bands — declared once so no section drifts by accident.
+ */
+const GAP = { card: 16, section: 28, band: 40 } as const
+
+/** A row of cards that always fills its width — no empty cells, ever. */
+function CardRow({ children, gap }: { children: React.ReactNode; gap: number }) {
+  return (
+    <div className="flex flex-wrap items-stretch" style={{ gap }}>
+      {children}
+    </div>
+  )
+}
+
+/** A card's slot: grows to share the leftover width with its row-mates. */
+function CardSlot({ children, basis }: { children: React.ReactNode; basis: number }) {
+  return (
+    <div className="card-slot flex min-w-0" style={{ flex: `1 1 ${basis}px` }}>
+      {children}
     </div>
   )
 }
@@ -1086,7 +1121,7 @@ function Bands({
         if (bandKpis.length === 0) return null
         const open = filtersActive || openBands.has(band.id)
         return (
-          <section key={band.id} className="mt-9" aria-label={`${band.id} band`}>
+          <section key={band.id} style={{ marginTop: GAP.band }} aria-label={`${band.id} band`}>
             <button
               onClick={() =>
                 setOpenBands((s) => {
@@ -1158,7 +1193,7 @@ function BandBody({
   }, [kpis, sort])
 
   return (
-    <div className="mt-4 flex flex-col gap-7">
+    <div className="mt-4 flex flex-col" style={{ gap: GAP.section }}>
       <AnimatePresence mode="popLayout">
         {[...groups.entries()].map(([cat, list], gi) => {
           const cards = buildGroupCards(list, hue, year)
@@ -1177,28 +1212,34 @@ function BandBody({
               </h3>
               {year !== '2026Q1' ? (
                 /* a historical year keeps its uniform value tiles (R6 fix 5) */
-                <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+                <CardRow gap={GAP.card}>
                   {cards.map((c) => (
-                    <GroupCardView key={c.key} card={c} onOpen={() => onOpenKpi(c.kpis[0])} />
+                    <CardSlot key={c.key} basis={340}>
+                      <GroupCardView card={c} onOpen={() => onOpenKpi(c.kpis[0])} />
+                    </CardSlot>
                   ))}
-                </div>
+                </CardRow>
               ) : (
-                /* the same card as everywhere else — snapshot only, trends in the overlay (R8 fixes 1/6) */
-                <div className="grid grid-cols-1 items-stretch gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                /* the same card as everywhere else — snapshot only, trends in
+                   the overlay (R8 fixes 1/6); the row fills, so a group with an
+                   odd member count never leaves a blank cell (R9 fix 3) */
+                <CardRow gap={GAP.card}>
                   {cards.map((c) => (
-                    <AnnotatedSlot key={c.key} annotated={c.kpis.some((k) => k.id === annotateKpiId)}>
-                      <KpiCard
-                        group={c.kpis}
-                        title={c.title}
-                        hue={hue}
-                        size="sm"
-                        className="h-full"
-                        onOpen={() => onOpenKpi(c.kpis[0])}
-                        meta={c.rep.kind === 'idle' || c.rep.kind === 'not-reported' ? c.rep.note : undefined}
-                      />
-                    </AnnotatedSlot>
+                    <CardSlot key={c.key} basis={300}>
+                      <AnnotatedSlot annotated={c.kpis.some((k) => k.id === annotateKpiId)}>
+                        <KpiCard
+                          group={c.kpis}
+                          title={c.title}
+                          hue={hue}
+                          size="sm"
+                          className="w-full"
+                          onOpen={() => onOpenKpi(c.kpis[0])}
+                          meta={c.rep.kind === 'idle' || c.rep.kind === 'not-reported' ? c.rep.note : undefined}
+                        />
+                      </AnnotatedSlot>
+                    </CardSlot>
                   ))}
-                </div>
+                </CardRow>
               )}
             </motion.div>
           )
@@ -1220,7 +1261,7 @@ function availabilityLabel(k: Kpi): string {
 function AnnotatedSlot({ annotated, children }: { annotated: boolean; children: React.ReactNode }) {
   if (!annotated) return <>{children}</>
   return (
-    <div className="relative">
+    <div className="relative flex w-full">
       {children}
       <motion.div
         className="pointer-events-none absolute -top-9 right-2 z-10 flex items-end gap-1.5"
