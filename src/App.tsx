@@ -6,8 +6,7 @@ import { L2 } from './screens/L2'
 import { KpiDrawer } from './components/KpiDrawer'
 import { NavPill, type RouteId } from './components/Shell'
 import { BotainaDock } from './components/BotainaDock'
-import { Briefing } from './briefing/Briefing'
-import { hasUnseenBrief } from './briefing/engine'
+import { QuarterlyBrief } from './briefing/QuarterlyBrief'
 import type { Kpi } from './model/types'
 import { THEMES } from './model/data'
 import { facts } from './model/facts'
@@ -89,9 +88,8 @@ export default function App() {
     setRoute(r)
   }
 
-  // the briefing is the front door: it opens after the loader whenever an
-  // unseen brief is waiting, and from the lamp anywhere. Closing it returns
-  // the reader exactly where they were.
+  // the Quarterly Brief opens from the lamp — nowhere else. Closing it
+  // returns the reader exactly where they were.
   const [briefOpen, setBriefOpen] = useState(false)
   const briefReturn = useRef<{ y: number } | null>(null)
   useEffect(() => {
@@ -100,13 +98,7 @@ export default function App() {
       setBriefOpen(true)
     }
     window.addEventListener('open-brief', openBrief)
-    // the front door: any load with an unseen brief opens on it, loader or not
-    if (loaded && hasUnseenBrief()) {
-      briefReturn.current = { y: 0 }
-      setBriefOpen(true)
-    }
     return () => window.removeEventListener('open-brief', openBrief)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
   const closeBrief = () => {
     setBriefOpen(false)
@@ -118,10 +110,6 @@ export default function App() {
   const finishLoad = () => {
     sessionStorage.setItem('almishkat.loaded', '1')
     setLoaded(true)
-    if (hasUnseenBrief()) {
-      briefReturn.current = { y: 0 }
-      setBriefOpen(true)
-    }
   }
 
   const openEvidence = (kpi: Kpi) => {
@@ -167,7 +155,7 @@ export default function App() {
           </div>
           <AnimatePresence>
             {briefOpen && (
-              <Briefing
+              <QuarterlyBrief
                 onExit={closeBrief}
                 onOpenKpi={(k) => {
                   closeBrief()

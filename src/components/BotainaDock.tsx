@@ -11,7 +11,6 @@ import { EChart, AXIS } from './charts/EChart'
 import { facts, fmt } from '../model/facts'
 import { kpis } from '../model/data'
 import { stoppedReporting } from '../model/spotlight'
-import { recordAskTopic } from '../briefing/engine'
 import { Spark } from './Shell'
 
 const GREETED_KEY = 'almishkat.botaina.greeted.v2'
@@ -451,7 +450,6 @@ export function BotainaDock({
 
   const ask = (q: string) => {
     if (!q.trim() || busy) return
-    recordAskTopic(q)
     if (q === 'Take me to Social Progress') {
       setOpen(false)
       onNavigatePoint()

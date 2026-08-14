@@ -309,15 +309,15 @@ export function GlobalSearch({ onPick, light }: { onPick: (k: Kpi) => void; ligh
 }
 
 /**
- * The lamp — Al Mishkat's identity device. Lit when a brief the reader hasn't
- * seen is waiting; tapping opens the briefing from anywhere and returns them
- * exactly where they were.
+ * The lamp — Al Mishkat's identity device, and the Quarterly Brief's only
+ * door. Lit until this quarter's brief has been opened; quiet after; always
+ * one tap away. Tapping returns the reader exactly where they were.
  */
 export function Lamp({ light }: { light?: boolean }) {
   const [lit, setLit] = useState(true)
   useEffect(() => {
-    import('../briefing/engine').then((m) => setLit(m.hasUnseenBrief()))
-    const refresh = () => import('../briefing/engine').then((m) => setLit(m.hasUnseenBrief()))
+    import('../briefing/quarterly').then((m) => setLit(m.isBriefUnread()))
+    const refresh = () => import('../briefing/quarterly').then((m) => setLit(m.isBriefUnread()))
     window.addEventListener('brief-read', refresh)
     return () => window.removeEventListener('brief-read', refresh)
   }, [])
@@ -330,8 +330,8 @@ export function Lamp({ light }: { light?: boolean }) {
           ? { border: '1px solid rgba(255,255,255,0.28)', background: 'rgba(255,255,255,0.14)' }
           : { background: 'var(--color-card)', boxShadow: 'var(--shadow-card)' }
       }
-      aria-label={lit ? 'Brief ready — open the briefing' : 'Open the briefing'}
-      title={lit ? 'Brief ready · Q1 2026' : "You're up to date"}
+      aria-label={lit ? 'The Quarterly Brief is ready — open it' : 'Open the Quarterly Brief'}
+      title={lit ? 'The Quarterly Brief · Q1 2026' : 'The Quarterly Brief · read'}
     >
       <svg width="19" height="19" viewBox="0 0 24 24" aria-hidden className={lit ? 'lamp-lit' : ''}>
         <path d="M4 21 V10 a8 8 0 0 1 16 0 V21" fill="none" stroke={light ? '#ffffff' : '#034638'} strokeWidth="1.8" />
@@ -339,7 +339,7 @@ export function Lamp({ light }: { light?: boolean }) {
         <line x1="8.5" y1="18" x2="15.5" y2="18" stroke={light ? '#ffffff' : '#034638'} strokeWidth="1.8" />
       </svg>
       <span className={`text-[11.5px] max-lg:hidden ${light ? 'text-white/80' : 'text-ink-mute'}`}>
-        {lit ? 'Brief ready · Q1 2026' : "You're up to date"}
+        {lit ? 'Quarterly Brief · Q1 2026' : "You're up to date"}
       </span>
     </button>
   )
