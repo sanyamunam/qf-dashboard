@@ -975,18 +975,21 @@ function MoverColumn({
   emptyNote: string
 }) {
   return (
-    <div>
+    /* full height + a growing card area: the two columns are siblings in a
+       stretched grid, so this makes all four spotlight cards share one height
+       rather than each section sizing its own row */
+    <div className="flex h-full flex-col">
       <h3 className="label mb-2.5" style={{ color: tone }}>
         {title}
       </h3>
       {kpis.length === 0 ? (
-        <div className="rounded-card bg-card p-5 text-[13px] italic text-ink-mute shadow-(--shadow-card)" style={{ minHeight: 200 }}>
+        <div className="flex-1 rounded-card bg-card p-5 text-[13px] italic text-ink-mute shadow-(--shadow-card)" style={{ minHeight: 200 }}>
           {emptyNote}
         </div>
       ) : (
         /* spotlight = the same card as the explore grid, one size up (R8 fix 6);
            items-stretch keeps the four cards level without hard-coding a height */
-        <div className="grid grid-cols-1 items-stretch gap-4 sm:grid-cols-2">
+        <div className="grid flex-1 grid-cols-1 items-stretch gap-4 sm:grid-cols-2">
           {kpis.map((k) => (
             <KpiCard key={k.id} group={[k]} hue={hue} size="lg" className="h-full" onOpen={() => onOpen(k)} />
           ))}

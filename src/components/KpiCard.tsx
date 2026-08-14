@@ -83,7 +83,10 @@ export function KpiCard({
   return (
     <button
       onClick={onOpen}
-      className={`relative min-w-0 overflow-hidden rounded-card bg-card text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-(--shadow-card-hover) ${lg ? 'p-4' : 'p-3.5'} ${className}`}
+      /* flex-col, not the default: a stretched <button> centres its content
+         vertically, which left a short card's text floating mid-height beside
+         a taller sibling. Content starts at the top of every card. */
+      className={`relative flex min-w-0 flex-col items-stretch justify-start overflow-hidden rounded-card bg-card text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-(--shadow-card-hover) ${lg ? 'p-4' : 'p-3.5'} ${className}`}
       style={{
         boxShadow: loud ? 'var(--shadow-loud)' : 'var(--shadow-card)',
       }}
