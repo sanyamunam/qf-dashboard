@@ -16,9 +16,26 @@ import { Spark } from './Shell'
 
 const GREETED_KEY = 'almishkat.botaina.greeted.v2'
 
+/**
+ * The insight contract as data, not prose: verdict / evidence / so-what / ask.
+ * Rendering makes that structure visible instead of running it together into a
+ * paragraph — same facts, a third of the reading time.
+ */
+interface AnswerItem {
+  label: string
+  value?: string
+}
+interface Answer {
+  verdict: string
+  items?: AnswerItem[]
+  soWhat?: string
+  ask?: { q: string; owner: string }
+  detail?: string
+}
 interface Msg {
   role: 'bot' | 'user'
-  text?: string
+  text?: string // user turns only
+  answer?: Answer
   chart?: boolean
   followups?: string[]
 }
@@ -28,19 +45,34 @@ function wishAnswer(): Msg {
   const s = w.series
   return {
     role: 'bot',
-    text: `WISH's programme reach has fallen in each of the last three reported years — ${fmt(s[1]?.[1])} in 2023, then ${fmt(s[2]?.[1])}, then ${fmt(s[3]?.[1])}, and ${fmt(w.q1)} this quarter against a ${fmt(w.target26)} target. Its media mentions are also at zero this quarter after 700-plus in 2022. Its research and partnership figures are holding. The pattern looks like a change in delivery model rather than a decline across the board. Worth asking the WISH CEO whether the programme shifted to fewer, more targeted convenings.`,
+    answer: {
+      verdict: "WISH's reach has fallen three years running.",
+      items: [
+        { label: 'Programme reach', value: `${fmt(s[1]?.[1])} → ${fmt(s[2]?.[1])} → ${fmt(s[3]?.[1])} → ${fmt(w.q1)}` },
+        { label: 'Against a full-year target of', value: fmt(w.target26) },
+        { label: 'Media mentions', value: '700+ (2022) → 0' },
+        { label: 'Research and partnerships', value: 'holding' },
+      ],
+      soWhat: 'The steepest decline in the portfolio — and it reads as a change in delivery model, not a decline across the board.',
+      ask: { q: 'What changed in the delivery model after 2023?', owner: 'WISH CEO' },
+    },
     followups: ['Show me the trend', 'Which other entities stopped reporting?', 'Take me to Social Progress'],
   }
 }
 
 function stoppedAnswer(): Msg {
   const st = stoppedReporting()
-  const lines = st
-    .map((s) => `${s.entity} (${s.kpis.map((k) => k.name.toLowerCase()).slice(0, 3).join(', ')})`)
-    .join('; ')
   return {
     role: 'bot',
-    text: `${st.length} entities show continuous indicators at zero this quarter that were active in prior years: ${lines}. A Q1 zero on a cumulative count can mean "nothing yet" rather than "stopped" — which is exactly why it is worth confirming the figures are still being collected.`,
+    answer: {
+      verdict: `${st.length} entities stopped reporting indicators they used to report.`,
+      items: st.map((s) => ({
+        label: s.entity,
+        value: s.kpis.map((k) => k.name.toLowerCase()).slice(0, 3).join(', '),
+      })),
+      soWhat: 'A Q1 zero on a cumulative count can mean "nothing yet" rather than "stopped".',
+      ask: { q: 'Are these figures still being collected?', owner: "each entity's reporting lead" },
+    },
     followups: ['What happened at WISH?', 'Take me to Social Progress'],
   }
 }
@@ -56,22 +88,44 @@ function gapAnswer(): Msg {
     )
     .map((k) => ({ k, r: (k.actuals['2026Q1'].value as number) / (k.targets['2026'].value as number) }))
     .sort((a, b) => a.r - b.r)
-    .slice(0, 3)
-  const lines = gaps
-    .map(({ k }) => `${k.entity}'s ${k.name} (${fmt(k.actuals['2026Q1'].value)} of ${fmt(k.targets['2026'].value)})`)
-    .join(', ')
+    .slice(0, 4)
   return {
     role: 'bot',
-    text: `Measured against full-year 2026 commitments, the widest gaps after one quarter are ${lines}. One quarter of twelve months has elapsed, so distance is expected — the one with three years of decline behind it is WISH's beneficiaries, and that is the gap I would treat as real.`,
+    answer: {
+      verdict: 'The widest gaps to a 2026 commitment, after one quarter.',
+      items: gaps.map(({ k }) => ({
+        label: `${k.entity} · ${k.name}`,
+        value: `${fmt(k.actuals['2026Q1'].value)} of ${fmt(k.targets['2026'].value)}`,
+      })),
+      soWhat: 'One quarter of twelve has elapsed, so distance is expected. The one with three years of decline behind it is the real gap.',
+      ask: { q: "Is WISH's 5,000 target still the right promise?", owner: 'WISH CEO' },
+    },
     followups: ['What happened at WISH?', 'Show me the trend'],
   }
 }
 
 function targetsAnswer(): Msg {
-  const exact = kpis.filter((k) => k.exactHit)
+  // lead with the largest magnitudes — hitting 7,000 or QAR 27.4m exactly is
+  // the part that cannot happen by measurement, so it must not be buried
+  const exact = kpis
+    .filter((k) => k.exactHit)
+    .sort((a, b) => (b.actuals['2026Q1'].value ?? 0) - (a.actuals['2026Q1'].value ?? 0))
+  const show = exact.slice(0, 3)
   return {
     role: 'bot',
-    text: `${exact.length} indicators sit exactly on their full-year 2026 target after one quarter — WISE's Edtech testbeds at 9 of 9 and 7 of 7, and WISH's LinkedIn engagement at 7,000 of 7,000 among them. Landing precisely on an annual number in March is a property of the target, not the work. I would ask who set the 2026 numbers and against what baseline.`,
+    answer: {
+      verdict: `${exact.length} indicators sit exactly on their full-year 2026 target.`,
+      items: show.map((k) => ({
+        label: `${k.entity} · ${k.name}`,
+        value: `${fmt(k.actuals['2026Q1'].value)} of ${fmt(k.targets['2026'].value)}`,
+      })),
+      soWhat: 'Landing precisely on an annual number in March is a property of the target, not the work.',
+      ask: { q: 'Who set the 2026 numbers, and against what baseline?', owner: 'Strategy and Performance' },
+      detail: exact
+        .slice(3)
+        .map((k) => `${k.entity} · ${k.name} — ${fmt(k.actuals['2026Q1'].value)} of ${fmt(k.targets['2026'].value)}`)
+        .join('\n'),
+    },
     followups: ['Which entities stopped reporting this quarter?'],
   }
 }
@@ -81,7 +135,15 @@ function route(q: string): Msg {
   if (s.includes('draft') && s.includes('ask')) {
     return {
       role: 'bot',
-      text: `A draft, in your voice: "Three questions from this quarter's brief. To Strategy and Performance: who set the 2026 numbers, and which of the 35 already-met targets should be re-based now? To the WISH CEO: what changed in the delivery model after 2023, and is 5,000 still the right promise? To each entity's reporting lead: which of the six Q1 zeros are late submissions, and which are real stops?" Copy it from the brief's closing screen, or tell me who it should go to first.`,
+      answer: {
+        verdict: 'Three questions, drafted in your voice.',
+        items: [
+          { label: 'Strategy and Performance', value: 'Who set the 2026 numbers, and which of the 35 already-met targets should be re-based now?' },
+          { label: 'WISH CEO', value: 'What changed in the delivery model after 2023, and is 5,000 still the right promise?' },
+          { label: "Each entity's reporting lead", value: 'Which of the six Q1 zeros are late submissions, and which are real stops?' },
+        ],
+        ask: { q: 'Copy them from the brief\'s closing screen, or tell me who they go to first.', owner: 'you' },
+      },
       followups: ['What happened at WISH?', 'Which 2026 targets look wrong?'],
     }
   }
@@ -91,7 +153,10 @@ function route(q: string): Msg {
   if (s.includes('target') || s.includes('exactly')) return targetsAnswer()
   return {
     role: 'bot',
-    text: `I can read the 151 indicators, their targets and their history, and I won't guess past them. Try one of the questions below, or ask about an entity by name.`,
+    answer: {
+      verdict: "I read the 151 indicators, their targets and their history — and I won't guess past them.",
+      soWhat: 'Ask about an entity by name, or try one of these.',
+    },
     followups: ['What happened at WISH?', 'Which entities stopped reporting this quarter?', "Which 2026 targets look wrong?"],
   }
 }
@@ -175,6 +240,128 @@ function Stream({ text, onDone }: { text: string; onDone: () => void }) {
   return <>{text.slice(0, n)}</>
 }
 
+/**
+ * Renders the insight contract as four visible parts. The verdict streams on
+ * its own line; evidence lands as a list, never a comma-separated run-on; the
+ * ask sits below a rule so it can't be missed. Long evidence is capped with an
+ * explicit way to see the rest.
+ */
+function AnswerView({ a, live, onDone }: { a: Answer; live: boolean; onDone: () => void }) {
+  const [verdictDone, setVerdictDone] = useState(!live)
+  const [showAll, setShowAll] = useState(false)
+  const [showDetail, setShowDetail] = useState(false)
+  const doneRef = useRef(false)
+
+  const items = a.items ?? []
+  const CAP = 4 // hiding a single extra item behind a control isn't worth the click
+  const visible = showAll ? items : items.slice(0, CAP)
+  const blocks = visible.length + (a.soWhat ? 1 : 0) + (a.ask ? 1 : 0)
+
+  useEffect(() => {
+    if (!live || !verdictDone || doneRef.current) return
+    const t = setTimeout(() => {
+      doneRef.current = true
+      onDone()
+    }, blocks * 80 + 140)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [live, verdictDone, blocks])
+
+  const anim = (i: number) =>
+    live
+      ? {
+          initial: { opacity: 0, y: 4 },
+          animate: { opacity: 1, y: 0 },
+          transition: { delay: 0.05 + i * 0.08, duration: 0.24 },
+        }
+      : {}
+
+  return (
+    <div className="flex flex-col gap-2">
+      <p className="text-[13.5px] font-semibold leading-snug text-ink">
+        {live && !verdictDone ? <Stream text={a.verdict} onDone={() => setVerdictDone(true)} /> : a.verdict}
+      </p>
+
+      {(!live || verdictDone) && (
+        <>
+          {visible.length > 0 && (
+            <ul className="flex flex-col gap-1">
+              {visible.map((it, i) => {
+                const stacked = (it.value?.length ?? 0) > 34
+                return (
+                  <motion.li
+                    key={it.label}
+                    {...anim(i)}
+                    className="border-b border-ink-mute/10 pb-1 last:border-0 last:pb-0"
+                  >
+                    {stacked ? (
+                      <>
+                        <span className="block text-[11px] font-semibold text-ink">{it.label}</span>
+                        <span className="block text-[12px] leading-snug text-ink-soft">{it.value}</span>
+                      </>
+                    ) : (
+                      <span className="flex items-baseline justify-between gap-3">
+                        <span className="min-w-0 text-[12px] leading-snug text-ink-soft">{it.label}</span>
+                        {it.value && <span className="num shrink-0 text-[12px] font-semibold text-ink">{it.value}</span>}
+                      </span>
+                    )}
+                  </motion.li>
+                )
+              })}
+            </ul>
+          )}
+
+          {items.length > CAP && !showAll && (
+            <button
+              onClick={() => setShowAll(true)}
+              className="self-start text-[11.5px] font-medium text-sidra underline underline-offset-2"
+            >
+              Show all {items.length}
+            </button>
+          )}
+
+          {a.soWhat && (
+            <motion.p {...anim(visible.length)} className="text-[12.5px] leading-snug text-ink-soft">
+              {a.soWhat}
+            </motion.p>
+          )}
+
+          {a.detail && (
+            <>
+              <button
+                onClick={() => setShowDetail((v) => !v)}
+                className="self-start text-[11.5px] font-medium text-sidra underline underline-offset-2"
+              >
+                {showDetail ? 'Hide detail' : 'Tell me more'}
+              </button>
+              {showDetail && (
+                <div className="whitespace-pre-line rounded-input bg-cream/70 p-2.5 text-[11.5px] leading-snug text-ink-soft">
+                  {a.detail}
+                </div>
+              )}
+            </>
+          )}
+
+          {a.ask && (
+            <motion.div
+              {...anim(visible.length + 1)}
+              className="flex items-start gap-2 border-t border-ink-mute/15 pt-2"
+            >
+              <span className="mt-0.5 shrink-0">
+                <Spark size={11} />
+              </span>
+              <div>
+                <p className="voice text-[12.5px] italic leading-snug text-sidra">{a.ask.q}</p>
+                <p className="mt-0.5 text-[11px] text-ink-mute">Put to: {a.ask.owner}</p>
+              </div>
+            </motion.div>
+          )}
+        </>
+      )}
+    </div>
+  )
+}
+
 function WishTrendChart() {
   const s = facts.wish.series
   return (
@@ -234,7 +421,10 @@ export function BotainaDock({
       setMsgs([
         {
           role: 'bot',
-          text: `Good morning. I'm BOTaina. ${stoppedReporting().length} entities have stopped reporting activity they used to report — that's the thread I'd pull first. Shall I show you, or would you like the full picture?`,
+          answer: {
+            verdict: `Good morning. I'm BOTaina — ${stoppedReporting().length} entities have gone quiet this quarter.`,
+            soWhat: "That's the thread I'd pull first. Shall I show you, or would you like the full picture?",
+          },
           followups: ['Show me', 'The full picture'],
         },
       ])
@@ -379,8 +569,12 @@ export function BotainaDock({
                             </div>
                             <WishTrendChart />
                           </div>
-                        ) : i === msgs.length - 1 && busy ? (
-                          <Stream text={m.text ?? ''} onDone={() => setBusy(false)} />
+                        ) : m.answer ? (
+                          <AnswerView
+                            a={m.answer}
+                            live={i === msgs.length - 1 && busy}
+                            onDone={() => setBusy(false)}
+                          />
                         ) : (
                           m.text
                         )}
