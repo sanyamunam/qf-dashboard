@@ -12,8 +12,7 @@ export function EChart({
   onReady,
 }: {
   option: echarts.EChartsOption
-  /** px, or '100%' to fill a parent that already has a definite height */
-  height?: number | string
+  height?: number
   onReady?: (chart: echarts.ECharts) => void
 }) {
   const ref = useRef<HTMLDivElement>(null)
