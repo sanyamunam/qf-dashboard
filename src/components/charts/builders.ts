@@ -168,6 +168,220 @@ function yearLine(group: Kpi[], year: YearKey): string {
   return `${reported.length} of ${group.length} reported in ${year}; the rest are marked, not hidden.`
 }
 
+/**
+ * R8 snapshot charts: cards show current position only — never a multi-point
+ * history. Representation follows the data shape (Fix 2), not the sheet's
+ * literal chart-type column: a group renders as one compact actual-vs-target
+ * row set; a single %-like metric gets an arc; a single count gets a bullet.
+ */
+export type SnapshotRep =
+  | { kind: 'group-bars'; option: EChartsOption; height: number }
+  | { kind: 'bullet'; option: EChartsOption; height: number }
+  | { kind: 'arc'; option: EChartsOption; height: number }
+  | { kind: 'none' }
+
+const short = (s: string, n = 22) => (s.length > n ? s.slice(0, n - 1) + '…' : s)
+
+const isRateLike = (k: Kpi) => k.name.includes('%') || /rate|ratio|index|nps|satisfaction/i.test(k.name)
+
+export function snapshotFor(group: Kpi[], hue: string): SnapshotRep {
+  // a year-end or idle KPI's Q1 cell is an artifact, not a position — drawing
+  // "0 of 50" for an indicator that reports in December would be a lie. The
+  // same applies to any Q1 zero the parser judged "not yet reported": if the
+  // movement series doesn't end at Q1, the zero is an absence, not a reading.
+  const q1IsReal = (k: Kpi) => {
+    const v = k.actuals['2026Q1'].value
+    if (v === null) return false
+    if (v !== 0) return true
+    const last = k.movementSeries[k.movementSeries.length - 1]
+    return last?.[0] === '2026Q1'
+  }
+  const withQ1 = group.filter(
+    (k) =>
+      k.state !== 'REPORTS_AT_YEAR_END' &&
+      k.state !== 'IDLE_THIS_CYCLE' &&
+      q1IsReal(k) &&
+      (k.targets['2026'].value ?? 0) > 0,
+  )
+  if (withQ1.length === 0) return { kind: 'none' }
+
+  if (withQ1.length > 1) {
+    // one compact row per indicator: actual bar + target tick, shared axis
+    const rows = withQ1.slice(0, 4)
+    const max = Math.max(...rows.map((k) => Math.max(k.actuals['2026Q1'].value as number, k.targets['2026'].value as number)))
+    return {
+      kind: 'group-bars',
+      height: rows.length * 30 + 14,
+      option: {
+        grid: { left: 4, right: 44, top: 4, bottom: 4, containLabel: true },
+        xAxis: { type: 'value', max: max * 1.05, show: false },
+        yAxis: {
+          type: 'category',
+          data: rows.map((k) => short(k.name)).reverse(),
+          axisLine: { show: false },
+          axisTick: { show: false },
+          axisLabel: { color: '#666', fontFamily: 'Instrument Sans', fontSize: 10.5 },
+        },
+        series: [
+          {
+            type: 'bar',
+            data: rows.map((k) => k.actuals['2026Q1'].value as number).reverse(),
+            barWidth: 8,
+            itemStyle: { color: hue, borderRadius: [0, 3, 3, 0] },
+            label: {
+              show: true,
+              position: 'right',
+              fontFamily: 'Space Grotesk',
+              fontWeight: 700,
+              fontSize: 10.5,
+              color: '#47605a',
+              formatter: (p: unknown) => nf((p as { value: number }).value),
+            },
+          },
+          {
+            type: 'scatter',
+            symbol: 'rect',
+            symbolSize: [2.5, 16],
+            data: rows.map((k) => k.targets['2026'].value as number).reverse(),
+            itemStyle: { color: '#9ca3af' },
+            tooltip: { show: false },
+            silent: true,
+          },
+        ],
+      },
+    }
+  }
+
+  const k = withQ1[0]
+  const a = k.actuals['2026Q1'].value as number
+  const t = k.targets['2026'].value as number
+
+  if (isRateLike(k)) {
+    return {
+      kind: 'arc',
+      height: 74,
+      option: {
+        series: [
+          {
+            type: 'gauge',
+            startAngle: 200,
+            endAngle: -20,
+            min: 0,
+            max: Math.max(a, t) * 1.1,
+            radius: '135%',
+            center: ['50%', '78%'],
+            progress: { show: true, width: 9, roundCap: true, itemStyle: { color: hue } },
+            axisLine: { lineStyle: { width: 9, color: [[1, 'rgba(200,201,199,0.4)']] } },
+            pointer: { show: false },
+            axisTick: { show: false },
+            splitLine: { show: false },
+            axisLabel: { show: false },
+            anchor: { show: false },
+            title: { show: false },
+            detail: {
+              offsetCenter: [0, '-12%'],
+              formatter: `{v|${nf(a)}}{s| of ${nf(t)}}`,
+              rich: {
+                v: { fontSize: 16, fontWeight: 700, fontFamily: 'Space Grotesk', color: '#122822' },
+                s: { fontSize: 10, fontFamily: 'Space Grotesk', color: '#7e938d' },
+              },
+            },
+            data: [{ value: a }],
+          },
+        ],
+      },
+    }
+  }
+
+  const max = Math.max(a, t)
+  return {
+    kind: 'bullet',
+    height: 54,
+    option: {
+      grid: { left: 4, right: 44, top: 18, bottom: 16 },
+      xAxis: { type: 'value', max: max * 1.05, show: false },
+      yAxis: { type: 'category', data: [''], show: false },
+      series: [
+        {
+          type: 'bar',
+          data: [a],
+          barWidth: 10,
+          itemStyle: { color: hue, borderRadius: [0, 3, 3, 0] },
+          showBackground: true,
+          backgroundStyle: { color: 'rgba(200,201,199,0.25)', borderRadius: [0, 3, 3, 0] },
+          label: {
+            show: true,
+            position: 'right',
+            fontFamily: 'Space Grotesk',
+            fontWeight: 700,
+            fontSize: 11,
+            color: '#47605a',
+            formatter: (p: unknown) => nf((p as { value: number }).value),
+          },
+          markLine: {
+            silent: true,
+            symbol: 'none',
+            lineStyle: { type: 'solid', color: '#9ca3af', width: 2 },
+            label: { formatter: `target ${nf(t)}`, position: 'end', color: '#9ca3af', fontSize: 9.5, fontFamily: 'Instrument Sans' },
+            data: [{ xAxis: t }],
+          },
+        },
+      ],
+    },
+  }
+}
+
+/**
+ * The overlay's trend (Fix 5): full history plus future targets on one axis.
+ * Actuals render as solid bars (honest at any point count); targets 2022–2028
+ * as a dashed line with hollow markers — never styled like real data.
+ */
+export function overlayTrendOption(group: Kpi[], hue: string): EChartsOption {
+  const AXIS_YEARS = ['2022', '2023', '2024', '2025', '2026', '2027', '2028']
+  const label = (y: string) => (y === '2026' ? '2026 (Q1)' : y)
+  const series: object[] = []
+  group.forEach((k, i) => {
+    const color = group.length === 1 ? hue : SERIES_PALETTE[i % SERIES_PALETTE.length]
+    series.push({
+      name: `${short(k.name, 30)} — actual`,
+      type: 'bar',
+      barMaxWidth: 22,
+      data: AXIS_YEARS.map((y) => (y === '2026' ? k.actuals['2026Q1'].value : (k.actuals[y]?.value ?? null))),
+      itemStyle: { color, borderRadius: [3, 3, 0, 0] },
+      label: {
+        show: true,
+        position: 'top',
+        fontFamily: 'Space Grotesk',
+        fontSize: 9.5,
+        color: '#666',
+        formatter: (p: { value: number | null }) => (p.value === null ? '' : nf(p.value)),
+      },
+    })
+    series.push({
+      name: `${short(k.name, 30)} — target`,
+      type: 'line',
+      data: AXIS_YEARS.map((y) => k.targets[y]?.value ?? null),
+      lineStyle: { type: 'dashed', width: 1.6, color },
+      itemStyle: { color: '#ffffff', borderColor: color, borderWidth: 1.6 },
+      symbol: 'circle',
+      symbolSize: 7,
+      connectNulls: true,
+      z: 3,
+    })
+  })
+  return {
+    grid: { left: 44, right: 16, top: 30, bottom: group.length > 1 ? 46 : 26 },
+    legend:
+      group.length > 1
+        ? { bottom: 0, textStyle: { fontFamily: 'Instrument Sans', fontSize: 10, color: '#47605a' }, itemWidth: 10, itemHeight: 10 }
+        : undefined,
+    tooltip: TOOLTIP('Dashed hollow points are targets, including future years — not actuals.'),
+    xAxis: { type: 'category', data: AXIS_YEARS.map(label), ...AXIS },
+    yAxis: { type: 'value', min: 0, ...AXIS },
+    series: series as EChartsOption['series'],
+  }
+}
+
 export function buildGroupCards(kpis: Kpi[], hue: string, year: YearKey = '2026Q1'): GroupCard[] {
   const byGroup = new Map<string, Kpi[]>()
   for (const k of kpis) {

@@ -3,7 +3,7 @@
  * drawer detail), Compare (small set on one normalised axis), By Entity
  * (entity sections, multi-entity themes only). One shared filter/search/sort
  * state lives in L2; these only change the arrangement. Chart marks are the
- * platform's shared components — MiniLine for rows, the EChart adapter for
+ * platform's shared components — BulletMicro for rows, the EChart adapter for
  * anything larger. Rationale: docs/r8-views.md
  */
 import { useMemo, useState } from 'react'
@@ -13,8 +13,9 @@ import type { Kpi } from '../model/types'
 import type { YearKey } from '../components/charts/builders'
 import { AXIS } from '../components/charts/EChart'
 import { EChart } from '../components/charts/EChart'
-import { MiniLine } from '../components/marks'
+import { BulletMicro } from '../components/marks'
 import { KpiDetailBody } from '../components/KpiDrawer'
+import { EntityIcon } from '../components/EntityIcon'
 import { fmt } from '../model/data'
 import { rankable } from '../model/spotlight'
 
@@ -111,15 +112,24 @@ function Row({
         style={{ gridTemplateColumns: 'minmax(0,1fr) 90px 130px 110px 20px' }}
         aria-expanded={expanded}
       >
-        <span className="min-w-0">
-          <span className="block truncate text-[13px] font-semibold leading-tight text-ink">{k.name}</span>
-          <span className="block text-[11px] leading-tight text-ink-mute">
-            {k.entity} · {k.category}
+        <span className="flex min-w-0 items-center gap-2.5">
+          <EntityIcon entity={k.entity} size={20} />
+          <span className="min-w-0">
+            <span className="block truncate text-[13px] font-semibold leading-tight text-ink">{k.name}</span>
+            <span className="block text-[11px] leading-tight text-ink-mute">
+              {k.entity} · {k.category}
+            </span>
           </span>
         </span>
         <span className="num text-right text-[15px] font-bold text-sidra">{figure}</span>
         <span className="flex justify-end">
-          {k.movementSeries.length >= 3 ? <MiniLine series={k.movementSeries} hue={hue} w={110} h={24} /> : null}
+          {/* snapshot, not history: current position against the 2026 target.
+              A Q1 zero the parser judged "not yet reported" draws nothing. */}
+          {k.actuals['2026Q1'].value !== null &&
+          (k.targets['2026'].value ?? 0) > 0 &&
+          (k.actuals['2026Q1'].value !== 0 || k.movementSeries[k.movementSeries.length - 1]?.[0] === '2026Q1') ? (
+            <BulletMicro actual={k.actuals['2026Q1'].value as number} target={k.targets['2026'].value as number} hue={hue} />
+          ) : null}
         </span>
         <span className="num text-right text-[12.5px] font-semibold" style={{ color: mv.tone }}>
           {mv.text}
@@ -390,7 +400,9 @@ export function EntityView({
         return (
           <section key={e} aria-label={e}>
             <div className="flex items-baseline justify-between border-b-2 pb-2" style={{ borderColor: `color-mix(in srgb, ${hue} 25%, transparent)` }}>
-              <h3 className="text-[16px] font-semibold text-ink">{e}</h3>
+              <h3 className="flex items-center gap-2.5 text-[16px] font-semibold text-ink">
+                <EntityIcon entity={e} size={24} /> {e}
+              </h3>
               <span className="num text-[12px] text-ink-mute">
                 {slice.length} indicators · {withReading} with a Q1 reading
               </span>

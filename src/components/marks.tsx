@@ -54,20 +54,21 @@ export function TrajectoryMark({
   )
 }
 
-/* Tiny inline trend for dense rows and small cards — drawn only at ≥3 readings. */
-export function MiniLine({ series, hue, w = 120, h = 28 }: { series: [string, number][]; hue: string; w?: number; h?: number }) {
-  const vals = series.map(([, v]) => v)
-  const max = Math.max(...vals)
-  const min = Math.min(0, ...vals)
-  const x = (i: number) => (i / (vals.length - 1)) * (w - 6) + 1
-  const y = (v: number) => h - 3 - ((v - min) / (max - min || 1)) * (h - 7)
+/* Single-point position vs target for dense rows — a snapshot, never a history. */
+export function BulletMicro({ actual, target, hue, w = 110, h = 14 }: { actual: number; target: number; hue: string; w?: number; h?: number }) {
+  const max = Math.max(actual, target) * 1.05 || 1
+  const x = (v: number) => 2 + (v / max) * (w - 8)
   return (
     <svg width={w} height={h} aria-hidden>
-      <path d={vals.map((v, i) => `${i ? 'L' : 'M'}${x(i)},${y(v)}`).join(' ')} stroke={hue} strokeWidth="1.8" fill="none" />
-      <circle cx={x(vals.length - 1)} cy={y(vals[vals.length - 1])} r="2.6" fill={hue} />
+      <rect x={2} y={h / 2 - 3} width={w - 8} height={6} rx={3} fill="rgba(200,201,199,0.3)" />
+      <rect x={2} y={h / 2 - 3} width={Math.max(2, x(actual) - 2)} height={6} rx={3} fill={hue} />
+      <rect x={x(target) - 1} y={1} width={2} height={h - 2} fill="#9ca3af" />
     </svg>
   )
 }
+
+/* (MiniLine removed in R8 — no card or row draws a multi-point history; trends
+   live only in the detail overlay.) */
 
 /* 2 · Composition — a whole made of named parts, single reading.
    Now an ECharts ring: see components/charts/RingMark.tsx. A literal dot per

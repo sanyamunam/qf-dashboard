@@ -13,14 +13,12 @@ import { themeById, themeKpis } from '../model/data'
 import { facts, fmt, wishDropPct } from '../model/facts'
 import { topMovers } from '../model/spotlight'
 import type { Kpi } from '../model/types'
-import { buildGroupCards, aiLineFor, type GroupCard, type YearKey } from '../components/charts/builders'
-import { EChart, AXIS } from '../components/charts/EChart'
+import { buildGroupCards, type GroupCard, type YearKey } from '../components/charts/builders'
+import { EChart } from '../components/charts/EChart'
 import { BotainaFigure } from '../components/Botaina'
-import { KpiIdentity } from '../components/KpiIdentity'
-import { MiniLine } from '../components/marks'
+import { KpiCard } from '../components/KpiCard'
 import { ViewSwitcher, ListView, CompareView, EntityView, type ViewId, loadView, saveView } from './views'
 import { Spark } from '../components/Shell'
-import type { ECharts } from 'echarts'
 
 const THEME_NAME: Record<string, string> = {
   social: 'Social Progress',
@@ -461,25 +459,9 @@ export function L2({
               <span>{aiResult.answer}</span>
             </p>
             <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {aiResult.kpis.map((k) => {
-                const s = k.movementSeries
-                const last = s[s.length - 1]
-                return (
-                  <button
-                    key={k.id}
-                    onClick={() => onOpenKpi(k)}
-                    className="min-w-0 overflow-hidden rounded-card bg-card p-4 text-left shadow-(--shadow-card) transition-all duration-200 hover:-translate-y-0.5 hover:shadow-(--shadow-card-hover)"
-                  >
-                    <KpiIdentity kpi={k} />
-                    <div className="num mt-2 text-[24px] font-bold text-sidra">
-                      {last ? fmt(last[1]) : (k.actuals['2026Q1'].raw ?? '—')}
-                    </div>
-                    <p className="mt-2 flex items-start gap-1.5 text-[11.5px] italic leading-snug text-ink-soft">
-                      <Spark size={10} /> <span>{aiLineFor([k])}</span>
-                    </p>
-                  </button>
-                )
-              })}
+              {aiResult.kpis.map((k) => (
+                <KpiCard key={k.id} group={[k]} hue={theme.fill} size="sm" onOpen={() => onOpenKpi(k)} />
+              ))}
               {aiResult.kpis.length === 0 && (
                 <div className="col-span-full rounded-card bg-card p-6 text-[13.5px] italic text-ink-mute shadow-(--shadow-card)">
                   Nothing in {name} matches that reading of the question — try removing a chip above.
@@ -507,6 +489,8 @@ export function L2({
             annotate={annotate}
             sort={filters.sort}
             year={filters.yr}
+            filtersActive={activeChips.length > 0 || filters.yr !== '2026Q1' || filters.sort !== 'mover'}
+            focusId={pointFocus ?? null}
             onRelax={() => setFilters((f) => ({ ...EMPTY, sort: f.sort }))}
           />
         )}
@@ -996,46 +980,19 @@ function MoverColumn({
         {title}
       </h3>
       {kpis.length === 0 ? (
-        <div className="rounded-card bg-card p-5 text-[13px] italic text-ink-mute shadow-(--shadow-card)" style={{ minHeight: 232 }}>
+        <div className="rounded-card bg-card p-5 text-[13px] italic text-ink-mute shadow-(--shadow-card)" style={{ minHeight: 200 }}>
           {emptyNote}
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {kpis.map((k) => {
-            const s = k.movementSeries
-            const last = s[s.length - 1]
-            return (
-              /* fixed height + fixed internal rows: a horizontal line drawn across
-                 the four spotlight cards crosses the same element in each */
-              <button
-                key={k.id}
-                onClick={() => onOpen(k)}
-                className="grid min-w-0 overflow-hidden rounded-card bg-card p-4 text-left shadow-(--shadow-card) transition-all duration-200 hover:-translate-y-0.5 hover:shadow-(--shadow-card-hover)"
-                style={{ height: 232, gridTemplateRows: '52px 38px 34px 1fr' }}
-              >
-                <span className="overflow-hidden">
-                  <KpiIdentity kpi={k} />
-                </span>
-                <span className="num self-center text-[24px] font-bold leading-none text-sidra">
-                  {fmt(last?.[1])}
-                </span>
-                <span className="self-center">{s.length >= 3 ? <MiniLine series={s} hue={hue} /> : null}</span>
-                <p className="flex items-start gap-1.5 overflow-hidden pt-1 text-[11.5px] italic leading-snug text-ink-soft">
-                  <span className="mt-0.5 shrink-0">
-                    <Spark size={10} />
-                  </span>
-                  <span className="line-clamp-3">{aiLineFor([k])}</span>
-                </p>
-              </button>
-            )
-          })}
+        /* spotlight = the same card as the explore grid, one size up (R8 fix 6);
+           items-stretch keeps the four cards level without hard-coding a height */
+        <div className="grid grid-cols-1 items-stretch gap-4 sm:grid-cols-2">
+          {kpis.map((k) => (
+            <KpiCard key={k.id} group={[k]} hue={hue} size="lg" className="h-full" onOpen={() => onOpen(k)} />
+          ))}
           {/* the shorter section keeps its slot rather than stretching */}
           {kpis.length === 1 && (
-            <div
-              aria-hidden
-              className="rounded-card border border-dashed"
-              style={{ height: 232, borderColor: 'rgba(18,40,34,0.1)' }}
-            />
+            <div aria-hidden className="min-h-[200px] rounded-card border border-dashed" style={{ borderColor: 'rgba(18,40,34,0.1)' }} />
           )}
         </div>
       )}
@@ -1050,6 +1007,27 @@ const BANDS = [
   { id: 'Operational', q: 'Is the machine running?' },
 ] as const
 
+/** One honest sentence for a collapsed band — what a CEO needs before deciding to open it (R8 fix 4).
+    Each indicator is counted once, most-important condition first, so the counts sum to the band. */
+function bandLine(kpis: Kpi[]): string {
+  const ent = new Set(kpis.map((k) => k.entity)).size
+  const tally = { ceiling: 0, met: 0, quiet: 0, first: 0, rest: 0 }
+  for (const k of kpis) {
+    if (k.state === 'ABOVE_CEILING') tally.ceiling++
+    else if (k.state === 'TARGET_ALREADY_MET' || k.exactHit) tally.met++
+    else if (k.state === 'IDLE_THIS_CYCLE' || k.state === 'REPORTS_AT_YEAR_END') tally.quiet++
+    else if (k.movementSeries.length < 2) tally.first++
+    else tally.rest++
+  }
+  const parts: string[] = []
+  if (tally.ceiling) parts.push(`${tally.ceiling} above a ceiling`)
+  if (tally.met) parts.push(`${tally.met} already at the 2026 target`)
+  if (tally.first) parts.push(`${tally.first} first readings`)
+  if (tally.quiet) parts.push(`${tally.quiet} quiet by design`)
+  if (tally.rest) parts.push(`${tally.rest} in progress`)
+  return `${ent > 1 ? `across ${ent} entities — ` : ''}${parts.join(', ')}.`
+}
+
 function Bands({
   visible,
   isOE,
@@ -1058,6 +1036,8 @@ function Bands({
   annotate,
   sort,
   year,
+  filtersActive,
+  focusId,
   onRelax,
 }: {
   visible: Kpi[]
@@ -1067,9 +1047,24 @@ function Bands({
   annotate: string | null
   sort: Filters['sort']
   year: YearKey
+  filtersActive: boolean
+  focusId: string | null
   onRelax: () => void
 }) {
-  const [openOperational, setOpenOperational] = useState(isOE)
+  // CEO-first density: bands are closed until asked for; the spotlights above
+  // carry the judgement. A narrowed set (filters, a historical year) is a
+  // request for the detail, so it opens everything. A BOTaina handoff or an
+  // annotated finding opens the band that contains it — a pointed-at card
+  // must never sit behind a fold.
+  const [openBands, setOpenBands] = useState<Set<string>>(() => {
+    const s = new Set<string>(isOE ? ['Operational'] : [])
+    for (const id of [focusId, annotate])
+      if (id) {
+        const fw = visible.find((k) => k.id === id)?.framework
+        if (fw) s.add(fw)
+      }
+    return s
+  })
 
   if (visible.length === 0)
     return (
@@ -1089,27 +1084,38 @@ function Bands({
       {(isOE ? [BANDS[2]] : BANDS).map((band) => {
         const bandKpis = visible.filter((k) => k.framework === band.id)
         if (bandKpis.length === 0) return null
-        const collapsed = band.id === 'Operational' && !isOE && !openOperational
+        const open = filtersActive || openBands.has(band.id)
         return (
           <section key={band.id} className="mt-9" aria-label={`${band.id} band`}>
-            <div className="flex items-baseline justify-between border-b-2 pb-2" style={{ borderColor: `color-mix(in srgb, ${hue} 25%, transparent)` }}>
+            <button
+              onClick={() =>
+                setOpenBands((s) => {
+                  const n = new Set(s)
+                  if (n.has(band.id)) n.delete(band.id)
+                  else n.add(band.id)
+                  return n
+                })
+              }
+              className="flex w-full items-baseline justify-between gap-4 border-b-2 pb-2 text-left"
+              style={{ borderColor: `color-mix(in srgb, ${hue} 25%, transparent)` }}
+              aria-expanded={open}
+            >
               <div className="flex items-baseline gap-3">
                 <h2 className="label text-[12px]" style={{ color: hue }}>
                   {band.id}
                 </h2>
                 <span className="voice text-[14px] italic text-ink-mute">{band.q}</span>
               </div>
-              <span className="num text-[13px] text-ink-mute">{bandKpis.length}</span>
-            </div>
-            {collapsed ? (
-              <div className="flex items-center justify-between py-4 text-[14px] text-ink-mute">
-                <span>Nothing needs you here.</span>
-                <button onClick={() => setOpenOperational(true)} className="rounded-chip px-3 py-1 text-[12.5px] text-sidra transition-colors hover:bg-card">
-                  open
-                </button>
-              </div>
-            ) : (
+              <span className="flex shrink-0 items-center gap-2 text-[13px] text-ink-mute">
+                <span className="num">{bandKpis.length}</span>
+                <ChevronDown size={15} strokeWidth={1.8} className={`transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+              </span>
+            </button>
+            {open ? (
               <BandBody kpis={bandKpis} hue={hue} onOpenKpi={onOpenKpi} annotateKpiId={annotate} sort={sort} year={year} />
+            ) : (
+              /* the collapsed state is a characterisation, not a teaser */
+              <div className="py-3.5 text-[13.5px] leading-snug text-ink-soft">{bandLine(bandKpis)}</div>
             )}
           </section>
         )
@@ -1169,11 +1175,31 @@ function BandBody({
                 <span aria-hidden className="h-3.5 w-[3px] rounded-full" style={{ background: hue }} />
                 {cat}
               </h3>
-              <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-                {cards.map((c) => (
-                  <GroupCardView key={c.key} card={c} onOpen={() => onOpenKpi(c.kpis[0])} annotated={c.kpis.some((k) => k.id === annotateKpiId)} />
-                ))}
-              </div>
+              {year !== '2026Q1' ? (
+                /* a historical year keeps its uniform value tiles (R6 fix 5) */
+                <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+                  {cards.map((c) => (
+                    <GroupCardView key={c.key} card={c} onOpen={() => onOpenKpi(c.kpis[0])} />
+                  ))}
+                </div>
+              ) : (
+                /* the same card as everywhere else — snapshot only, trends in the overlay (R8 fixes 1/6) */
+                <div className="grid grid-cols-1 items-stretch gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                  {cards.map((c) => (
+                    <AnnotatedSlot key={c.key} annotated={c.kpis.some((k) => k.id === annotateKpiId)}>
+                      <KpiCard
+                        group={c.kpis}
+                        title={c.title}
+                        hue={hue}
+                        size="sm"
+                        className="h-full"
+                        onOpen={() => onOpenKpi(c.kpis[0])}
+                        meta={c.rep.kind === 'idle' || c.rep.kind === 'not-reported' ? c.rep.note : undefined}
+                      />
+                    </AnnotatedSlot>
+                  ))}
+                </div>
+              )}
             </motion.div>
           )
         })}
@@ -1189,28 +1215,30 @@ function availabilityLabel(k: Kpi): string {
   return k.movementSeries.length >= 3 ? `${k.movementSeries.length} readings` : 'first reading'
 }
 
-function GroupCardView({ card, onOpen, annotated }: { card: GroupCard; onOpen: () => void; annotated: boolean }) {
-  const [pt, setPt] = useState<{ x: number; y: number; w: number } | null>(null)
+/* BOTaina's handoff annotation, anchored to the card itself — the card no
+   longer carries a trend chart, so there is no chart pixel to point at (R8). */
+function AnnotatedSlot({ annotated, children }: { annotated: boolean; children: React.ReactNode }) {
+  if (!annotated) return <>{children}</>
+  return (
+    <div className="relative">
+      {children}
+      <motion.div
+        className="pointer-events-none absolute -top-9 right-2 z-10 flex items-end gap-1.5"
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.55, duration: 0.5, ease: [0.32, 0.72, 0, 1] }}
+      >
+        <BotainaFigure size={52} state="pointing" />
+        <div className="mb-4 max-w-[170px] rounded-input bg-sidra px-2.5 py-1.5 text-[11px] leading-snug text-white shadow-md">
+          This is the number I would raise first.
+        </div>
+      </motion.div>
+    </div>
+  )
+}
 
-  const handleReady = (chart: ECharts) => {
-    if (!annotated) return
-    const opt = chart.getOption() as { series?: { data?: (number | null)[] }[] }
-    const data = opt.series?.[0]?.data ?? []
-    let idx = -1
-    for (let i = data.length - 1; i >= 0; i--)
-      if (data[i] !== null && data[i] !== undefined) {
-        idx = i
-        break
-      }
-    if (idx < 0) return
-    try {
-      const [x, y] = chart.convertToPixel({ seriesIndex: 0 }, [idx, data[idx] as number]) as [number, number]
-      setPt({ x, y, w: chart.getWidth() })
-    } catch {
-      setPt(null)
-    }
-  }
-
+/* Historical-year tiles only — the current quarter renders KpiCard. */
+function GroupCardView({ card, onOpen }: { card: GroupCard; onOpen: () => void }) {
   return (
     <div
       className="relative cursor-pointer rounded-card bg-card p-5 transition-shadow duration-200 hover:shadow-(--shadow-card-hover)"
@@ -1224,58 +1252,9 @@ function GroupCardView({ card, onOpen, annotated }: { card: GroupCard; onOpen: (
         <h4 className="text-[13.5px] font-semibold text-ink">{card.title}</h4>
         <span className="shrink-0 text-[11px] text-ink-mute">
           {card.entities.join(', ')} ·{' '}
-          {card.kpis.length > 1 ? `${card.kpis.length} indicators, one chart` : availabilityLabel(card.kpis[0])}
+          {card.kpis.length > 1 ? `${card.kpis.length} indicators` : availabilityLabel(card.kpis[0])}
         </span>
       </div>
-
-      {card.rep.kind === 'chart' && (
-        <div className="relative">
-          <EChart option={card.rep.option} height={card.kpis.length > 2 ? 260 : 220} onReady={handleReady} />
-          <AnimatePresence>
-            {annotated && pt && (
-              <motion.div
-                className="pointer-events-none absolute inset-0"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.5, duration: 0.3 }}
-              >
-                {(() => {
-                  const bx = Math.min(pt.x + 46, pt.w - 248)
-                  return (
-                    <>
-                      <svg className="absolute inset-0 h-full w-full">
-                        <motion.line
-                          x1={bx + 8}
-                          y1={pt.y - 34}
-                          x2={pt.x - 2}
-                          y2={pt.y - 6}
-                          stroke="#034638"
-                          strokeWidth="1.5"
-                          initial={{ pathLength: 0 }}
-                          animate={{ pathLength: 1 }}
-                          transition={{ delay: 1.1, duration: 0.2 }}
-                        />
-                        <circle cx={pt.x} cy={pt.y} r="5" fill="none" stroke="#034638" strokeWidth="1.5" />
-                      </svg>
-                      <motion.div
-                        className="absolute flex items-end gap-1.5"
-                        initial={{ x: bx + 110, y: pt.y - 120, opacity: 0 }}
-                        animate={{ x: bx, y: pt.y - 116, opacity: 1 }}
-                        transition={{ delay: 0.55, duration: 0.6, ease: [0.32, 0.72, 0, 1] }}
-                      >
-                        <BotainaFigure size={56} state="pointing" />
-                        <div className="mb-5 max-w-[170px] rounded-input bg-sidra px-2.5 py-1.5 text-[11px] leading-snug text-white shadow-md">
-                          This is the number I would raise first.
-                        </div>
-                      </motion.div>
-                    </>
-                  )
-                })()}
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      )}
 
       {card.rep.kind === 'first-reading' && (
         <div className="grid grid-cols-2 gap-3 py-2">

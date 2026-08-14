@@ -5,8 +5,9 @@
 import { motion, AnimatePresence } from 'framer-motion'
 import type { Kpi } from '../model/types'
 import { EChart } from './charts/EChart'
-import { buildGroupCards, aiLineFor } from './charts/builders'
+import { overlayTrendOption, aiLineFor } from './charts/builders'
 import { BotainaFigure } from './Botaina'
+import { EntityIcon } from './EntityIcon'
 import { kpis as allKpis } from '../model/data'
 
 const YEARS = ['2022', '2023', '2024', '2025', '2026', '2027', '2028']
@@ -66,46 +67,29 @@ export function KpiDetailBody({ kpi }: { kpi: Kpi }) {
         </p>
       )}
 
+      {/* the trend lives HERE, not on the card (R8 fixes 1/5): full history as
+          bars, targets through 2028 as a dashed hollow line — future values
+          visible but never dressed as actuals */}
       <div className="mt-5">
         {(() => {
-          // the same chart the listing card shows: the whole Name: group,
-          // same builder, same height rule
           const group = kpi.chartGroup
             ? allKpis.filter((k) => k.chartGroup === kpi.chartGroup && k.entity === kpi.entity)
             : [kpi]
-          const [card] = buildGroupCards(group, '#034638')
-          if (card.rep.kind === 'chart')
+          const hasAny = group.some((k) => Object.values(k.actuals).some((a) => a.value !== null))
+          if (!hasAny)
             return (
-              <>
-                <EChart option={card.rep.option} height={group.length > 2 ? 260 : 220} />
-                {group.length > 1 && (
-                  <p className="mt-1 text-[11.5px] text-ink-mute">
-                    Charted with the other {group.length - 1} indicator
-                    {group.length > 2 ? 's' : ''} in {kpi.chartGroup} — the same view as the list.
-                  </p>
-                )}
-              </>
-            )
-          if (card.rep.kind === 'first-reading')
-            return (
-              <div className="rounded-input bg-cream/70 p-4">
-                <div className="num text-[34px] font-bold text-sidra">
-                  {kpi.actuals['2026Q1'].value ?? kpi.actuals['2026Q1'].raw ?? '—'}
-                  {kpi.targets['2026'].value ? (
-                    <span className="ml-2 text-[14px] font-normal text-ink-mute">
-                      of {new Intl.NumberFormat('en').format(kpi.targets['2026'].value)}
-                    </span>
-                  ) : null}
-                </div>
-                <div className="mt-1 text-[12px] italic text-ink-mute">
-                  First reading — a baseline being set, drawn as a value on purpose. A line needs three points.
-                </div>
+              <div className="flex h-[120px] items-center justify-center rounded-input bg-cream/60 px-6 text-center text-[13px] italic text-ink-mute">
+                No readings on record — only the target path exists for this indicator.
               </div>
             )
           return (
-            <div className="flex h-[120px] items-center justify-center rounded-input bg-cream/60 text-[13px] italic text-ink-mute">
-              {'note' in card.rep ? card.rep.note : null}
-            </div>
+            <>
+              <EChart option={overlayTrendOption(group, '#034638')} height={group.length > 1 ? 250 : 220} />
+              <p className="mt-1 text-[11.5px] text-ink-mute">
+                Bars are reported actuals; the dashed line with hollow points is the target path, 2026–2028 included.
+                {group.length > 1 && <> Charted with the other {group.length - 1} indicator{group.length > 2 ? 's' : ''} in {kpi.chartGroup}.</>}
+              </p>
+            </>
           )
         })()}
       </div>
@@ -150,17 +134,32 @@ export function KpiDetailBody({ kpi }: { kpi: Kpi }) {
         </table>
       </div>
 
-      {/* BOTaina's longer read */}
-      <div className="mt-6 flex gap-4 rounded-panel bg-sidra p-5 text-white">
+      {/* highlights — two kinds, never equal in authority (R8 fix 5) */}
+      <h3 className="label mt-6 text-ink-mute">Highlights</h3>
+
+      {/* client highlights: QF's own words, verbatim, when they exist. None do
+          yet — the empty state says so instead of pretending the section away. */}
+      <div className="mt-2 rounded-input border-l-[3px] border-cream bg-cream/50 p-4" style={{ borderLeftColor: '#c8c9c7' }}>
+        <div className="text-[10.5px] font-semibold uppercase tracking-wide text-ink-mute">From Qatar Foundation</div>
+        <p className="mt-1.5 text-[12.5px] italic leading-relaxed text-ink-mute">
+          No commentary has been supplied for this indicator yet. When QF provides highlights, they appear here
+          verbatim — this space is theirs, not the platform's.
+        </p>
+      </div>
+
+      {/* AI highlight: BOTaina's read — clearly the machine's voice, styled as
+          such, and it never borrows the client's authority */}
+      <div className="mt-3 flex gap-4 rounded-panel bg-sidra p-5 text-white">
         <div className="shrink-0">
           <BotainaFigure size={62} state="speaking" />
         </div>
         <div>
+          <div className="text-[10.5px] font-semibold uppercase tracking-wide text-white/60">BOTaina · AI highlight</div>
           {(() => {
             const r = longerRead(kpi)
             return (
               <>
-                <p className="voice text-[14px] leading-relaxed text-white/95">{r.read}</p>
+                <p className="voice mt-1.5 text-[14px] leading-relaxed text-white/95">{r.read}</p>
                 <p className="mt-2.5 text-[12px] italic leading-relaxed text-white/70">{r.unknown}</p>
               </>
             )
@@ -201,11 +200,16 @@ export function KpiDrawer({ kpi, onClose }: { kpi: Kpi | null; onClose: () => vo
             aria-label={`${kpi.name} detail`}
           >
             <div className="flex items-start justify-between gap-4">
-              <div>
-                <div className="label text-ink-mute">
-                  {kpi.entity} · {kpi.framework} · {kpi.category}
+              <div className="flex items-start gap-3">
+                <span className="mt-0.5">
+                  <EntityIcon entity={kpi.entity} size={30} />
+                </span>
+                <div>
+                  <div className="label text-ink-mute">
+                    {kpi.entity} · {kpi.framework} · {kpi.category}
+                  </div>
+                  <h2 className="mt-1.5 text-[21px] font-semibold leading-tight text-ink">{kpi.name}</h2>
                 </div>
-                <h2 className="mt-1.5 text-[21px] font-semibold leading-tight text-ink">{kpi.name}</h2>
               </div>
               <button
                 onClick={onClose}
