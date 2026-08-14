@@ -206,6 +206,28 @@ export function statusOf(k: Kpi): ChartStatus {
 const fillFor = (s: ChartStatus, hue: string) => (s === 'met' || s === 'behind' || s === 'breach' ? STATUS_COLOR[s].fill : hue)
 const textFor = (s: ChartStatus) => (s === 'met' || s === 'behind' || s === 'breach' ? STATUS_COLOR[s].text : '#122822')
 
+export const yearLabel = (y: string) => (y === '2026Q1' ? 'Q1 2026' : y)
+
+/**
+ * Status for a CLOSED year (R13). Pace has no meaning once a year is over —
+ * the year either landed on its target or it didn't, so there is no
+ * "behind pace" here, only met or missed. Ceilings keep their rule: under a
+ * ceiling is fine but never "done", over it is the one real red.
+ */
+function closedYearStatus(k: Kpi, value: number, target: number): ChartStatus {
+  if (k.polarity === 'Red') return value > target ? 'breach' : 'neutral'
+  return value >= target ? 'met' : 'behind'
+}
+
+/** One indicator's standing: a value, the target it is judged against, and when. */
+interface Position {
+  k: Kpi
+  value: number
+  target: number
+  year: string
+  status: ChartStatus
+}
+
 /**
  * A member's label inside a grouped card: the card title already says the
  * group, so words the title carries are removed ("International Partnerships"
@@ -246,10 +268,11 @@ export interface SnapshotRow {
 export type SnapshotRep =
   /* grouped: status-ledger rows, rendered in HTML by the card (R10 fix 5 — the
      client's chosen treatment; the small-multiple-arc alternative was removed
-     once the two were compared live, see docs/r10-notes.md) */
-  | { kind: 'group-ledger'; rows: SnapshotRow[]; max: number }
-  | { kind: 'bullet'; option: EChartsOption; height: number }
-  | { kind: 'arc'; option: EChartsOption; height: number }
+     once the two were compared live, see docs/r10-notes.md).
+     `basis` is set only when the mark reports a year other than this quarter. */
+  | { kind: 'group-ledger'; rows: SnapshotRow[]; max: number; basis?: string }
+  | { kind: 'bullet'; option: EChartsOption; height: number; basis?: string }
+  | { kind: 'arc'; option: EChartsOption; height: number; basis?: string }
   | { kind: 'none' }
 
 const isRateLike = (k: Kpi) => k.name.includes('%') || /rate|ratio|index|nps|satisfaction/i.test(k.name)
@@ -270,6 +293,8 @@ function gaugeFor(
   center: [string, string],
   radius: string,
   sz: { ring: number; v: number; c: number; s: number; offset: string },
+  /** year note, when the arc reports a year other than this quarter */
+  sub?: string,
 ) {
   const over = row.value > row.target
   const max = over ? row.value : row.target
@@ -307,7 +332,7 @@ function gaugeFor(
     title: { show: false },
     detail: {
       offsetCenter: [0, sz.offset],
-      formatter: met ? `{v|${nf(row.value)}}{c| ✓}\n{s|of ${nf(row.target)}}` : `{v|${nf(row.value)}}\n{s|of ${nf(row.target)}}`,
+      formatter: `{v|${nf(row.value)}}${met ? '{c| ✓}' : ''}\n{s|of ${nf(row.target)}${sub ? ` · ${sub}` : ''}}`,
       rich: {
         v: { fontSize: sz.v, fontWeight: 700, fontFamily: 'Space Grotesk', color: textFor(row.status) },
         c: { fontSize: sz.c, fontWeight: 700, fontFamily: 'Space Grotesk', color: STATUS_COLOR.met.fill },
@@ -332,44 +357,89 @@ export function snapshotFor(group: Kpi[], hue: string, title?: string, scale: Ch
     const last = k.movementSeries[k.movementSeries.length - 1]
     return last?.[0] === '2026Q1'
   }
-  const withQ1 = group.filter(
-    (k) =>
-      k.state !== 'REPORTS_AT_YEAR_END' &&
-      k.state !== 'IDLE_THIS_CYCLE' &&
-      q1IsReal(k) &&
-      (k.targets['2026'].value ?? 0) > 0,
-  )
-  if (withQ1.length === 0) return { kind: 'none' }
+  const q1Positions: Position[] = group
+    .filter(
+      (k) =>
+        k.state !== 'REPORTS_AT_YEAR_END' &&
+        k.state !== 'IDLE_THIS_CYCLE' &&
+        q1IsReal(k) &&
+        (k.targets['2026'].value ?? 0) > 0,
+    )
+    .map((k) => ({
+      k,
+      value: k.actuals['2026Q1'].value as number,
+      target: k.targets['2026'].value as number,
+      year: '2026Q1',
+      status: statusOf(k),
+    }))
+
+  /**
+   * R13: having no Q1 position is not the same as having nothing to show.
+   * Where an indicator's last reported year has a target of its own, the card
+   * stands it against THAT year and says which — dated evidence instead of a
+   * bare figure. What it must never do is chart a 2025 actual against the 2026
+   * target: that would claim progress this quarter that has not been reported.
+   */
+  const fallback: Position[] = group
+    .map((k) => {
+      // No state exclusion here, unlike the Q1 path. Those exclusions guard
+      // against reading a year-end or off-cycle indicator's Q1 CELL, which is
+      // an artifact — they say nothing about its history. A year-end reporter's
+      // last closed year against that year's own target is a real reading, and
+      // is exactly the case this fallback exists for.
+      const last = k.movementSeries[k.movementSeries.length - 1]
+      if (!last) return null
+      const tk = last[0] === '2026Q1' ? '2026' : last[0]
+      const t = k.targets[tk]?.value ?? null
+      if (t === null || t <= 0) return null
+      return { k, value: last[1], target: t, year: last[0], status: closedYearStatus(k, last[1], t) }
+    })
+    .filter((p): p is Position => p !== null)
+
+  const positions = q1Positions.length > 0 ? q1Positions : fallback
+  if (positions.length === 0) return { kind: 'none' }
+
+  // when the mark reports a year other than this quarter, every label says so
+  const years = [...new Set(positions.map((p) => p.year))]
+  const basis =
+    q1Positions.length > 0
+      ? undefined
+      : years.length === 1
+        ? `${yearLabel(years[0])} · last reported, against that year's target`
+        : "last reported year for each, against that year's target"
 
   // a grouped CARD always gets the labelled treatment — even when only one
-  // member has a real Q1 position, an unlabelled mark could be read as any of
+  // member has a real position, an unlabelled mark could be read as any of
   // the members, so the label stays (the R9-found ambiguity, fixed for good)
-  if (withQ1.length > 1 || group.length > 1) {
+  if (positions.length > 1 || group.length > 1) {
     // Sheet order, always. The card receives its group already sorted by
     // whatever L2 sort is active while the overlay reads the raw set, so
     // without this the same group's rows appear in two different orders
     // between the card and the overlay opened from it (R11 fix 2).
-    const ordered = [...withQ1].sort((a, b) => a.row - b.row)
+    const ordered = [...positions].sort((a, b) => a.k.row - b.k.row)
     // the card caps at three rows to keep its footprint fixed; the overlay has
     // the room to show every member of the group
-    const rows: SnapshotRow[] = ordered.slice(0, big ? 8 : 3).map((k) => ({
-      label: memberLabel(k, title),
-      value: k.actuals['2026Q1'].value as number,
-      target: k.targets['2026'].value as number,
-      status: statusOf(k),
+    const rows: SnapshotRow[] = ordered.slice(0, big ? 8 : 3).map((p) => ({
+      label: memberLabel(p.k, title),
+      value: p.value,
+      target: p.target,
+      status: p.status,
     }))
-    return { kind: 'group-ledger', rows, max: Math.max(...rows.map((r) => Math.max(r.value, r.target))) * 1.05 }
+    return {
+      kind: 'group-ledger',
+      rows,
+      basis,
+      max: Math.max(...rows.map((r) => Math.max(r.value, r.target))) * 1.05,
+    }
   }
 
-  const k = withQ1[0]
-  const a = k.actuals['2026Q1'].value as number
-  const t = k.targets['2026'].value as number
-  const st = statusOf(k)
+  const { k, value: a, target: t, status: st, year: pYear } = positions[0]
 
   if (isRateLike(k)) {
     return {
       kind: 'arc',
       height: big ? 172 : 84,
+      basis,
       option: {
         series: [
           gaugeFor(
@@ -380,6 +450,7 @@ export function snapshotFor(group: Kpi[], hue: string, title?: string, scale: Ch
             big
               ? { ring: 17, v: 36, c: 25, s: 15, offset: '-6%' }
               : { ring: 10, v: 19, c: 14, s: 10, offset: '-8%' },
+            basis ? yearLabel(pYear) : undefined,
           ),
         ],
       },
@@ -392,6 +463,7 @@ export function snapshotFor(group: Kpi[], hue: string, title?: string, scale: Ch
   return {
     kind: 'bullet',
     height: big ? 104 : 58,
+    basis,
     option: {
       grid: big
         ? { left: 6, right: 88, top: 38, bottom: 26 }
@@ -422,7 +494,7 @@ export function snapshotFor(group: Kpi[], hue: string, title?: string, scale: Ch
             symbol: 'none',
             lineStyle: { type: 'dashed', color: '#47605a', width: big ? 2.5 : 2 },
             label: {
-              formatter: `target ${nf(t)}`,
+              formatter: basis ? `${yearLabel(pYear)} target ${nf(t)}` : `target ${nf(t)}`,
               position: 'end',
               // a target near either edge would push its label off the card
               align: (t / (max * 1.05) < 0.35 ? 'left' : t / (max * 1.05) > 0.75 ? 'right' : 'center') as 'left' | 'center' | 'right',

@@ -109,20 +109,60 @@ export function SnapshotMark({
   hue: string
   title?: string
   scale?: ChartScale
-  /** shown in place of a mark when no honest Q1 position exists */
+  /** shown in place of a mark when no honest position exists at all */
   emptyNote?: string
 }) {
   const snap = snapshotFor(group, hue, title, scale)
+  const basis = snap.kind === 'none' ? undefined : snap.basis
 
-  if (snap.kind === 'group-ledger') return <LedgerRows rows={snap.rows} max={snap.max} hue={hue} scale={scale} />
-  if (snap.kind !== 'none') return <EChart option={snap.option} height={snap.height} />
-  if (!emptyNote) return null
+  /* when the mark reports a year other than this quarter, it says so above
+     itself — a dated reading must never be mistaken for a Q1 one (R13) */
+  const dated = basis ? (
+    <div className={`${scale === 'overlay' ? 'mb-2 text-[11.5px]' : 'mb-1.5 text-[10.5px]'} font-medium text-ink-mute`}>
+      {basis}
+    </div>
+  ) : null
+
+  if (snap.kind === 'group-ledger')
+    return (
+      <>
+        {dated}
+        <LedgerRows rows={snap.rows} max={snap.max} hue={hue} scale={scale} />
+      </>
+    )
+  if (snap.kind !== 'none')
+    return (
+      <>
+        {dated}
+        <EChart option={snap.option} height={snap.height} />
+      </>
+    )
+
+  /**
+   * Nothing chartable. A card must still never fall back to a bare figure
+   * (R13): where no honest position exists it says so, and says what the
+   * target it has not yet been measured against actually is.
+   */
+  const note = emptyNote ?? defaultEmptyNote(group)
+  if (!note) return null
   return (
     <div
       className="flex items-center rounded-input bg-cream/60 px-3 italic leading-snug text-ink-mute"
       style={{ fontSize: scale === 'overlay' ? 13 : 11, minHeight: scale === 'overlay' ? 72 : undefined, paddingBlock: 10 }}
     >
-      {emptyNote}
+      {note}
     </div>
   )
+}
+
+/** Why this card has no mark, in the platform's own voice. */
+function defaultEmptyNote(group: Kpi[]): string {
+  const k = group[0]
+  const t = k.targets['2026'].value
+  if (k.state === 'IDLE_THIS_CYCLE') return 'Idle this cycle — the 2026 target is 0 in an off year. Correctly quiet.'
+  if (k.state === 'REPORTS_AT_YEAR_END')
+    return t ? `Reports at year end; nothing measured yet against the ${nf(t)} target for 2026.` : 'Reports at year end — no reading exists yet.'
+  return t
+    ? `Nothing reported yet — the 2026 target is ${nf(t)}, with no reading to stand against it.`
+    : 'Nothing reported yet, and no target is set to measure it against.'
 }
