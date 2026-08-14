@@ -209,6 +209,32 @@ const textFor = (s: ChartStatus) => (s === 'met' || s === 'behind' || s === 'bre
 export const yearLabel = (y: string) => (y === '2026Q1' ? 'Q1 2026' : y)
 
 /**
+ * How far past its target an indicator landed (R14 fix 1). Clearing the bar
+ * and clearing it by a factor of six are different findings, and a full green
+ * bar said the same thing about both.
+ *
+ * `exact` is the cleanest possible outcome and keeps the plain treatment.
+ * `modest` states the magnitude in words. `large` — past double — is the case
+ * most likely to be a wrongly-set target rather than a result, so it earns a
+ * visibly different bar as well as the figure.
+ */
+export type OvershootBand = 'exact' | 'modest' | 'large'
+export interface Overshoot {
+  ratio: number
+  band: OvershootBand
+  /** '+50%' for a modest beat, '6.3×' once the multiple is the real story */
+  label: string
+}
+
+export function overshootOf(value: number, target: number): Overshoot | null {
+  if (!(target > 0) || value < target) return null
+  const ratio = value / target
+  if (ratio < 1.005) return { ratio, band: 'exact', label: 'on target' }
+  if (ratio <= 2) return { ratio, band: 'modest', label: `+${Math.round((ratio - 1) * 100)}%` }
+  return { ratio, band: 'large', label: `${ratio.toFixed(1)}×` }
+}
+
+/**
  * Status for a CLOSED year (R13). Pace has no meaning once a year is over —
  * the year either landed on its target or it didn't, so there is no
  * "behind pace" here, only met or missed. Ceilings keep their rule: under a
@@ -343,6 +369,12 @@ function gaugeFor(
   }
 }
 
+/** The basis line a card should print above a grouped mark, if any. */
+export function snapshotBasisFor(group: Kpi[], title?: string): string | undefined {
+  const rep = snapshotFor(group, '#000', title)
+  return rep.kind === 'none' ? undefined : rep.basis
+}
+
 export function snapshotFor(group: Kpi[], hue: string, title?: string, scale: ChartScale = 'card'): SnapshotRep {
   // the overlay draws the same mark as the card, larger (R11 fix 2)
   const big = scale === 'overlay'
@@ -396,16 +428,45 @@ export function snapshotFor(group: Kpi[], hue: string, title?: string, scale: Ch
     })
     .filter((p): p is Position => p !== null)
 
-  const positions = q1Positions.length > 0 ? q1Positions : fallback
+  /**
+   * A genuine in-progress zero (R14 fix 2). Distinct from a not-yet-due zero:
+   * this indicator reports continuously, has a target, and three months in the
+   * answer really is nothing. That is a measurement, so it gets a chart — an
+   * empty bar with the target still marked — rather than a bare figure.
+   * Indicators with prior years fall through to the dated fallback instead,
+   * which says more than an empty 2026 bar would.
+   */
+  const genuineZeros: Position[] = group
+    .filter(
+      (k) =>
+        k.state !== 'REPORTS_AT_YEAR_END' &&
+        k.state !== 'IDLE_THIS_CYCLE' &&
+        k.actuals['2026Q1'].value === 0 &&
+        (k.targets['2026'].value ?? 0) > 0 &&
+        k.movementSeries.length === 0,
+    )
+    .map((k) => ({
+      k,
+      value: 0,
+      target: k.targets['2026'].value as number,
+      year: '2026Q1',
+      status: statusOf(k),
+    }))
+
+  const positions =
+    q1Positions.length > 0 ? q1Positions : fallback.length > 0 ? fallback : genuineZeros
   if (positions.length === 0) return { kind: 'none' }
 
-  // when the mark reports a year other than this quarter, every label says so
+  // Only a year OTHER than this quarter needs saying. A fallback position that
+  // happens to land on Q1 2026 is just the current quarter, and labelling it
+  // "Q1 2026 · last reported" says nothing while reading like a caveat.
   const years = [...new Set(positions.map((p) => p.year))]
+  const dated = years.filter((y) => y !== '2026Q1')
   const basis =
-    q1Positions.length > 0
+    dated.length === 0
       ? undefined
-      : years.length === 1
-        ? `${yearLabel(years[0])} · last reported, against that year's target`
+      : dated.length === 1 && years.length === 1
+        ? `${yearLabel(dated[0])} · last reported, against that year's target`
         : "last reported year for each, against that year's target"
 
   // a grouped CARD always gets the labelled treatment — even when only one
@@ -460,35 +521,78 @@ export function snapshotFor(group: Kpi[], hue: string, title?: string, scale: Ch
   // single count: bullet whose fill, number and dashed target all carry status
   const met = st === 'met'
   const max = Math.max(a, t)
+  const over = overshootOf(a, t)
+  const fill = fillFor(st, hue)
+  /* A large beat splits the bar: solid up to the target, a fainter hatched
+     run beyond it. The bar still stops at the card edge — what changes is
+     that the part past the target is visibly a different thing (R14 fix 1). */
+  const split = over?.band === 'large'
+  const endLabel = {
+    show: true,
+    position: 'right' as const,
+    fontFamily: 'Space Grotesk',
+    fontWeight: 700,
+    fontSize: big ? 26 : 14,
+    color: textFor(st),
+    formatter: () =>
+      over && over.band !== 'exact' ? `${nf(a)} ✓ ${over.label}` : met ? `${nf(a)} ✓` : nf(a),
+  }
   return {
     kind: 'bullet',
     height: big ? 104 : 58,
     basis,
     option: {
       grid: big
-        ? { left: 6, right: 88, top: 38, bottom: 26 }
-        : { left: 4, right: 48, top: 21, bottom: 15 },
+        ? { left: 6, right: big && over && over.band !== 'exact' ? 132 : 88, top: 38, bottom: 26 }
+        : { left: 4, right: over && over.band !== 'exact' ? 84 : 48, top: 21, bottom: 15 },
       xAxis: { type: 'value', max: max * 1.05, show: false },
       yAxis: { type: 'category', data: [''], show: false },
       series: [
+        // the run past the target, drawn first so it stacks behind the label
+        ...(split
+          ? [
+              {
+                type: 'bar' as const,
+                stack: 'bullet',
+                data: [t],
+                barWidth: big ? 22 : 12,
+                itemStyle: { color: fill, borderRadius: [0, 0, 0, 0] },
+                showBackground: true,
+                backgroundStyle: { color: 'rgba(200,201,199,0.25)', borderRadius: [0, 6, 6, 0] },
+                silent: true,
+              },
+              {
+                type: 'bar' as const,
+                stack: 'bullet',
+                data: [a - t],
+                barWidth: big ? 22 : 12,
+                itemStyle: {
+                  color: fill,
+                  opacity: 0.42,
+                  borderRadius: [0, 6, 6, 0],
+                  decal: {
+                    symbol: 'rect',
+                    color: 'rgba(255,255,255,0.75)',
+                    dashArrayX: [3, 4],
+                    dashArrayY: [8, 0],
+                    rotation: -Math.PI / 4,
+                  },
+                },
+                label: endLabel,
+                silent: true,
+              },
+            ]
+          : []),
         {
           type: 'bar',
-          data: [a],
+          data: [split ? 0 : a],
           barWidth: big ? 22 : 12,
           itemStyle: met
-            ? { color: fillFor(st, hue), borderRadius: [0, 6, 6, 0], shadowColor: 'rgba(120,190,32,0.45)', shadowBlur: 7 }
-            : { color: fillFor(st, hue), borderRadius: [0, 6, 6, 0] },
-          showBackground: true,
+            ? { color: fill, borderRadius: [0, 6, 6, 0], shadowColor: 'rgba(120,190,32,0.45)', shadowBlur: 7 }
+            : { color: fill, borderRadius: [0, 6, 6, 0] },
+          showBackground: !split,
           backgroundStyle: { color: 'rgba(200,201,199,0.25)', borderRadius: [0, 6, 6, 0] },
-          label: {
-            show: true,
-            position: 'right',
-            fontFamily: 'Space Grotesk',
-            fontWeight: 700,
-            fontSize: big ? 26 : 14,
-            color: textFor(st),
-            formatter: () => (met ? `${nf(a)} ✓` : nf(a)),
-          },
+          label: split ? { show: false } : endLabel,
           markLine: {
             silent: true,
             symbol: 'none',

@@ -15,7 +15,7 @@ import type { Kpi } from '../model/types'
 import { fmt } from '../model/data'
 import { EntityIcon } from './EntityIcon'
 import { KpiIdentity } from './KpiIdentity'
-import { aiLineFor } from './charts/builders'
+import { aiLineFor, snapshotBasisFor } from './charts/builders'
 import { SnapshotMark } from './charts/SnapshotMark'
 import { Spark } from './Shell'
 
@@ -29,9 +29,27 @@ export interface Polarity {
   basis: string
 }
 
+/**
+ * A not-yet-due indicator's Q1 cell holds a 0 that is not a measurement
+ * (R14 fix 2). Nothing about it may be framed as a value against a target.
+ */
+export function isNotDue(k: Kpi): boolean {
+  return (
+    (k.state === 'REPORTS_AT_YEAR_END' || k.state === 'IDLE_THIS_CYCLE') && k.movementSeries.length === 0
+  )
+}
+
 /** Movement judged against the indicator's own direction of good. */
 export function polarityOf(k: Kpi): Polarity {
   const s = k.movementSeries
+  // checked before the target branch: "0 — vs 2026 target" on something that
+  // has not been assessed reads as a score of zero, which it is not
+  if (isNotDue(k))
+    return {
+      dir: 'flat',
+      tone: FLAT,
+      basis: k.state === 'IDLE_THIS_CYCLE' ? 'idle this cycle' : 'not yet reported',
+    }
   if (s.length >= 2) {
     const [prevY, prev] = s[s.length - 2]
     const last = s[s.length - 1][1]
@@ -80,8 +98,13 @@ export function KpiCard({
   const loud = isLoud(group)
   const lg = size === 'lg'
   const s = k.movementSeries
-  const figure =
-    s.length > 0 ? fmt(s[s.length - 1][1]) : (k.actuals['2026Q1'].value !== null ? fmt(k.actuals['2026Q1'].value) : (k.actuals['2026Q1'].raw ?? '—'))
+  const figure = isNotDue(k)
+    ? '—'
+    : s.length > 0
+      ? fmt(s[s.length - 1][1])
+      : k.actuals['2026Q1'].value !== null
+        ? fmt(k.actuals['2026Q1'].value)
+        : (k.actuals['2026Q1'].raw ?? '—')
   const Arrow = pol.dir === 'up' ? ArrowUpRight : pol.dir === 'down' ? ArrowDownRight : Minus
 
   return (
@@ -118,7 +141,9 @@ export function KpiCard({
         /* a grouped card's figures live on its chart rows — one headline number
            would crown the first indicator and bury the rest. The basis line
            still states what the reader is looking at (Fix 3). */
-        <div className="mt-2 text-[11px] font-medium text-ink-mute">Q1 2026 · against 2026 targets</div>
+        <div className="mt-2 text-[11px] font-medium leading-tight text-ink-mute">
+          {snapshotBasisFor(group, title) ?? 'Q1 2026 · against 2026 targets'}
+        </div>
       ) : (
         <div className="mt-2 flex items-baseline gap-2">
           <span className={`num font-bold leading-none text-sidra ${lg ? 'text-[26px]' : 'text-[22px]'}`}>{figure}</span>
@@ -130,7 +155,15 @@ export function KpiCard({
       )}
 
       <div className="mt-2.5">
-        <SnapshotMark group={group} hue={hue} title={title} scale="card" emptyNote={meta} />
+        <SnapshotMark
+          group={group}
+          hue={hue}
+          title={title}
+          scale="card"
+          emptyNote={meta}
+          /* a grouped card prints the basis in its meta row above */
+          showBasis={group.length === 1}
+        />
       </div>
 
       <p className={`mt-2 flex items-start gap-1.5 border-t border-cream pt-2 text-[11.5px] italic leading-snug text-ink-soft`}>

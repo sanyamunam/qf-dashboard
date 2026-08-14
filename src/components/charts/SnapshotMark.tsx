@@ -9,7 +9,7 @@
  */
 import type { Kpi } from '../../model/types'
 import { EChart } from './EChart'
-import { snapshotFor, STATUS_COLOR, type ChartScale, type SnapshotRow } from './builders'
+import { snapshotFor, overshootOf, STATUS_COLOR, type ChartScale, type SnapshotRow } from './builders'
 
 const nf = (n: number) => new Intl.NumberFormat('en', { maximumFractionDigits: 1 }).format(n)
 
@@ -46,6 +46,9 @@ export function LedgerRows({
       {rows.map((r) => {
         const w = Math.max(2, (r.value / max) * 100)
         const tx = (r.target / max) * 100
+        const over = overshootOf(r.value, r.target)
+        // a large beat splits the fill: solid to the target, hatched beyond
+        const split = over?.band === 'large'
         return (
           <div key={r.label}>
             <div className="flex items-baseline justify-between gap-3">
@@ -62,6 +65,18 @@ export function LedgerRows({
                     ✓
                   </span>
                 )}
+                {over && over.band !== 'exact' && (
+                  <span
+                    className="ml-1 rounded-chip px-1 py-0.5 font-semibold"
+                    style={{
+                      fontSize: z.of,
+                      color: STATUS_COLOR.met.text,
+                      background: 'rgba(120,190,32,0.16)',
+                    }}
+                  >
+                    {over.label}
+                  </span>
+                )}
                 <span className="ml-1 font-normal text-ink-mute" style={{ fontSize: z.of }}>
                   of {nf(r.target)}
                 </span>
@@ -75,7 +90,9 @@ export function LedgerRows({
                 className="ledger-fill h-full rounded-full"
                 style={{
                   width: `${w}%`,
-                  background: fillOf(r.status, hue),
+                  background: split
+                    ? `linear-gradient(90deg, ${fillOf(r.status, hue)} 0 ${(tx / w) * 100}%, transparent ${(tx / w) * 100}%), repeating-linear-gradient(-45deg, ${fillOf(r.status, hue)} 0 3px, rgba(255,255,255,0.72) 3px 7px)`
+                    : fillOf(r.status, hue),
                   boxShadow: r.status === 'met' ? '0 0 7px rgba(120,190,32,0.45)' : undefined,
                 }}
               />
@@ -104,6 +121,7 @@ export function SnapshotMark({
   title,
   scale = 'card',
   emptyNote,
+  showBasis = true,
 }: {
   group: Kpi[]
   hue: string
@@ -111,9 +129,11 @@ export function SnapshotMark({
   scale?: ChartScale
   /** shown in place of a mark when no honest position exists at all */
   emptyNote?: string
+  /** off where the caller already prints the basis in its own meta row */
+  showBasis?: boolean
 }) {
   const snap = snapshotFor(group, hue, title, scale)
-  const basis = snap.kind === 'none' ? undefined : snap.basis
+  const basis = showBasis && snap.kind !== 'none' ? snap.basis : undefined
 
   /* when the mark reports a year other than this quarter, it says so above
      itself — a dated reading must never be mistaken for a Q1 one (R13) */
@@ -145,10 +165,20 @@ export function SnapshotMark({
    */
   const note = emptyNote ?? defaultEmptyNote(group)
   if (!note) return null
+  /* not-due reads hollow, not filled: nothing has been measured, so the state
+     must not look like a result sitting in a container (R14 fix 2) */
+  const notDue = group.every((k) => k.state === 'REPORTS_AT_YEAR_END' || k.state === 'IDLE_THIS_CYCLE')
   return (
     <div
-      className="flex items-center rounded-input bg-cream/60 px-3 italic leading-snug text-ink-mute"
-      style={{ fontSize: scale === 'overlay' ? 13 : 11, minHeight: scale === 'overlay' ? 72 : undefined, paddingBlock: 10 }}
+      className={`flex items-center rounded-input px-3 italic leading-snug text-ink-mute ${
+        notDue ? 'border border-dashed' : 'bg-cream/60'
+      }`}
+      style={{
+        fontSize: scale === 'overlay' ? 13 : 11,
+        minHeight: scale === 'overlay' ? 72 : undefined,
+        paddingBlock: 10,
+        borderColor: notDue ? 'rgba(18,40,34,0.16)' : undefined,
+      }}
     >
       {note}
     </div>
@@ -160,8 +190,8 @@ function defaultEmptyNote(group: Kpi[]): string {
   const k = group[0]
   const t = k.targets['2026'].value
   if (k.state === 'IDLE_THIS_CYCLE') return 'Idle this cycle — the 2026 target is 0 in an off year. Correctly quiet.'
-  if (k.state === 'REPORTS_AT_YEAR_END')
-    return t ? `Reports at year end; nothing measured yet against the ${nf(t)} target for 2026.` : 'Reports at year end — no reading exists yet.'
+  // never framed as a value against a target: no comparison is valid yet
+  if (k.state === 'REPORTS_AT_YEAR_END') return 'Reports at year end · no Q1 reading'
   return t
     ? `Nothing reported yet — the 2026 target is ${nf(t)}, with no reading to stand against it.`
     : 'Nothing reported yet, and no target is set to measure it against.'
