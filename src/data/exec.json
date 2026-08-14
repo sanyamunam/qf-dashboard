@@ -1,0 +1,3458 @@
+{
+ "generatedFrom": "Al Mishkat - Release 1 KPIs.xlsx",
+ "sheet": "Q1_updates_drill downKPIs",
+ "period": "2026Q1",
+ "parseWarnings": [],
+ "kpis": [
+  {
+   "row": 3,
+   "framework": "Impact",
+   "theme": "Progressive Education",
+   "entity": "Higher Education (HBKU+PUs)",
+   "level": "L0 - Hero",
+   "category": "Graduate Outcomes",
+   "name": "Higher Ed. Graduates Employed",
+   "definition": "Percentage of graduates employed, one year after graduation",
+   "source": "LTP",
+   "frequency": "Annual",
+   "monthly": {
+    "jan": null,
+    "feb": null,
+    "mar": null
+   },
+   "q1": null,
+   "q1Note": null,
+   "actuals": {
+    "2022": 0.54,
+    "2023": 0.65,
+    "2024": 0.65,
+    "2025": 0.72
+   },
+   "actualNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null
+   },
+   "targets": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": 0.8,
+    "2027": 0.8,
+    "2028": 0.8
+   },
+   "targetNotes": {
+    "2022": "Targets from 2026",
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "comment": "The current source 2022-2025 is calculated from student datasets. From 2026 onwards - source will be higher Ed LTP"
+  },
+  {
+   "row": 4,
+   "framework": "Impact",
+   "theme": "Progressive Education",
+   "entity": "Higher Education (HBKU+PUs)",
+   "level": "L1 - Micro",
+   "category": "Graduate Outcomes",
+   "name": "Higher Ed. Graduates Self Employed",
+   "definition": "Percentage of graduates self-employed, one year after graduation",
+   "source": "LTP",
+   "frequency": "Annual",
+   "monthly": {
+    "jan": null,
+    "feb": null,
+    "mar": null
+   },
+   "q1": null,
+   "q1Note": null,
+   "actuals": {
+    "2022": 0.01,
+    "2023": 0.02,
+    "2024": 0.01,
+    "2025": 0.01
+   },
+   "actualNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null
+   },
+   "targets": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": 0.04,
+    "2027": 0.05,
+    "2028": 0.05
+   },
+   "targetNotes": {
+    "2022": "Targets from 2026",
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "comment": "The current source 2022-2025 is calculated from student datasets. From 2026 onwards - source is from Higher Ed LTP"
+  },
+  {
+   "row": 5,
+   "framework": "Impact",
+   "theme": "Progressive Education",
+   "entity": "Higher Education (HBKU+PUs)",
+   "level": "L1 - Micro",
+   "category": "Graduate Outcomes",
+   "name": "Higher Ed. Graduates Continuing Education",
+   "definition": "Percentage of graduates continuing education, one year after graduation",
+   "source": "LTP",
+   "frequency": "Annual",
+   "monthly": {
+    "jan": null,
+    "feb": null,
+    "mar": null
+   },
+   "q1": null,
+   "q1Note": null,
+   "actuals": {
+    "2022": 0.1,
+    "2023": 0.08,
+    "2024": 0.11,
+    "2025": 0.12
+   },
+   "actualNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null
+   },
+   "targets": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": 0.05,
+    "2027": 0.05,
+    "2028": 0.07
+   },
+   "targetNotes": {
+    "2022": "Targets from 2026",
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "comment": "The current source 2022-2025 is calculated from student datasets. From 2026 onwards - source is from Higher Ed LTP"
+  },
+  {
+   "row": 6,
+   "framework": "Impact",
+   "theme": "Progressive Education",
+   "entity": "Higher Education (HBKU+PUs)",
+   "level": "L1 - Micro",
+   "category": "Graduate Outcomes",
+   "name": "Higher Ed. Graduates Not Employed",
+   "definition": "Percentage of graduates not employed, one year after graduation",
+   "source": "LTP",
+   "frequency": "Annual",
+   "monthly": {
+    "jan": null,
+    "feb": null,
+    "mar": null
+   },
+   "q1": null,
+   "q1Note": null,
+   "actuals": {
+    "2022": 0.35,
+    "2023": 0.25,
+    "2024": 0.22,
+    "2025": 0.15
+   },
+   "actualNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null
+   },
+   "targets": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": 0.11,
+    "2027": 0.1,
+    "2028": 0.08
+   },
+   "targetNotes": {
+    "2022": "Targets from 2026",
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "comment": "The current source 2022-2025 is calculated from student datasets. From 2026 onwards - source is from Higher Ed LTP"
+  },
+  {
+   "row": 7,
+   "framework": "Impact",
+   "theme": "Progressive Education",
+   "entity": "Higher Education (HBKU+PUs)",
+   "level": "L1 - Micro",
+   "category": "Graduate Outcomes",
+   "name": "Higher Ed. Graduates Employed -  Qatari",
+   "definition": "Percentage of Qatari graduates employed, one year after graduation",
+   "source": "Student Datasets",
+   "frequency": "Annual",
+   "monthly": {
+    "jan": null,
+    "feb": null,
+    "mar": null
+   },
+   "q1": null,
+   "q1Note": null,
+   "actuals": {
+    "2022": 0.68,
+    "2023": 0.74,
+    "2024": 0.75,
+    "2025": 0.84
+   },
+   "actualNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null
+   },
+   "targets": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "targetNotes": {
+    "2022": "Student datasets demonstrate year-on-year growth",
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "comment": null
+  },
+  {
+   "row": 8,
+   "framework": "Impact",
+   "theme": "Progressive Education",
+   "entity": "Higher Education (HBKU+PUs)",
+   "level": "L2",
+   "category": "Graduate Outcomes",
+   "name": "Higher Ed. Graduates Employed - Non-Qatari",
+   "definition": "Percentage of Non-Qatari graduates employed, one year after graduation",
+   "source": "Student Datasets",
+   "frequency": "Annual",
+   "monthly": {
+    "jan": null,
+    "feb": null,
+    "mar": null
+   },
+   "q1": null,
+   "q1Note": null,
+   "actuals": {
+    "2022": 0.45,
+    "2023": 0.58,
+    "2024": 0.6,
+    "2025": 0.65
+   },
+   "actualNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null
+   },
+   "targets": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "targetNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "comment": null
+  },
+  {
+   "row": 9,
+   "framework": "Strategy Execution",
+   "theme": "Progressive Education",
+   "entity": "Higher Education (HBKU+PUs)",
+   "level": null,
+   "category": "Higher Education Enrollments",
+   "name": "Higher Ed. Student Enrollment",
+   "definition": "Number of Total students enrolled",
+   "source": "Student Datasets",
+   "frequency": "Annual",
+   "monthly": {
+    "jan": null,
+    "feb": null,
+    "mar": null
+   },
+   "q1": null,
+   "q1Note": null,
+   "actuals": {
+    "2022": 3596,
+    "2023": 3881,
+    "2024": 3901,
+    "2025": 4017
+   },
+   "actualNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null
+   },
+   "targets": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "targetNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "comment": null
+  },
+  {
+   "row": 10,
+   "framework": "Strategy Execution",
+   "theme": "Progressive Education",
+   "entity": "Higher Education (HBKU+PUs)",
+   "level": "L1 - Micro",
+   "category": "Higher Education Enrollments",
+   "name": "Higher Ed. Student Enrollment -  Undergraduate programs",
+   "definition": "Number of in Undergraduate programs",
+   "source": "Student Datasets",
+   "frequency": "Annual",
+   "monthly": {
+    "jan": null,
+    "feb": null,
+    "mar": null
+   },
+   "q1": null,
+   "q1Note": null,
+   "actuals": {
+    "2022": 2567,
+    "2023": 2690,
+    "2024": 2750,
+    "2025": 2646
+   },
+   "actualNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null
+   },
+   "targets": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "targetNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "comment": null
+  },
+  {
+   "row": 11,
+   "framework": "Strategy Execution",
+   "theme": "Progressive Education",
+   "entity": "Higher Education (HBKU+PUs)",
+   "level": "L1 - Micro",
+   "category": "Higher Education Enrollments",
+   "name": "Higher Ed. Student Enrollment - Postgraduate programs",
+   "definition": "Number of in Postgraduate programs",
+   "source": "Student Datasets",
+   "frequency": "Annual",
+   "monthly": {
+    "jan": null,
+    "feb": null,
+    "mar": null
+   },
+   "q1": null,
+   "q1Note": null,
+   "actuals": {
+    "2022": 1029,
+    "2023": 1191,
+    "2024": 1151,
+    "2025": 1371
+   },
+   "actualNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null
+   },
+   "targets": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "targetNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "comment": null
+  },
+  {
+   "row": 12,
+   "framework": "Strategy Execution",
+   "theme": "Artificial Intelligence",
+   "entity": "Higher Education (HBKU+PUs)",
+   "level": "L2",
+   "category": "Higher Education Enrollments",
+   "name": "Higher Ed. Enrollments in AI-related degrees",
+   "definition": "Enrollments in Artificial Intelligence- related degrees (computer and information science, engineering and AI programs)",
+   "source": "Student Datasets",
+   "frequency": "Annual",
+   "monthly": {
+    "jan": null,
+    "feb": null,
+    "mar": null
+   },
+   "q1": null,
+   "q1Note": null,
+   "actuals": {
+    "2022": 419,
+    "2023": 486,
+    "2024": 483,
+    "2025": 522
+   },
+   "actualNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null
+   },
+   "targets": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "targetNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "comment": null
+  },
+  {
+   "row": 13,
+   "framework": "Strategy Execution",
+   "theme": "Precision Health",
+   "entity": "Higher Education (HBKU+PUs)",
+   "level": "L2",
+   "category": "Higher Education Enrollments",
+   "name": "Higher Ed. Enrollments in PH-related degrees",
+   "definition": "Number of students in Precision Health-related degrees (health, biology and precision health programs)",
+   "source": "Student Datasets",
+   "frequency": "Annual",
+   "monthly": {
+    "jan": null,
+    "feb": null,
+    "mar": null
+   },
+   "q1": null,
+   "q1Note": null,
+   "actuals": {
+    "2022": 528,
+    "2023": 527,
+    "2024": 546,
+    "2025": 553
+   },
+   "actualNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null
+   },
+   "targets": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "targetNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "comment": null
+  },
+  {
+   "row": 14,
+   "framework": "Strategy Execution",
+   "theme": "Sustainability",
+   "entity": "Higher Education (HBKU+PUs)",
+   "level": "L2",
+   "category": "Higher Education Enrollments",
+   "name": "Higher Ed. Enrollments in SU-related degrees",
+   "definition": "Number of enrollments in Sustainability-related degrees (sustainability, science, and engineering programs)",
+   "source": "Student Datasets",
+   "frequency": "Annual",
+   "monthly": {
+    "jan": null,
+    "feb": null,
+    "mar": null
+   },
+   "q1": null,
+   "q1Note": null,
+   "actuals": {
+    "2022": 747,
+    "2023": 779,
+    "2024": 796,
+    "2025": 714
+   },
+   "actualNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null
+   },
+   "targets": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "targetNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "comment": null
+  },
+  {
+   "row": 15,
+   "framework": "Strategy Execution",
+   "theme": "Social Progress",
+   "entity": "Higher Education (HBKU+PUs)",
+   "level": "L2",
+   "category": "Higher Education Enrollments",
+   "name": "Higher Ed. Enrollments in SP-related degrees",
+   "definition": "Number of students enrolled in Social Progress related programs",
+   "source": "Student Datasets",
+   "frequency": "Annual",
+   "monthly": {
+    "jan": null,
+    "feb": null,
+    "mar": null
+   },
+   "q1": null,
+   "q1Note": null,
+   "actuals": {
+    "2022": 1902,
+    "2023": 2089,
+    "2024": 2076,
+    "2025": 2227
+   },
+   "actualNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null
+   },
+   "targets": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "targetNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "comment": null
+  },
+  {
+   "row": 16,
+   "framework": "Strategy Execution",
+   "theme": "Progressive Education",
+   "entity": "Higher Education (HBKU+PUs)",
+   "level": "L2 - hero",
+   "category": "Higher Education Graduates",
+   "name": "Higher Ed. Graduates - Total",
+   "definition": "Number of Total graduates",
+   "source": "Student Datasets",
+   "frequency": "Annual",
+   "monthly": {
+    "jan": null,
+    "feb": null,
+    "mar": null
+   },
+   "q1": null,
+   "q1Note": null,
+   "actuals": {
+    "2022": 788,
+    "2023": 899,
+    "2024": 963,
+    "2025": 1027
+   },
+   "actualNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null
+   },
+   "targets": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "targetNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "comment": null
+  },
+  {
+   "row": 17,
+   "framework": "Strategy Execution",
+   "theme": "Progressive Education",
+   "entity": "Higher Education (HBKU+PUs)",
+   "level": "L2",
+   "category": "Higher Education Graduates",
+   "name": "Higher Ed. Graduates - STEM",
+   "definition": "Percentage of STEM Graduates",
+   "source": "Student Datasets",
+   "frequency": "Annual",
+   "monthly": {
+    "jan": null,
+    "feb": null,
+    "mar": null
+   },
+   "q1": null,
+   "q1Note": null,
+   "actuals": {
+    "2022": 0.48,
+    "2023": 0.45,
+    "2024": 0.47,
+    "2025": 0.42
+   },
+   "actualNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null
+   },
+   "targets": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "targetNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "comment": null
+  },
+  {
+   "row": 18,
+   "framework": "Strategy Execution",
+   "theme": "Progressive Education",
+   "entity": "Higher Education (HBKU+PUs)",
+   "level": "L2",
+   "category": "Higher Education Graduates",
+   "name": "Higher Ed. Graduates - Non-STEM",
+   "definition": "Percentage of non-STEM Graduates",
+   "source": "Student Datasets",
+   "frequency": "Annual",
+   "monthly": {
+    "jan": null,
+    "feb": null,
+    "mar": null
+   },
+   "q1": null,
+   "q1Note": null,
+   "actuals": {
+    "2022": 0.52,
+    "2023": 0.55,
+    "2024": 0.53,
+    "2025": 0.58
+   },
+   "actualNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null
+   },
+   "targets": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "targetNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "comment": null
+  },
+  {
+   "row": 19,
+   "framework": "Strategy Execution",
+   "theme": "Progressive Education",
+   "entity": "Higher Education (HBKU+PUs)",
+   "level": "L2",
+   "category": "Higher Education Graduates",
+   "name": "Higher Ed. Graduates -  Male",
+   "definition": "Percentage of  Male Graduates",
+   "source": "Student Datasets",
+   "frequency": "Annual",
+   "monthly": {
+    "jan": null,
+    "feb": null,
+    "mar": null
+   },
+   "q1": null,
+   "q1Note": null,
+   "actuals": {
+    "2022": 0.32,
+    "2023": 0.39,
+    "2024": 0.39,
+    "2025": 0.39
+   },
+   "actualNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null
+   },
+   "targets": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "targetNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "comment": null
+  },
+  {
+   "row": 20,
+   "framework": "Strategy Execution",
+   "theme": "Progressive Education",
+   "entity": "Higher Education (HBKU+PUs)",
+   "level": "L2",
+   "category": "Higher Education Graduates",
+   "name": "Higher Ed. Graduates -  Female",
+   "definition": "Percentage of Female Graduates",
+   "source": "Student Datasets",
+   "frequency": "Annual",
+   "monthly": {
+    "jan": null,
+    "feb": null,
+    "mar": null
+   },
+   "q1": null,
+   "q1Note": null,
+   "actuals": {
+    "2022": 0.68,
+    "2023": 0.61,
+    "2024": 0.61,
+    "2025": 0.61
+   },
+   "actualNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null
+   },
+   "targets": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "targetNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "comment": null
+  },
+  {
+   "row": 21,
+   "framework": "Strategy Execution",
+   "theme": "Progressive Education",
+   "entity": "Higher Education (HBKU+PUs)",
+   "level": "L2",
+   "category": "Higher Education Graduates",
+   "name": "Higher Ed. Graduates -  Qatari",
+   "definition": "Percentage of Qatari Graduates",
+   "source": "Student Datasets",
+   "frequency": "Annual",
+   "monthly": {
+    "jan": null,
+    "feb": null,
+    "mar": null
+   },
+   "q1": null,
+   "q1Note": null,
+   "actuals": {
+    "2022": 0.42,
+    "2023": 0.32,
+    "2024": 0.39,
+    "2025": 0.39
+   },
+   "actualNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null
+   },
+   "targets": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "targetNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "comment": null
+  },
+  {
+   "row": 22,
+   "framework": "Strategy Execution",
+   "theme": "Progressive Education",
+   "entity": "Higher Education (HBKU+PUs)",
+   "level": "L2",
+   "category": "Higher Education Graduates",
+   "name": "Higher Ed. Graduates -  Non-Qatari",
+   "definition": "Percentage of Non-Qatari Graduates",
+   "source": "Student Datasets",
+   "frequency": "Annual",
+   "monthly": {
+    "jan": null,
+    "feb": null,
+    "mar": null
+   },
+   "q1": null,
+   "q1Note": null,
+   "actuals": {
+    "2022": 0.58,
+    "2023": 0.68,
+    "2024": 0.61,
+    "2025": 0.61
+   },
+   "actualNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null
+   },
+   "targets": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "targetNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "comment": null
+  },
+  {
+   "row": 23,
+   "framework": "Strategy Execution",
+   "theme": "Progressive Education",
+   "entity": "Higher Education (HBKU+PUs)",
+   "level": "L2",
+   "category": "Higher Education Graduates",
+   "name": "Higher Ed. Graduates- Qatari Employed",
+   "definition": "Percentage of Qatari Employed",
+   "source": "Student Datasets",
+   "frequency": "Annual",
+   "monthly": {
+    "jan": null,
+    "feb": null,
+    "mar": null
+   },
+   "q1": null,
+   "q1Note": null,
+   "actuals": {
+    "2022": 0.68,
+    "2023": 0.74,
+    "2024": 0.75,
+    "2025": 0.84
+   },
+   "actualNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null
+   },
+   "targets": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "targetNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "comment": "This is a duplicate of Row 7"
+  },
+  {
+   "row": 24,
+   "framework": "Strategy Execution",
+   "theme": "Progressive Education",
+   "entity": "Higher Education (HBKU+PUs)",
+   "level": "L2",
+   "category": "Higher Education Graduates",
+   "name": "Higher Ed. Graduates- Non-Qatari Employed",
+   "definition": "Percentage of Non-Qatari Employed",
+   "source": "Student Datasets",
+   "frequency": "Annual",
+   "monthly": {
+    "jan": null,
+    "feb": null,
+    "mar": null
+   },
+   "q1": null,
+   "q1Note": null,
+   "actuals": {
+    "2022": 0.45,
+    "2023": 0.58,
+    "2024": 0.6,
+    "2025": 0.65
+   },
+   "actualNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null
+   },
+   "targets": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "targetNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "comment": "This is a duplicate of Row 8"
+  },
+  {
+   "row": 25,
+   "framework": "Strategy Execution",
+   "theme": "Precision Health",
+   "entity": "Higher Education (HBKU+Pus)",
+   "level": "L2 - micro",
+   "category": "Higher Education Graduates",
+   "name": "Higher Ed. Graduates in PH-related degrees",
+   "definition": "Number of graduates in Precision Health-related degrees",
+   "source": "Student Datasets",
+   "frequency": "Annual",
+   "monthly": {
+    "jan": null,
+    "feb": null,
+    "mar": null
+   },
+   "q1": null,
+   "q1Note": null,
+   "actuals": {
+    "2022": 103,
+    "2023": 92,
+    "2024": 105,
+    "2025": 99
+   },
+   "actualNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null
+   },
+   "targets": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "targetNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "comment": null
+  },
+  {
+   "row": 26,
+   "framework": "Strategy Execution",
+   "theme": "Artificial Intelligence",
+   "entity": "Higher Education (HBKU+Pus)",
+   "level": "L2 - micro",
+   "category": "Higher Education Graduates",
+   "name": "Higher Ed. Graduates in AI-related degrees",
+   "definition": "Number of graduates in Artificial Intelligence-related degrees",
+   "source": "Student Datasets",
+   "frequency": "Annual",
+   "monthly": {
+    "jan": null,
+    "feb": null,
+    "mar": null
+   },
+   "q1": null,
+   "q1Note": null,
+   "actuals": {
+    "2022": 84,
+    "2023": 100,
+    "2024": 114,
+    "2025": 119
+   },
+   "actualNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null
+   },
+   "targets": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "targetNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "comment": null
+  },
+  {
+   "row": 27,
+   "framework": "Strategy Execution",
+   "theme": "Sustainability",
+   "entity": "Higher Education (HBKU+PUs)",
+   "level": "L2 - micro",
+   "category": "Higher Education Graduates",
+   "name": "Higher Ed. Graduates in SU-related degrees",
+   "definition": "Number of graduates in Sustainability-related degrees (sustainability, science, and engineering programs)",
+   "source": "Student Datasets",
+   "frequency": "Annual",
+   "monthly": {
+    "jan": null,
+    "feb": null,
+    "mar": null
+   },
+   "q1": null,
+   "q1Note": null,
+   "actuals": {
+    "2022": 162,
+    "2023": 173,
+    "2024": 180,
+    "2025": 166
+   },
+   "actualNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null
+   },
+   "targets": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "targetNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "comment": null
+  },
+  {
+   "row": 28,
+   "framework": "Strategy Execution",
+   "theme": "Social Progress",
+   "entity": "Higher Education (HBKU+PUs)",
+   "level": "L2 - micro",
+   "category": "Higher Education Graduates",
+   "name": "Higher Ed. Graduates in SP-related degrees",
+   "definition": "Number of graduates in Social Progress related programs",
+   "source": "Student Datasets",
+   "frequency": "Annual",
+   "monthly": {
+    "jan": null,
+    "feb": null,
+    "mar": null
+   },
+   "q1": null,
+   "q1Note": null,
+   "actuals": {
+    "2022": 439,
+    "2023": 534,
+    "2024": 564,
+    "2025": 641
+   },
+   "actualNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null
+   },
+   "targets": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "targetNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "comment": null
+  },
+  {
+   "row": 29,
+   "framework": "Strategy Execution",
+   "theme": "Progressive Education",
+   "entity": "PUE",
+   "level": "L0 - Hero",
+   "category": "PUE Enrollments",
+   "name": "PUE Student Enrollment- Total",
+   "definition": "Number of total students enrolled",
+   "source": "Student Datasets",
+   "frequency": "Annual",
+   "monthly": {
+    "jan": null,
+    "feb": null,
+    "mar": null
+   },
+   "q1": null,
+   "q1Note": null,
+   "actuals": {
+    "2022": 6949,
+    "2023": 7413,
+    "2024": 8101,
+    "2025": 8615
+   },
+   "actualNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null
+   },
+   "targets": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "targetNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "comment": null
+  },
+  {
+   "row": 30,
+   "framework": "Strategy Execution",
+   "theme": "Progressive Education",
+   "entity": "PUE",
+   "level": "L1 - Micro",
+   "category": "PUE Enrollments",
+   "name": "PUE Student Enrollment- IB schools",
+   "definition": "Number of  students enrolled in International Baccalaureate schools",
+   "source": "Student Datasets",
+   "frequency": "Annual",
+   "monthly": {
+    "jan": null,
+    "feb": null,
+    "mar": null
+   },
+   "q1": null,
+   "q1Note": null,
+   "actuals": {
+    "2022": 5768,
+    "2023": 5978,
+    "2024": 6383,
+    "2025": 6640
+   },
+   "actualNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null
+   },
+   "targets": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "targetNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "comment": null
+  },
+  {
+   "row": 31,
+   "framework": "Strategy Execution",
+   "theme": "Progressive Education",
+   "entity": "PUE",
+   "level": "L1 - Micro",
+   "category": "PUE Enrollments",
+   "name": "PUE Student Enrollment-Specialized schools",
+   "definition": "Number of  students enrolled in Specialized schools",
+   "source": "Student Datasets",
+   "frequency": "Annual",
+   "monthly": {
+    "jan": null,
+    "feb": null,
+    "mar": null
+   },
+   "q1": null,
+   "q1Note": null,
+   "actuals": {
+    "2022": 319,
+    "2023": 348,
+    "2024": 406,
+    "2025": 496
+   },
+   "actualNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null
+   },
+   "targets": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "targetNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "comment": null
+  },
+  {
+   "row": 32,
+   "framework": "Strategy Execution",
+   "theme": "Progressive Education",
+   "entity": "PUE",
+   "level": "L1 - Micro",
+   "category": "PUE Enrollments",
+   "name": "PUE Student Enrollment- Special Education Schools",
+   "definition": "Number of  students enrolled in Special Education Schools",
+   "source": "Student Datasets",
+   "frequency": "Annual",
+   "monthly": {
+    "jan": null,
+    "feb": null,
+    "mar": null
+   },
+   "q1": null,
+   "q1Note": null,
+   "actuals": {
+    "2022": 862,
+    "2023": 1087,
+    "2024": 1312,
+    "2025": 1479
+   },
+   "actualNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null
+   },
+   "targets": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "targetNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "comment": null
+  },
+  {
+   "row": 33,
+   "framework": "Strategy Execution",
+   "theme": "Progressive Education",
+   "entity": "PUE",
+   "level": "L1 - Micro",
+   "category": "Graduates",
+   "name": "PUE Student Graduates-Total",
+   "definition": "Number of  Total high school graduates",
+   "source": "Student Datasets",
+   "frequency": "Annual",
+   "monthly": {
+    "jan": null,
+    "feb": null,
+    "mar": null
+   },
+   "q1": null,
+   "q1Note": null,
+   "actuals": {
+    "2022": 421,
+    "2023": 478,
+    "2024": 617,
+    "2025": 612
+   },
+   "actualNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null
+   },
+   "targets": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "targetNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "comment": null
+  },
+  {
+   "row": 34,
+   "framework": "Strategy Execution",
+   "theme": "Progressive Education",
+   "entity": "PUE",
+   "level": "L2",
+   "category": "Graduates",
+   "name": "PUE Graduates -Male",
+   "definition": "Percentage of Male graduates",
+   "source": "Student Datasets",
+   "frequency": "Annual",
+   "monthly": {
+    "jan": null,
+    "feb": null,
+    "mar": null
+   },
+   "q1": null,
+   "q1Note": null,
+   "actuals": {
+    "2022": 0.75,
+    "2023": 0.74,
+    "2024": 0.74,
+    "2025": 0.75
+   },
+   "actualNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null
+   },
+   "targets": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "targetNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "comment": null
+  },
+  {
+   "row": 35,
+   "framework": "Strategy Execution",
+   "theme": "Progressive Education",
+   "entity": "PUE",
+   "level": "L2",
+   "category": "Graduates",
+   "name": "PUE Graduates - Female",
+   "definition": "Percentage of  Female graduates",
+   "source": "Student Datasets",
+   "frequency": "Annual",
+   "monthly": {
+    "jan": null,
+    "feb": null,
+    "mar": null
+   },
+   "q1": null,
+   "q1Note": null,
+   "actuals": {
+    "2022": 0.25,
+    "2023": 0.26,
+    "2024": 0.26,
+    "2025": 0.25
+   },
+   "actualNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null
+   },
+   "targets": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "targetNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "comment": null
+  },
+  {
+   "row": 36,
+   "framework": "Strategy Execution",
+   "theme": "Progressive Education",
+   "entity": "PUE",
+   "level": "L2",
+   "category": "Graduates",
+   "name": "PUE Graduates - Qatari",
+   "definition": "Percentage of  Qatari graduates",
+   "source": "Student Datasets",
+   "frequency": "Annual",
+   "monthly": {
+    "jan": null,
+    "feb": null,
+    "mar": null
+   },
+   "q1": null,
+   "q1Note": null,
+   "actuals": {
+    "2022": 0.89,
+    "2023": 0.9,
+    "2024": 0.93,
+    "2025": 0.96
+   },
+   "actualNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null
+   },
+   "targets": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "targetNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "comment": null
+  },
+  {
+   "row": 37,
+   "framework": "Strategy Execution",
+   "theme": "Progressive Education",
+   "entity": "PUE",
+   "level": "L2",
+   "category": "Graduates",
+   "name": "PUE Graduates - Non-Qatari",
+   "definition": "Percentage of  Non-Qatari graduates",
+   "source": "Student Datasets",
+   "frequency": "Annual",
+   "monthly": {
+    "jan": null,
+    "feb": null,
+    "mar": null
+   },
+   "q1": null,
+   "q1Note": null,
+   "actuals": {
+    "2022": 0.11,
+    "2023": 0.1,
+    "2024": 0.07,
+    "2025": 0.04
+   },
+   "actualNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null
+   },
+   "targets": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "targetNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "comment": null
+  },
+  {
+   "row": 38,
+   "framework": "Strategy Execution",
+   "theme": "All",
+   "entity": "QF",
+   "level": "L1 - Micro",
+   "category": "Research",
+   "name": "QF's contributions to Qatar's Publications",
+   "definition": "Percentage of research publications in Qatar affiliated with QF",
+   "source": "Research Datasets",
+   "frequency": "Annual",
+   "monthly": {
+    "jan": null,
+    "feb": null,
+    "mar": null
+   },
+   "q1": null,
+   "q1Note": null,
+   "actuals": {
+    "2022": 0.4,
+    "2023": 0.38,
+    "2024": 0.37,
+    "2025": 0.35
+   },
+   "actualNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null
+   },
+   "targets": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "targetNotes": {
+    "2022": "Targets not defined for Research Datasets",
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "comment": null
+  },
+  {
+   "row": 39,
+   "framework": "Strategy Execution",
+   "theme": "All",
+   "entity": "QF",
+   "level": "L2",
+   "category": "Research",
+   "name": "QF's contributions to Qatar's Patents",
+   "definition": "Percentage of patents owned by Qatar, affiliated with QF",
+   "source": "Research Datasets",
+   "frequency": "Annual",
+   "monthly": {
+    "jan": null,
+    "feb": null,
+    "mar": null
+   },
+   "q1": null,
+   "q1Note": null,
+   "actuals": {
+    "2022": 0.41,
+    "2023": 0.53,
+    "2024": 0.59,
+    "2025": 0.53
+   },
+   "actualNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null
+   },
+   "targets": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "targetNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "comment": null
+  },
+  {
+   "row": 40,
+   "framework": "Strategy Execution",
+   "theme": "All",
+   "entity": "QF",
+   "level": "L0 - Hero",
+   "category": "Research",
+   "name": "Research Publications - QF Total",
+   "definition": "Number of research publications affiliated with QF",
+   "source": "Research Datasets",
+   "frequency": "Annual",
+   "monthly": {
+    "jan": null,
+    "feb": null,
+    "mar": null
+   },
+   "q1": null,
+   "q1Note": null,
+   "actuals": {
+    "2022": 2554,
+    "2023": 2389,
+    "2024": 2623,
+    "2025": 2678
+   },
+   "actualNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null
+   },
+   "targets": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "targetNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "comment": null
+  },
+  {
+   "row": 41,
+   "framework": "Strategy Execution",
+   "theme": "Precision Health",
+   "entity": "QF",
+   "level": "L2",
+   "category": "Research",
+   "name": "Research publications - PH-related",
+   "definition": "Number of Health and Medicine research publications",
+   "source": "Research Datasets",
+   "frequency": "Quarterly",
+   "monthly": {
+    "jan": null,
+    "feb": null,
+    "mar": null
+   },
+   "q1": null,
+   "q1Note": null,
+   "actuals": {
+    "2022": 864,
+    "2023": 683,
+    "2024": 666,
+    "2025": 794
+   },
+   "actualNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null
+   },
+   "targets": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "targetNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "comment": null
+  },
+  {
+   "row": 42,
+   "framework": "Strategy Execution",
+   "theme": "Artificial Intelligence",
+   "entity": "QF",
+   "level": "L2",
+   "category": "Research",
+   "name": "Research publications - AI-related",
+   "definition": "Number of Artificial Intelligence-related research publications",
+   "source": "Research Datasets",
+   "frequency": "Quarterly",
+   "monthly": {
+    "jan": null,
+    "feb": null,
+    "mar": null
+   },
+   "q1": null,
+   "q1Note": null,
+   "actuals": {
+    "2022": 296,
+    "2023": 341,
+    "2024": 403,
+    "2025": 481
+   },
+   "actualNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null
+   },
+   "targets": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "targetNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "comment": null
+  },
+  {
+   "row": 43,
+   "framework": "Strategy Execution",
+   "theme": "Sustainability",
+   "entity": "QF",
+   "level": "L2",
+   "category": "Research",
+   "name": "Research publications - SU-related",
+   "definition": "Number of Sustainability-related research publications",
+   "source": "Research Datasets",
+   "frequency": "Quarterly",
+   "monthly": {
+    "jan": null,
+    "feb": null,
+    "mar": null
+   },
+   "q1": null,
+   "q1Note": null,
+   "actuals": {
+    "2022": 328,
+    "2023": 313,
+    "2024": 364,
+    "2025": 381
+   },
+   "actualNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null
+   },
+   "targets": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "targetNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "comment": null
+  },
+  {
+   "row": 44,
+   "framework": "Strategy Execution",
+   "theme": "All",
+   "entity": "QF",
+   "level": "L1 - Micro",
+   "category": "Research",
+   "name": "Patents Granted - QF Total",
+   "definition": "Number of patents granted - total owned by QF",
+   "source": "Research Datasets",
+   "frequency": "Annual",
+   "monthly": {
+    "jan": null,
+    "feb": null,
+    "mar": null
+   },
+   "q1": null,
+   "q1Note": null,
+   "actuals": {
+    "2022": 18,
+    "2023": 18,
+    "2024": 23,
+    "2025": 19
+   },
+   "actualNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null
+   },
+   "targets": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "targetNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "comment": null
+  },
+  {
+   "row": 45,
+   "framework": "Strategy Execution",
+   "theme": "Precision Health",
+   "entity": "QF",
+   "level": "L2",
+   "category": "Research",
+   "name": "Patents Granted - PH",
+   "definition": "Number of patents granted - health and medicine",
+   "source": "Research Datasets",
+   "frequency": "Quarterly",
+   "monthly": {
+    "jan": null,
+    "feb": null,
+    "mar": null
+   },
+   "q1": null,
+   "q1Note": null,
+   "actuals": {
+    "2022": 0,
+    "2023": 1,
+    "2024": 5,
+    "2025": 5
+   },
+   "actualNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null
+   },
+   "targets": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "targetNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "comment": null
+  },
+  {
+   "row": 46,
+   "framework": "Strategy Execution",
+   "theme": "Artificial Intelligence",
+   "entity": "QF",
+   "level": "L2",
+   "category": "Research",
+   "name": "Patents Granted - AI",
+   "definition": "Number of patents granted - Artificial Intelligence",
+   "source": "Research Datasets",
+   "frequency": "Quarterly",
+   "monthly": {
+    "jan": null,
+    "feb": null,
+    "mar": null
+   },
+   "q1": null,
+   "q1Note": null,
+   "actuals": {
+    "2022": 2,
+    "2023": 4,
+    "2024": 5,
+    "2025": 4
+   },
+   "actualNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null
+   },
+   "targets": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "targetNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "comment": null
+  },
+  {
+   "row": 47,
+   "framework": "Strategy Execution",
+   "theme": "Sustainability",
+   "entity": "QF",
+   "level": "L2",
+   "category": "Research",
+   "name": "Patents Granted - SU",
+   "definition": "Number of patents granted - Sustainability",
+   "source": "Research Datasets",
+   "frequency": "Quarterly",
+   "monthly": {
+    "jan": null,
+    "feb": null,
+    "mar": null
+   },
+   "q1": null,
+   "q1Note": null,
+   "actuals": {
+    "2022": 6,
+    "2023": 7,
+    "2024": 12,
+    "2025": 9
+   },
+   "actualNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null
+   },
+   "targets": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "targetNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "comment": null
+  },
+  {
+   "row": 48,
+   "framework": "Strategy Execution",
+   "theme": "Precision Health",
+   "entity": "QF",
+   "level": "L1 - Micro",
+   "category": "Research",
+   "name": "New registered clinical trials",
+   "definition": "Number of new registered clinical trials",
+   "source": "Research Datasets",
+   "frequency": "Annual",
+   "monthly": {
+    "jan": null,
+    "feb": null,
+    "mar": null
+   },
+   "q1": null,
+   "q1Note": null,
+   "actuals": {
+    "2022": 0,
+    "2023": 2,
+    "2024": 2,
+    "2025": 3
+   },
+   "actualNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null
+   },
+   "targets": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "targetNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "comment": null
+  },
+  {
+   "row": 49,
+   "framework": "Strategy Execution",
+   "theme": "Precision Health",
+   "entity": "Qatar Precision Health Institute",
+   "level": "L2",
+   "category": "Research",
+   "name": "Genomes Sequenced",
+   "definition": "Number of whole genomes sequenced to date",
+   "source": "LTP",
+   "frequency": "Quarterly",
+   "monthly": {
+    "jan": null,
+    "feb": null,
+    "mar": null
+   },
+   "q1": 38683,
+   "q1Note": null,
+   "actuals": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": 35918
+   },
+   "actualNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null
+   },
+   "targets": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": 30000,
+    "2027": 40000,
+    "2028": 45000
+   },
+   "targetNotes": {
+    "2022": "Targets from 2026",
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "comment": "currently reported as cumulative to date inclusive of 2022-2025 period."
+  },
+  {
+   "row": 50,
+   "framework": "Strategy Execution",
+   "theme": "Precision Health",
+   "entity": "Qatar Precision Health Institute",
+   "level": "L1 - Micro",
+   "category": "Research",
+   "name": "Active QPHI projects",
+   "definition": "Number of active research projects",
+   "source": "LTP",
+   "frequency": "Quarterly",
+   "monthly": {
+    "jan": null,
+    "feb": null,
+    "mar": null
+   },
+   "q1": 28,
+   "q1Note": null,
+   "actuals": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": 250
+   },
+   "actualNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null
+   },
+   "targets": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "targetNotes": {
+    "2022": "Targets not defined for Research Datasets",
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "comment": "currently reported as cumulative to date inclusive of 2022-2025 period."
+  },
+  {
+   "row": 51,
+   "framework": "Impact",
+   "theme": "Precision Health",
+   "entity": "Qatar Diabetes Association",
+   "level": "L2",
+   "category": "Research",
+   "name": "Patient Outcomes - Diabetes Prevention",
+   "definition": "Percentage of patients with laboratory test below diabetes threshold (diabetes prevention)",
+   "source": "LTP",
+   "frequency": "Annual",
+   "monthly": {
+    "jan": null,
+    "feb": null,
+    "mar": null
+   },
+   "q1": 61,
+   "q1Note": null,
+   "actuals": {
+    "2022": null,
+    "2023": 0.68,
+    "2024": 0.72,
+    "2025": 0.85
+   },
+   "actualNotes": {
+    "2022": "NR",
+    "2023": null,
+    "2024": null,
+    "2025": null
+   },
+   "targets": {
+    "2022": null,
+    "2023": 0.5,
+    "2024": 0.5,
+    "2025": 0.5,
+    "2026": 0.55,
+    "2027": 0.55,
+    "2028": 0.6
+   },
+   "targetNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "comment": "new KPI from 2023"
+  },
+  {
+   "row": 52,
+   "framework": "Impact",
+   "theme": "Precision Health",
+   "entity": "Qatar Diabetes Association",
+   "level": "L2",
+   "category": "Research",
+   "name": "Patient Outcomes - Diabetes Control",
+   "definition": "Percentage of patients with diabetes lab test (HbA1c) within target values (diabetes control)",
+   "source": "LTP",
+   "frequency": "Annual",
+   "monthly": {
+    "jan": null,
+    "feb": null,
+    "mar": null
+   },
+   "q1": 30.5,
+   "q1Note": null,
+   "actuals": {
+    "2022": 0.39,
+    "2023": 0.36,
+    "2024": 0.39,
+    "2025": 0.36
+   },
+   "actualNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null
+   },
+   "targets": {
+    "2022": 0.4,
+    "2023": 0.4,
+    "2024": 0.4,
+    "2025": 0.4,
+    "2026": 0.45,
+    "2027": 0.45,
+    "2028": 0.5
+   },
+   "targetNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "comment": null
+  },
+  {
+   "row": 53,
+   "framework": "Strategy Execution",
+   "theme": "Artificial Intelligence",
+   "entity": "HBKU",
+   "level": "L1 - Micro",
+   "category": "Research",
+   "name": "AI tools/solutions adopted by external stakeholders",
+   "definition": "AI tools/solutions adopted by external stakeholders developed by HBKU",
+   "source": "Research Datasets",
+   "frequency": "Annual",
+   "monthly": {
+    "jan": null,
+    "feb": null,
+    "mar": null
+   },
+   "q1": null,
+   "q1Note": null,
+   "actuals": {
+    "2022": null,
+    "2023": 30,
+    "2024": 19,
+    "2025": 42
+   },
+   "actualNotes": {
+    "2022": "NR",
+    "2023": null,
+    "2024": null,
+    "2025": null
+   },
+   "targets": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "targetNotes": {
+    "2022": "Targets not defined for Research Datasets",
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "comment": null
+  },
+  {
+   "row": 54,
+   "framework": "Strategy Execution",
+   "theme": "Artificial Intelligence",
+   "entity": "HBKU",
+   "level": "L1 - Micro",
+   "category": "Research",
+   "name": "New AI start-ups",
+   "definition": "Number of new AI start-ups",
+   "source": "Research Datasets",
+   "frequency": "Annual",
+   "monthly": {
+    "jan": null,
+    "feb": null,
+    "mar": null
+   },
+   "q1": null,
+   "q1Note": null,
+   "actuals": {
+    "2022": 1,
+    "2023": 2,
+    "2024": 3,
+    "2025": 2
+   },
+   "actualNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null
+   },
+   "targets": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "targetNotes": {
+    "2022": "Targets not defined for Research Datasets",
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "comment": null
+  },
+  {
+   "row": 55,
+   "framework": "Strategy Execution",
+   "theme": "Social Progress",
+   "entity": "Policy Hub",
+   "level": "L2",
+   "category": "Research",
+   "name": "Policy/Research Reports",
+   "definition": "Number of policy/policy research reports",
+   "source": "Research Datasets",
+   "frequency": "Quarterly",
+   "monthly": {
+    "jan": null,
+    "feb": null,
+    "mar": null
+   },
+   "q1": null,
+   "q1Note": null,
+   "actuals": {
+    "2022": 34,
+    "2023": 20,
+    "2024": 34,
+    "2025": 27
+   },
+   "actualNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null
+   },
+   "targets": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "targetNotes": {
+    "2022": "Targets not defined for Research Datasets",
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "comment": null
+  },
+  {
+   "row": 56,
+   "framework": "Strategy Execution",
+   "theme": "Social Progress",
+   "entity": "QF",
+   "level": "L0 - Hero",
+   "category": "EC Community",
+   "name": "Footfall - EC total",
+   "definition": "Total visitors to EC (footfall across EC)",
+   "source": "Participant Datasets",
+   "frequency": "Quarterly",
+   "monthly": {
+    "jan": 211772,
+    "feb": 237801,
+    "mar": 36546
+   },
+   "q1": 486119,
+   "q1Note": null,
+   "actuals": {
+    "2022": 2026860,
+    "2023": 2596700,
+    "2024": 3022118,
+    "2025": 3051433
+   },
+   "actualNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null
+   },
+   "targets": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "targetNotes": {
+    "2022": "Targets not defined for Participant Datasets",
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "comment": "KPI has been reviewed and updated to provide more complete data based on datasets provided to SID. Phase 2 can include more specific footfall KPIs with targets that is being tracked by Communications"
+  },
+  {
+   "row": 57,
+   "framework": "Impact",
+   "theme": "Sustainability",
+   "entity": "City Operations",
+   "level": "L0 - Hero",
+   "category": "EC Community",
+   "name": "EC Carbon Footprint (Tonnes)",
+   "definition": "Number of total carbon footprint at EC (tonnes CO2)",
+   "source": "LTP",
+   "frequency": "Annual",
+   "monthly": {
+    "jan": 20877,
+    "feb": 42830.66,
+    "mar": 61378.77
+   },
+   "q1": 61379,
+   "q1Note": null,
+   "actuals": {
+    "2022": 301000,
+    "2023": 299000,
+    "2024": 303000,
+    "2025": 285000
+   },
+   "actualNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null
+   },
+   "targets": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": 295000,
+    "2026": 294950,
+    "2027": 240800,
+    "2028": 234750
+   },
+   "targetNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "comment": "there is a more comprehensive set of new sustainability indicators available for 2022-2025 in Phase 2."
+  },
+  {
+   "row": 58,
+   "framework": "Impact",
+   "theme": "Sustainability",
+   "entity": "City Operations",
+   "level": "L0 - Hero",
+   "category": "EC Community",
+   "name": "Recycled Water",
+   "definition": "Percentage  of recycled water used for cooling tower",
+   "source": "LTP",
+   "frequency": "Annual",
+   "monthly": {
+    "jan": null,
+    "feb": null,
+    "mar": null
+   },
+   "q1": null,
+   "q1Note": null,
+   "actuals": {
+    "2022": 0.3,
+    "2023": 0.85,
+    "2024": 0.95,
+    "2025": 0.94
+   },
+   "actualNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null
+   },
+   "targets": {
+    "2022": 0.12,
+    "2023": 0.5,
+    "2024": 0.95,
+    "2025": 0.9,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "targetNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": "TBU",
+    "2027": "TBU",
+    "2028": "TBU"
+   },
+   "comment": null
+  },
+  {
+   "row": 59,
+   "framework": "Impact",
+   "theme": "Sustainability",
+   "entity": "City Operations",
+   "level": "L1 - Micro",
+   "category": "EC Community",
+   "name": "Energy Consumption Reduction",
+   "definition": "Percentage of annual reduction in electricity consumption (district cooling)",
+   "source": "LTP",
+   "frequency": "Annual",
+   "monthly": {
+    "jan": null,
+    "feb": null,
+    "mar": null
+   },
+   "q1": 1.32,
+   "q1Note": null,
+   "actuals": {
+    "2022": -0.04,
+    "2023": 0.05,
+    "2024": 0.05,
+    "2025": 0.1
+   },
+   "actualNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null
+   },
+   "targets": {
+    "2022": 0.05,
+    "2023": 0.05,
+    "2024": 0.04,
+    "2025": 0.02,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "targetNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": "TBU",
+    "2027": "TBU",
+    "2028": "TBU"
+   },
+   "comment": null
+  },
+  {
+   "row": 60,
+   "framework": "Impact",
+   "theme": "Sustainability",
+   "entity": "City Operations",
+   "level": null,
+   "category": "EC Community",
+   "name": "Energy from Renewable Sources (KwH)",
+   "definition": "Number of total renewable energy produced by renewable energy sources station in QF (in KwH)",
+   "source": "LTP",
+   "frequency": "Annual",
+   "monthly": {
+    "jan": null,
+    "feb": null,
+    "mar": null
+   },
+   "q1": 824104,
+   "q1Note": null,
+   "actuals": {
+    "2022": 3599000,
+    "2023": 3415000,
+    "2024": 5320000,
+    "2025": 5370000
+   },
+   "actualNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null
+   },
+   "targets": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "targetNotes": {
+    "2022": "Targets from 2026",
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": "TBU",
+    "2027": "TBU",
+    "2028": "TBU"
+   },
+   "comment": null
+  },
+  {
+   "row": 61,
+   "framework": "Strategy Execution",
+   "theme": "Social Progress",
+   "entity": "QNL/PUE/ALSHAQAB/QCDC",
+   "level": "L2",
+   "category": "EC Community",
+   "name": "Participants in Inclusive Programs",
+   "definition": "Number of participants across community events and programs delivered",
+   "source": "Participant datasets",
+   "frequency": "Quarterly",
+   "monthly": {
+    "jan": null,
+    "feb": null,
+    "mar": null
+   },
+   "q1": null,
+   "q1Note": "Not available. Sourced from various entities by request",
+   "actuals": {
+    "2022": 826,
+    "2023": 766,
+    "2024": 1503,
+    "2025": 2460
+   },
+   "actualNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null
+   },
+   "targets": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "targetNotes": {
+    "2022": "Targets not defined for Participant Datasets",
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "comment": null
+  },
+  {
+   "row": 62,
+   "framework": "Strategy Execution",
+   "theme": "Social Progress",
+   "entity": "QF",
+   "level": "L1 - Micro",
+   "category": "EC Community",
+   "name": "Footfall - Cultural events",
+   "definition": "Participation in cultural events",
+   "source": "Participant datasets",
+   "frequency": "Quarterly",
+   "monthly": {
+    "jan": null,
+    "feb": null,
+    "mar": null
+   },
+   "q1": 0,
+   "q1Note": null,
+   "actuals": {
+    "2022": 450583,
+    "2023": 39292,
+    "2024": 300000,
+    "2025": 169546
+   },
+   "actualNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null
+   },
+   "targets": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "targetNotes": {
+    "2022": "Targets not defined for Participant Datasets",
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "comment": "KPI has been reviewed and updated to provide more complete data based on datasets provided to SID. Phase 2 can include more specific footfall KPIs with targets that is being tracked by Communications"
+  },
+  {
+   "row": 63,
+   "framework": "Operational Excellence",
+   "theme": "Operational",
+   "entity": "QF - Source CFO Division",
+   "level": "L0 - Hero",
+   "category": "Financial Health",
+   "name": "Budget Variance",
+   "definition": "Percentage difference between planned and actual expenditure",
+   "source": "LTP",
+   "frequency": "Monthly",
+   "monthly": {
+    "jan": 22,
+    "feb": 18,
+    "mar": 18
+   },
+   "q1": 18,
+   "q1Note": null,
+   "actuals": {
+    "2022": 0.09,
+    "2023": 0.08,
+    "2024": 0.09,
+    "2025": 0.1
+   },
+   "actualNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null
+   },
+   "targets": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": 0,
+    "2026": 0,
+    "2027": 0,
+    "2028": 0
+   },
+   "targetNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "comment": null
+  },
+  {
+   "row": 64,
+   "framework": "Operational Excellence",
+   "theme": "Operational",
+   "entity": "QF - Source CFO Division",
+   "level": "L1 - Micro",
+   "category": "Financial Health",
+   "name": "Cost Recovery Ratio",
+   "definition": "Percentage of total costs covered by revenue generated",
+   "source": "LTP",
+   "frequency": "Monthly",
+   "monthly": {
+    "jan": 29,
+    "feb": 30,
+    "mar": 32
+   },
+   "q1": 32,
+   "q1Note": null,
+   "actuals": {
+    "2022": 0.27,
+    "2023": 0.27,
+    "2024": 0.25,
+    "2025": 0.25
+   },
+   "actualNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null
+   },
+   "targets": {
+    "2022": null,
+    "2023": 0.25,
+    "2024": 0.27,
+    "2025": 0.26,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "targetNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": "TBU",
+    "2027": "TBU",
+    "2028": "TBU"
+   },
+   "comment": null
+  },
+  {
+   "row": 65,
+   "framework": "Operational Excellence",
+   "theme": "Operational",
+   "entity": "QF - Source CFO Division",
+   "level": "L1 - Micro",
+   "category": "Financial Health",
+   "name": "Revenue Generated",
+   "definition": "Total revenue earned from program fees, grants, donations and sponsorships (QAR M)",
+   "source": "LTP",
+   "frequency": "Monthly",
+   "monthly": {
+    "jan": 171,
+    "feb": 342,
+    "mar": 545
+   },
+   "q1": 545,
+   "q1Note": null,
+   "actuals": {
+    "2022": 1734,
+    "2023": 1793,
+    "2024": 1960,
+    "2025": 2055
+   },
+   "actualNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null
+   },
+   "targets": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": 1856,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "targetNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": "TBU",
+    "2027": "TBU",
+    "2028": "TBU"
+   },
+   "comment": null
+  },
+  {
+   "row": 66,
+   "framework": "Operational Excellence",
+   "theme": "Operational",
+   "entity": "QF - Source HC",
+   "level": "L1 - Micro",
+   "category": "Leadership and Learning",
+   "name": "Leadership Vacancies",
+   "definition": "Number of leadership vacancies (N-1 and N-2)",
+   "source": "HC dataset",
+   "frequency": "Monthly",
+   "monthly": {
+    "jan": 15,
+    "feb": 14,
+    "mar": 14
+   },
+   "q1": 14,
+   "q1Note": null,
+   "actuals": {
+    "2022": 17,
+    "2023": 26,
+    "2024": 28,
+    "2025": 19
+   },
+   "actualNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null
+   },
+   "targets": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "targetNotes": {
+    "2022": "HC dataset",
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "comment": "Additional metric currently outside of HC LTP"
+  },
+  {
+   "row": 67,
+   "framework": "Operational Excellence",
+   "theme": "Operational",
+   "entity": "QF - Source HC",
+   "level": "L0 - Hero",
+   "category": "Leadership and Learning",
+   "name": "Employee Engagement Score",
+   "definition": "Employee Engagement Score. Target set to 79% employees reporting positive engagement (target 5% improvement subsequent years)",
+   "source": "LTP",
+   "frequency": "Annual",
+   "monthly": {
+    "jan": null,
+    "feb": null,
+    "mar": null
+   },
+   "q1": null,
+   "q1Note": "Reported annually",
+   "actuals": {
+    "2022": null,
+    "2023": 0.79,
+    "2024": 0.79,
+    "2025": 0.79
+   },
+   "actualNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null
+   },
+   "targets": {
+    "2022": 0.9,
+    "2023": 0.85,
+    "2024": 0.85,
+    "2025": 0.85,
+    "2026": 0.79,
+    "2027": 0.79,
+    "2028": 0.79
+   },
+   "targetNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "comment": "new KPI from 2023 - 2025 TBU- HC administered the engagement survey in Q1 2026"
+  },
+  {
+   "row": 68,
+   "framework": "Operational Excellence",
+   "theme": "Operational",
+   "entity": "QF - Source HC",
+   "level": "L1 - Micro",
+   "category": "Operational Strength",
+   "name": "Regretted Employee Turnover",
+   "definition": "Percentage of regretted employee turn-over. Target set to 5% or less per year",
+   "source": "LTP",
+   "frequency": "Monthly",
+   "monthly": {
+    "jan": null,
+    "feb": null,
+    "mar": null
+   },
+   "q1": null,
+   "q1Note": "Reported annually",
+   "actuals": {
+    "2022": 0.016,
+    "2023": 0.045,
+    "2024": 0.044,
+    "2025": 0.02
+   },
+   "actualNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null
+   },
+   "targets": {
+    "2022": 0.05,
+    "2023": 0.05,
+    "2024": 0.05,
+    "2025": 0.05,
+    "2026": 0.05,
+    "2027": 0.05,
+    "2028": 0.05
+   },
+   "targetNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "comment": null
+  },
+  {
+   "row": 69,
+   "framework": "Operational Excellence",
+   "theme": "Operational",
+   "entity": "QF - Source HC",
+   "level": "L2",
+   "category": "Operational Strength",
+   "name": "Vacancies",
+   "definition": "Number of vacancies (Total QF)",
+   "source": "HC dataset",
+   "frequency": "Monthly",
+   "monthly": {
+    "jan": 610,
+    "feb": 673,
+    "mar": 695
+   },
+   "q1": 695,
+   "q1Note": null,
+   "actuals": {
+    "2022": 451,
+    "2023": 521,
+    "2024": 620,
+    "2025": 614
+   },
+   "actualNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null
+   },
+   "targets": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "targetNotes": {
+    "2022": "HC dataset",
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "comment": "Additional metric currently outside of HC LTP"
+  },
+  {
+   "row": 70,
+   "framework": "Operational Excellence",
+   "theme": "Operational",
+   "entity": "QF - Source HC",
+   "level": "L1 - Micro",
+   "category": "Operational Strength",
+   "name": "Employee Turnover",
+   "definition": "Percentage of total employees that leave the organization within the reporting period",
+   "source": "LTP",
+   "frequency": "Monthly",
+   "monthly": {
+    "jan": 0.59,
+    "feb": 0.33,
+    "mar": 0.4
+   },
+   "q1": 1.32,
+   "q1Note": null,
+   "actuals": {
+    "2022": 0.0845,
+    "2023": 0.083,
+    "2024": 0.09,
+    "2025": 0.07
+   },
+   "actualNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null
+   },
+   "targets": {
+    "2022": 0.1,
+    "2023": 0.1,
+    "2024": 0.1,
+    "2025": 0.1,
+    "2026": 0.1,
+    "2027": 0.1,
+    "2028": 0.1
+   },
+   "targetNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "comment": null
+  },
+  {
+   "row": 71,
+   "framework": "Operational Excellence",
+   "theme": "Operational",
+   "entity": "QF - Source HC",
+   "level": "L1 - Micro",
+   "category": "Operational Strength",
+   "name": "Qatarization",
+   "definition": "Percentage of Qatari employees from total employees",
+   "source": "LTP",
+   "frequency": "Monthly",
+   "monthly": {
+    "jan": 25,
+    "feb": 24.85,
+    "mar": 25
+   },
+   "q1": 25,
+   "q1Note": null,
+   "actuals": {
+    "2022": 0.2745,
+    "2023": 0.25,
+    "2024": 0.264,
+    "2025": 0.26
+   },
+   "actualNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null
+   },
+   "targets": {
+    "2022": 0.4,
+    "2023": 0.4,
+    "2024": 0.4,
+    "2025": 0.25,
+    "2026": 0.25,
+    "2027": 0.25,
+    "2028": 0.25
+   },
+   "targetNotes": {
+    "2022": null,
+    "2023": null,
+    "2024": null,
+    "2025": null,
+    "2026": null,
+    "2027": null,
+    "2028": null
+   },
+   "comment": null
+  }
+ ]
+}
