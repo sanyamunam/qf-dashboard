@@ -18,11 +18,16 @@ export function TrajectoryMark({
   hue,
   fmtVal,
   H = 96,
+  peakHue = '#7e938d',
+  axisHue = '#9aaba5',
 }: {
   series: [string, number][]
   hue: string
   fmtVal: (n: number) => string
   H?: number
+  /** label colours — overridable so the mark can sit on a dark ground */
+  peakHue?: string
+  axisHue?: string
 }) {
   const W = 300
   const pad = { t: 18, b: 16, l: 6, r: 52 }
@@ -61,7 +66,7 @@ export function TrajectoryMark({
             style={{
               left: lx(x(peakIdx)),
               top: ly(y(max) - 6),
-              color: '#7e938d',
+              color: peakHue,
               transform: peakIdx === 0 ? 'translate(0,-100%)' : 'translate(-50%,-100%)',
             }}
           >
@@ -79,12 +84,12 @@ export function TrajectoryMark({
       >
         {fmtVal(last)}
       </span>
-      <span className="absolute text-[9.5px]" style={{ left: lx(pad.l), bottom: 0, color: '#9aaba5' }}>
+      <span className="absolute text-[9.5px]" style={{ left: lx(pad.l), bottom: 0, color: axisHue }}>
         {series[0][0]}
       </span>
       <span
         className="absolute text-[9.5px]"
-        style={{ left: lx(x(vals.length - 1)), bottom: 0, color: '#9aaba5', transform: 'translateX(-50%)' }}
+        style={{ left: lx(x(vals.length - 1)), bottom: 0, color: axisHue, transform: 'translateX(-50%)' }}
       >
         {series[series.length - 1][0] === '2026Q1' ? 'Q1 26' : series[series.length - 1][0]}
       </span>

@@ -3,10 +3,10 @@
  * unlike anything in it: full width, short, laid out along the horizontal.
  * Silhouette does the work colour couldn't; navy identity is unchanged.
  *
- * The band is wider than the card this content was designed for, so it carries
- * a reading the card had no room for: 28 of OE's 40 indicators report at year
- * end. That is why the enabling function looks quiet in March, and it is the
- * one thing a reader needs before drawing conclusions from a Q1 view of it.
+ * Two figures, nothing else. Each one keeps its own trend directly beneath it,
+ * so a number and the line that explains it are read as one object — an
+ * earlier version put the 7% in one zone and its chart in another, which made
+ * the band busy and the pairing invisible.
  */
 import { ChevronRight } from 'lucide-react'
 import { TrajectoryMark } from './marks'
@@ -14,28 +14,46 @@ import { facts, fmt } from '../model/facts'
 import { themeKpis } from '../model/data'
 
 const NAVY_ACCENT = '#8fa3d4'
+const PEAK = 'rgba(255,255,255,0.45)'
+const AXIS = 'rgba(255,255,255,0.40)'
+
+/** One headline indicator: figure, what it is, and its own four-year line. */
+function Stat({
+  figure,
+  label,
+  series,
+  fmtVal,
+}: {
+  figure: string
+  label: React.ReactNode
+  series: [string, number][]
+  fmtVal: (n: number) => string
+}) {
+  return (
+    <div className="min-w-[168px] flex-1">
+      <div className="flex items-baseline gap-2">
+        <span className="num text-[32px] font-bold leading-none text-white">{figure}</span>
+        <span className="text-[12px] leading-[1.35] text-white/60">{label}</span>
+      </div>
+      {/* On the narrowest containers everything stacks into one column, and two
+          figures plus two charts made the band taller than the cards it must
+          read as different from. The figures are the point; the lines are the
+          supporting detail, so they are what goes. */}
+      <div className="mt-3 hidden @lg:block">
+        <TrajectoryMark series={series} hue={NAVY_ACCENT} fmtVal={fmtVal} H={66} peakHue={PEAK} axisHue={AXIS} />
+      </div>
+    </div>
+  )
+}
 
 export function OEBand({ onOpen }: { onOpen: (themeId: string) => void }) {
   const kpis = themeKpis('Organizational Excellence')
   const entities = new Set(kpis.map((k) => k.entity)).size
-  const count = (s: string) => kpis.filter((k) => k.state === s).length
-  const atYearEnd = count('REPORTS_AT_YEAR_END')
-  const met = count('TARGET_ALREADY_MET')
-  const inProgress = count('IN_PROGRESS')
-  const idle = count('IDLE_THIS_CYCLE')
 
+  // the two that carry the enabling function: retention, and investment in
+  // people — the best turnover of four reported years, and the largest climb
   const turnover = facts.oe.turnover.series
   const training = facts.oe.training.series
-  const latestTurnover = turnover[turnover.length - 1]?.[1]
-  const firstTraining = training[0]?.[1]
-  const latestTraining = training[training.length - 1]?.[1]
-
-  const composition: { label: string; n: number; tone: string }[] = [
-    { label: 'report at year end', n: atYearEnd, tone: 'rgba(255,255,255,0.30)' },
-    { label: 'in progress', n: inProgress, tone: NAVY_ACCENT },
-    { label: 'already at target', n: met, tone: '#78be20' },
-    { label: 'idle by design', n: idle, tone: 'rgba(255,255,255,0.18)' },
-  ].filter((c) => c.n > 0)
 
   return (
     <button
@@ -48,64 +66,44 @@ export function OEBand({ onOpen }: { onOpen: (themeId: string) => void }) {
     >
       <span aria-hidden className="absolute inset-x-0 top-0 h-[4px] transition-all duration-300 group-hover:h-[5px]" style={{ background: NAVY_ACCENT }} />
 
-      {/* Wraps rather than stacks: at container widths where a four-across row
-          won't fit, the zones flow onto a second line and the CTA drops — the
-          band stays short and wide. Stacking it into one tall column made it
-          TALLER than the cards above (445 vs 407 at tablet), which is precisely
-          the distinction this shape exists to carry. */}
-      <div className="flex flex-col gap-6 px-6 py-6 @lg:flex-row @lg:flex-wrap @lg:items-center @lg:gap-x-8 @lg:gap-y-5 @3xl:gap-x-9 @3xl:px-8">
-        {/* identity + the headline figure */}
-        <div className="min-w-[200px] shrink-0 @3xl:max-w-[290px]">
+      <div className="flex flex-col gap-7 px-7 py-8 @lg:flex-row @lg:flex-wrap @lg:items-center @lg:gap-x-10 @lg:gap-y-7 @3xl:px-9">
+        {/* identity */}
+        <div className="min-w-[196px] shrink-0">
           <h3 className="text-[17px] font-semibold leading-tight tracking-tight text-white">
             Organizational Excellence
           </h3>
-          <div className="mt-1 text-[11.5px] text-white/50">
-            enabling function · {kpis.length} indicators · {entities} entities
+          <div className="mt-1.5 text-[11.5px] leading-relaxed text-white/50">
+            enabling function
+            <br />
+            {kpis.length} indicators · {entities} entities
           </div>
-          <div className="mt-3.5 flex items-baseline gap-2">
-            <span className="num text-[30px] font-bold leading-none text-white">{fmt(latestTurnover)}%</span>
-            <span className="text-[12px] leading-tight text-white/60">
+        </div>
+
+        {/* the two figures, each with its own line */}
+        <Stat
+          figure={`${fmt(turnover[turnover.length - 1]?.[1])}%`}
+          label={
+            <>
               employee turnover
               <br />
               at end-2025
-            </span>
-          </div>
-        </div>
-
-        {/* The trend, at a band's height rather than a card's. Dropped on the
-            narrowest containers, where everything is one column: stacking all
-            four zones made the band taller than the cards it must read as
-            different from, and this is the zone whose information is most
-            readily available inside the theme itself. */}
-        <div className="hidden min-w-[170px] flex-1 @lg:block">
-          <div className="label mb-1 text-[9.5px] text-white/40">turnover, four reported years</div>
-          <div className="[&_span]:!text-white/70">
-            <TrajectoryMark series={turnover} hue={NAVY_ACCENT} fmtVal={(n) => `${n}%`} H={64} />
-          </div>
-        </div>
-
-        {/* what the 40 indicators are actually doing — the reading the card had
-            no room for, and the reason OE looks quiet in a Q1 view */}
-        <div className="min-w-[200px] flex-1">
-          <div className="label mb-2 text-[9.5px] text-white/40">where the {kpis.length} indicators stand</div>
-          <div className="flex h-[9px] w-full overflow-hidden rounded-full" style={{ background: 'rgba(255,255,255,0.10)' }}>
-            {composition.map((c) => (
-              <span key={c.label} style={{ width: `${(c.n / kpis.length) * 100}%`, background: c.tone }} />
-            ))}
-          </div>
-          <div className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1">
-            {composition.map((c) => (
-              <span key={c.label} className="flex items-center gap-1.5 text-[11px] text-white/60">
-                <span className="inline-block h-2 w-2 rounded-full" style={{ background: c.tone }} />
-                <span className="num font-semibold text-white/90">{c.n}</span> {c.label}
-              </span>
-            ))}
-          </div>
-          <p className="mt-2.5 text-[11.5px] leading-snug text-white/55">
-            Training has climbed <span className="num text-white/80">{fmt(firstTraining)}</span> to{' '}
-            <span className="num text-white/80">{fmt(latestTraining)}</span> hours per employee.
-          </p>
-        </div>
+            </>
+          }
+          series={turnover}
+          fmtVal={(n) => `${n}%`}
+        />
+        <Stat
+          figure={fmt(training[training.length - 1]?.[1])}
+          label={
+            <>
+              training hours
+              <br />
+              per employee
+            </>
+          }
+          series={training}
+          fmtVal={(n) => `${n}`}
+        />
 
         {/* the door */}
         <span
