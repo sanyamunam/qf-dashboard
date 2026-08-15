@@ -126,8 +126,20 @@ export function stoppedReporting(): { entity: string; kpis: Kpi[] }[] {
 export function topMovers(themeName: string): { attention: Kpi[]; performing: Kpi[] } {
   const list = themeKpis(themeName).filter(rankable)
   const withMove = list.filter((k) => k.movementScore !== null && k.movementSeries.length >= 2)
-  const down = withMove.filter((k) => (k.propChange ?? 0) < -0.05).sort((a, b) => (b.movementScore ?? 0) - (a.movementScore ?? 0))
-  const up = withMove.filter((k) => (k.propChange ?? 0) > 0.05).sort((a, b) => (b.movementScore ?? 0) - (a.movementScore ?? 0))
+  /**
+   * An indicator that reported nothing this quarter cannot be "Performing",
+   * however well it climbed before. propChange is computed from the movement
+   * series, which excludes the Q1 zero, so seven of these otherwise sorted
+   * into Performing while their cards read "0 of 5" — a section framing that
+   * contradicted the card's own status. Reporting nothing is unfavourable, so
+   * they become attention candidates instead.
+   */
+  const down = withMove
+    .filter((k) => (k.propChange ?? 0) < -0.05 || q1ZeroArtifact(k))
+    .sort((a, b) => (b.movementScore ?? 0) - (a.movementScore ?? 0))
+  const up = withMove
+    .filter((k) => (k.propChange ?? 0) > 0.05 && !q1ZeroArtifact(k))
+    .sort((a, b) => (b.movementScore ?? 0) - (a.movementScore ?? 0))
 
   // where no unfavourable history exists, fall back to the largest gap to a real commitment
   let attention = down.slice(0, 2)

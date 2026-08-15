@@ -123,6 +123,21 @@ export function aiLineFor(group: Kpi[]): string {
   if (k.state === 'ABOVE_CEILING')
     return `Above its ceiling: ${nf(q1)} against a limit of ${nf(t26)}. This is the one kind of red that is real.`
 
+  /* Stopped reporting: an indicator that reports during the year, has reported
+     before, and returned nothing this quarter. The caption must state THAT and
+     not narrate a closed year, or the words disagree with the mark beside them. */
+  const stoppedReporting =
+    q1 === 0 &&
+    k.cadence !== 'annual' &&
+    k.state !== 'IDLE_THIS_CYCLE' &&
+    k.movementSeries.some(([, v]) => v > 0)
+  if (group.length === 1 && stoppedReporting) {
+    const lastReported = k.movementSeries[k.movementSeries.length - 1]
+    return `Nothing reported this quarter, after ${nf(lastReported[1])} in ${lastReported[0]}${
+      t26 ? `, against a ${nf(t26)} target for 2026` : ''
+    }. The gap is the finding.`
+  }
+
   const met = group.filter((g) => g.state === 'TARGET_ALREADY_MET')
   if (met.length === group.length && group.length > 1)
     return `All ${group.length} already sit at or above their full-year 2026 targets after one quarter — a target-calibration question as much as a result.`
@@ -209,15 +224,16 @@ const textFor = (s: ChartStatus) => (s === 'met' || s === 'behind' || s === 'bre
 export const yearLabel = (y: string) => (y === '2026Q1' ? 'Q1 2026' : y)
 
 /**
- * Status for a CLOSED year (R13). Pace has no meaning once a year is over —
- * the year either landed on its target or it didn't, so there is no
- * "behind pace" here, only met or missed. Ceilings keep their rule: under a
- * ceiling is fine but never "done", over it is the one real red.
+ * Status colour is reserved for the CURRENT period, full stop.
+ *
+ * R13 graded a dated fallback reading against that closed year's target
+ * (`closedYearStatus`, now removed). That is what let a 2025 figure earn a
+ * green met-target treatment on a card reporting Q1 2026, and it is the same
+ * class of error whichever year it flatters. A dated reading is still shown —
+ * with its year inline and the target it stood against — but it is rendered
+ * neutral, because "met" and "behind" are claims about now.
  */
-function closedYearStatus(k: Kpi, value: number, target: number): ChartStatus {
-  if (k.polarity === 'Red') return value > target ? 'breach' : 'neutral'
-  return value >= target ? 'met' : 'behind'
-}
+const DATED_STATUS: ChartStatus = 'neutral'
 
 /** One indicator's standing: a value, the target it is judged against, and when. */
 interface Position {
@@ -263,6 +279,9 @@ export interface SnapshotRow {
   value: number
   target: number
   status: ChartStatus
+  /** set ONLY when the figure is not this quarter's — rendered inline beside
+   *  the number, so a prior year's reading can never pass for a current one */
+  year?: string
 }
 
 export type SnapshotRep =
@@ -346,17 +365,21 @@ function gaugeFor(
 export function snapshotFor(group: Kpi[], hue: string, title?: string, scale: ChartScale = 'card'): SnapshotRep {
   // the overlay draws the same mark as the card, larger (R11 fix 2)
   const big = scale === 'overlay'
-  // a year-end or idle KPI's Q1 cell is an artifact, not a position — drawing
-  // "0 of 50" for an indicator that reports in December would be a lie. The
-  // same applies to any Q1 zero the parser judged "not yet reported": if the
-  // movement series doesn't end at Q1, the zero is an absence, not a reading.
-  const q1IsReal = (k: Kpi) => {
-    const v = k.actuals['2026Q1'].value
-    if (v === null) return false
-    if (v !== 0) return true
-    const last = k.movementSeries[k.movementSeries.length - 1]
-    return last?.[0] === '2026Q1'
-  }
+  /**
+   * A year-end or idle KPI's Q1 cell is an artifact, not a position — drawing
+   * "0 of 50" for an indicator that reports in December would be a lie. Those
+   * are excluded by STATE in the filter below, which is the only sound test.
+   *
+   * Everything else that has a Q1 cell has a real reading, INCLUDING a zero.
+   * This previously also required the movement series to end at Q1, and since
+   * the parser strips trailing Q1 zeros from that series, every genuine zero
+   * failed the test, fell through to the stale-year fallback, and was graded
+   * against a closed year's target — which rendered eight indicators that
+   * delivered nothing this quarter as green, met-target cards while they sat
+   * in Needs Attention. A zero from an indicator that reports during the year
+   * is the finding, not an absence.
+   */
+  const q1IsReal = (k: Kpi) => k.actuals['2026Q1'].value !== null
   const q1Positions: Position[] = group
     .filter(
       (k) =>
@@ -392,7 +415,7 @@ export function snapshotFor(group: Kpi[], hue: string, title?: string, scale: Ch
       const tk = last[0] === '2026Q1' ? '2026' : last[0]
       const t = k.targets[tk]?.value ?? null
       if (t === null || t <= 0) return null
-      return { k, value: last[1], target: t, year: last[0], status: closedYearStatus(k, last[1], t) }
+      return { k, value: last[1], target: t, year: last[0], status: DATED_STATUS }
     })
     .filter((p): p is Position => p !== null)
 
@@ -424,6 +447,7 @@ export function snapshotFor(group: Kpi[], hue: string, title?: string, scale: Ch
       value: p.value,
       target: p.target,
       status: p.status,
+      year: p.year === '2026Q1' ? undefined : yearLabel(p.year),
     }))
     return {
       kind: 'group-ledger',
@@ -487,7 +511,8 @@ export function snapshotFor(group: Kpi[], hue: string, title?: string, scale: Ch
             fontWeight: 700,
             fontSize: big ? 26 : 14,
             color: textFor(st),
-            formatter: () => (met ? `${nf(a)} ✓` : nf(a)),
+            // the year rides with the number whenever it isn't this quarter's
+            formatter: () => `${nf(a)}${met ? ' ✓' : ''}${basis ? ` (${yearLabel(pYear)})` : ''}`,
           },
           markLine: {
             silent: true,
@@ -531,8 +556,10 @@ export function overlayTrendOption(group: Kpi[], hue: string): EChartsOption {
   const q1Actual = (k: Kpi) => {
     const v = k.actuals['2026Q1'].value
     if (v === null || v !== 0) return v
-    const last = k.movementSeries[k.movementSeries.length - 1]
-    return last?.[0] === '2026Q1' ? 0 : null
+    // only a year-end reporter's or an off-cycle indicator's zero is an
+    // artifact; every other zero is a real reading and must be plotted, or the
+    // trend hides the very quarter the card is reporting on
+    return k.state === 'REPORTS_AT_YEAR_END' || k.state === 'IDLE_THIS_CYCLE' ? null : 0
   }
   const series: object[] = []
   group.forEach((k, i) => {

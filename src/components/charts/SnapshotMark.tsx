@@ -62,6 +62,12 @@ export function LedgerRows({
                     ✓
                   </span>
                 )}
+                {/* a figure that isn't this quarter's carries its year inline */}
+                {r.year && (
+                  <span className="ml-1 font-normal text-ink-mute" style={{ fontSize: z.of }}>
+                    ({r.year})
+                  </span>
+                )}
                 <span className="ml-1 font-normal text-ink-mute" style={{ fontSize: z.of }}>
                   of {nf(r.target)}
                 </span>

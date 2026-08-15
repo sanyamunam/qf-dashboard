@@ -29,9 +29,26 @@ export interface Polarity {
   basis: string
 }
 
+/**
+ * The readings a card judges on: the movement series, PLUS this quarter's
+ * reading when it is real and the series omits it.
+ *
+ * The parser strips trailing Q1 zeros from `movementSeries` so that a zero can
+ * never be ranked as a decline. Reading the card's headline figure straight off
+ * that series therefore printed a closed year's number as though it were now —
+ * "12" on a card whose actual Q1 reading is 0. Only a year-end reporter or an
+ * off-cycle indicator has no real current reading.
+ */
+export function judgedSeries(k: Kpi): [string, number][] {
+  const s = k.movementSeries
+  const v = k.actuals['2026Q1'].value
+  const currentIsReal = v !== null && k.state !== 'REPORTS_AT_YEAR_END' && k.state !== 'IDLE_THIS_CYCLE'
+  return currentIsReal && s[s.length - 1]?.[0] !== '2026Q1' ? [...s, ['2026Q1', v] as [string, number]] : s
+}
+
 /** Movement judged against the indicator's own direction of good. */
 export function polarityOf(k: Kpi): Polarity {
-  const s = k.movementSeries
+  const s = judgedSeries(k)
   if (s.length >= 2) {
     const [prevY, prev] = s[s.length - 2]
     const last = s[s.length - 1][1]
@@ -79,9 +96,17 @@ export function KpiCard({
   const pol = polarityOf(k)
   const loud = isLoud(group)
   const lg = size === 'lg'
-  const s = k.movementSeries
+  const s = judgedSeries(k)
+  const last = s[s.length - 1]
+  /* the headline is this quarter's reading whenever one exists — and when it
+     genuinely doesn't, the year rides with the number so a closed year's
+     figure can never be mistaken for a current one */
   const figure =
-    s.length > 0 ? fmt(s[s.length - 1][1]) : (k.actuals['2026Q1'].value !== null ? fmt(k.actuals['2026Q1'].value) : (k.actuals['2026Q1'].raw ?? '—'))
+    s.length > 0
+      ? `${fmt(last[1])}${last[0] === '2026Q1' ? '' : ` (${last[0]})`}`
+      : k.actuals['2026Q1'].value !== null
+        ? fmt(k.actuals['2026Q1'].value)
+        : (k.actuals['2026Q1'].raw ?? '—')
   const Arrow = pol.dir === 'up' ? ArrowUpRight : pol.dir === 'down' ? ArrowDownRight : Minus
 
   return (

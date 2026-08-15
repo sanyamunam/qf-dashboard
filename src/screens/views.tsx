@@ -124,10 +124,13 @@ function Row({
         <span className="num text-right text-[15px] font-bold text-sidra">{figure}</span>
         <span className="flex justify-end">
           {/* snapshot, not history: current position against the 2026 target.
-              A Q1 zero the parser judged "not yet reported" draws nothing. */}
+              Only a year-end reporter's or an off-cycle indicator's Q1 zero is
+              an artifact and draws nothing — every other zero is a real
+              reading and gets a bar, or the row hides the finding. */}
           {k.actuals['2026Q1'].value !== null &&
           (k.targets['2026'].value ?? 0) > 0 &&
-          (k.actuals['2026Q1'].value !== 0 || k.movementSeries[k.movementSeries.length - 1]?.[0] === '2026Q1') ? (
+          k.state !== 'REPORTS_AT_YEAR_END' &&
+          k.state !== 'IDLE_THIS_CYCLE' ? (
             <BulletMicro
               actual={k.actuals['2026Q1'].value as number}
               target={k.targets['2026'].value as number}
