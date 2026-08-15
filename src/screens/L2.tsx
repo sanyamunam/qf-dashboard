@@ -399,7 +399,7 @@ export function L2({
             </FilterMenu>
           )}
           {!isOE && (
-            <FilterMenu label="Framework" hue={theme.fill} active={filters.fw.length > 0}>
+            <FilterMenu label="Performance framework" hue={theme.fill} active={filters.fw.length > 0}>
               {['Impact', 'Strategic', 'Operational'].map((f) => (
                 <Opt key={f} on={filters.fw.includes(f)} onClick={() => toggle('fw', f)} label={f} n={count('fw', (k) => k.framework === f)} />
               ))}
@@ -492,6 +492,7 @@ export function L2({
             filtersActive={activeChips.length > 0 || filters.yr !== '2026Q1' || filters.sort !== 'mover'}
             focusId={pointFocus ?? null}
             onRelax={() => setFilters((f) => ({ ...EMPTY, sort: f.sort }))}
+            groupByFramework={filters.fw.length > 0}
           />
         )}
       </div>
@@ -1042,6 +1043,7 @@ function Bands({
   filtersActive,
   focusId,
   onRelax,
+  groupByFramework,
 }: {
   visible: Kpi[]
   isOE: boolean
@@ -1053,6 +1055,10 @@ function Bands({
   filtersActive: boolean
   focusId: string | null
   onRelax: () => void
+  /** The Impact / Strategic / Operational classification is a lens, not the
+   *  shape of the list. It appears only when the reader asks for it by
+   *  filtering on Performance framework; otherwise these are just the KPIs. */
+  groupByFramework: boolean
 }) {
   // CEO-first density: bands are closed until asked for; the spotlights above
   // carry the judgement. A narrowed set (filters, a historical year) is a
@@ -1081,6 +1087,10 @@ function Bands({
         </button>
       </div>
     )
+
+  // the default read: one list of indicators, no classification headers
+  if (!groupByFramework)
+    return <BandBody kpis={visible} hue={hue} onOpenKpi={onOpenKpi} annotateKpiId={annotate} sort={sort} year={year} />
 
   return (
     <>
