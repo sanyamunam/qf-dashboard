@@ -5,7 +5,14 @@
  */
 const NEUTRAL = '#c8c9c7'
 
-/* 1 · Trajectory — >=3 readings. Area micro-chart, last point labelled. */
+/* 1 · Trajectory — >=3 readings. Area micro-chart, last point labelled.
+ *
+ * Height is FIXED at H whatever the card's width. The geometry stretches
+ * horizontally (preserveAspectRatio="none" + non-scaling strokes) while the
+ * dots and labels are HTML positioned by percentage, so they never distort.
+ * The old version sized itself from its width — a half-width card drew a mark
+ * nearly twice as tall as a third-width one, which is what made cards of the
+ * same row disagree about their height. */
 export function TrajectoryMark({
   series,
   hue,
@@ -28,29 +35,60 @@ export function TrajectoryMark({
   const area = `${line} L${x(vals.length - 1)},${H - pad.b} L${x(0)},${H - pad.b} Z`
   const last = vals[vals.length - 1]
   const peakIdx = vals.indexOf(max)
+  const lx = (v: number) => `${(v / W) * 100}%`
+  const ly = (v: number) => `${(v / H) * 100}%`
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ height: 'auto' }} aria-hidden>
-      <path d={area} fill={hue} opacity="0.13" />
-      <path d={line} stroke={hue} strokeWidth="2.2" fill="none" strokeLinejoin="round" />
+    <div className="relative w-full" style={{ height: H }} aria-hidden>
+      <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} preserveAspectRatio="none" style={{ display: 'block' }}>
+        <path d={area} fill={hue} opacity="0.13" />
+        <path
+          d={line}
+          stroke={hue}
+          strokeWidth="2.2"
+          fill="none"
+          strokeLinejoin="round"
+          vectorEffect="non-scaling-stroke"
+        />
+      </svg>
       {peakIdx !== vals.length - 1 && (
         <>
-          <circle cx={x(peakIdx)} cy={y(max)} r="2.6" fill={NEUTRAL} />
-          <text x={x(peakIdx) + (peakIdx === 0 ? 4 : 0)} y={y(max) - 6} fontSize="10.5" fill="#7e938d" fontFamily="var(--font-num)" textAnchor={peakIdx === 0 ? 'start' : 'middle'}>
+          <span
+            className="absolute rounded-full"
+            style={{ left: lx(x(peakIdx)), top: ly(y(max)), width: 5, height: 5, background: NEUTRAL, transform: 'translate(-50%,-50%)' }}
+          />
+          <span
+            className="num absolute text-[10.5px] whitespace-nowrap"
+            style={{
+              left: lx(x(peakIdx)),
+              top: ly(y(max) - 6),
+              color: '#7e938d',
+              transform: peakIdx === 0 ? 'translate(0,-100%)' : 'translate(-50%,-100%)',
+            }}
+          >
             {fmtVal(max)}
-          </text>
+          </span>
         </>
       )}
-      <circle cx={x(vals.length - 1)} cy={y(last)} r="3.4" fill={hue} />
-      <text x={x(vals.length - 1) + 7} y={y(last) + 4} fontSize="12" fontWeight="700" fill={hue} fontFamily="var(--font-num)">
+      <span
+        className="absolute rounded-full"
+        style={{ left: lx(x(vals.length - 1)), top: ly(y(last)), width: 7, height: 7, background: hue, transform: 'translate(-50%,-50%)' }}
+      />
+      <span
+        className="num absolute text-[12px] font-bold whitespace-nowrap"
+        style={{ left: lx(x(vals.length - 1)), top: ly(y(last)), color: hue, transform: 'translate(7px,-50%)' }}
+      >
         {fmtVal(last)}
-      </text>
-      <text x={pad.l} y={H - 3} fontSize="9.5" fill="#9aaba5" fontFamily="var(--font-ui)">
+      </span>
+      <span className="absolute text-[9.5px]" style={{ left: lx(pad.l), bottom: 0, color: '#9aaba5' }}>
         {series[0][0]}
-      </text>
-      <text x={x(vals.length - 1)} y={H - 3} fontSize="9.5" fill="#9aaba5" textAnchor="middle" fontFamily="var(--font-ui)">
+      </span>
+      <span
+        className="absolute text-[9.5px]"
+        style={{ left: lx(x(vals.length - 1)), bottom: 0, color: '#9aaba5', transform: 'translateX(-50%)' }}
+      >
         {series[series.length - 1][0] === '2026Q1' ? 'Q1 26' : series[series.length - 1][0]}
-      </text>
-    </svg>
+      </span>
+    </div>
   )
 }
 

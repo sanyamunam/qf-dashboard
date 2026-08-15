@@ -14,7 +14,8 @@ import { spotlightFor, type ChipReason } from '../model/spotlight'
 export interface CardDef {
   themeId: string
   themeName: string
-  hero?: boolean
+  /** Column span at the 2-over-3 breakpoint: the top row is WIDER, never taller. */
+  span: 3 | 2
   dark?: boolean
   reserved?: boolean
   subtitle?: string
@@ -28,6 +29,16 @@ export interface CardDef {
 
 const compact = (n: number) => (n >= 10000 ? `${Math.round(n / 1000)}k` : new Intl.NumberFormat('en').format(n))
 
+/**
+ * The five thematic areas, and only those. Organizational Excellence is an
+ * enabling function, not a thematic area — it lives below the grid as OEBand,
+ * because a card sitting as a peer in a grid reads as a peer whatever colour
+ * it is (position and silhouette are parsed before hue).
+ *
+ * Row one takes the two areas with the richest evidence at half width each;
+ * row two takes the remaining three at a third each. Five cards fill both rows
+ * exactly, so no cell is left over.
+ */
 export function buildCards(): CardDef[] {
   const count = (t: string) => themeKpis(t).length
   const entities = (t: string) => new Set(themeKpis(t).map((k) => k.entity)).size
@@ -36,6 +47,7 @@ export function buildCards(): CardDef[] {
     {
       themeId: 'social',
       themeName: 'Social Progress',
+      span: 3,
       chip: spotlightFor('Social Progress').chip,
       figure: fmt(facts.wish.q1),
       sentence: (
@@ -51,6 +63,7 @@ export function buildCards(): CardDef[] {
     {
       themeId: 'sustain',
       themeName: 'Sustainability',
+      span: 3,
       chip: 'BASELINE',
       figure: fmt(facts.eco.beneficiaries),
       sentence: (
@@ -74,6 +87,7 @@ export function buildCards(): CardDef[] {
     {
       themeId: 'edu',
       themeName: 'Progressive Education',
+      span: 2,
       chip: 'BASELINE',
       figure: `QAR ${fmt((facts.wise.prizeValue ?? 0) / 1e6)}m`,
       sentence: (
@@ -97,6 +111,7 @@ export function buildCards(): CardDef[] {
     {
       themeId: 'ai',
       themeName: 'Artificial Intelligence',
+      span: 2,
       chip: 'LARGEST GAP',
       figure: null,
       sentence: (
@@ -119,6 +134,7 @@ export function buildCards(): CardDef[] {
       // absent from Release 2 data. A designed reserved slot, nothing invented.
       themeId: 'health',
       themeName: 'Precision Health',
+      span: 2,
       reserved: true,
       subtitle: 'reserved',
       chip: null,
@@ -129,39 +145,21 @@ export function buildCards(): CardDef[] {
           stays empty until the data arrives.
         </>
       ),
+      // fixed height at any width — a width-scaling SVG here would make the
+      // reserved card disagree with its row about how tall a card is
       mark: (
-        <svg viewBox="0 0 300 60" width="100%" aria-hidden>
-          {Array.from({ length: 14 }, (_, i) => (
-            <circle key={i} cx={16 + i * 21} cy={30} r={5} fill="none" stroke="#c8c9c7" strokeWidth="1.2" strokeDasharray="2.5 2.5" />
+        <div className="flex h-[60px] items-center gap-[9px]" aria-hidden>
+          {Array.from({ length: 10 }, (_, i) => (
+            <span
+              key={i}
+              className="h-[10px] w-[10px] shrink-0 rounded-full border border-dashed"
+              style={{ borderColor: '#c8c9c7' }}
+            />
           ))}
-        </svg>
+        </div>
       ),
       count: 0,
       entities: 0,
-    },
-    {
-      // OE joins the grid as the sixth tile (R4 fix 2) — navy and internally
-      // distinct: an enabling function, not a thematic area
-      themeId: 'oe',
-      themeName: 'Organizational Excellence',
-      dark: true,
-      subtitle: 'enabling function',
-      chip: null,
-      figure: `${fmt(facts.oe.turnover.series[facts.oe.turnover.series.length - 1]?.[1])}%`,
-      sentence: (
-        <>
-          employee turnover at end-2025, its best of four reported years; training hours have climbed{' '}
-          <span className="num">{fmt(facts.oe.training.series[0]?.[1])}</span> to{' '}
-          <span className="num">{fmt(facts.oe.training.series[facts.oe.training.series.length - 1]?.[1])}</span>
-        </>
-      ),
-      mark: (
-        <div className="[&_text]:!fill-white/70">
-          <TrajectoryMark series={facts.oe.turnover.series} hue="#8fa3d4" fmtVal={(n) => `${n}%`} />
-        </div>
-      ),
-      count: count('Organizational Excellence'),
-      entities: entities('Organizational Excellence'),
     },
   ]
 }

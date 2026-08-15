@@ -9,6 +9,7 @@ import { Handshake } from 'lucide-react'
 import { AppHeader, Spark, HeaderCluster, GlobalSearch } from '../components/Shell'
 import { PortfolioBrief } from '../components/PortfolioBrief'
 import { buildCards, ThemeCard } from '../components/ThemeCards'
+import { OEBand } from '../components/OEBand'
 import { Standing } from '../components/Standing'
 import { inventory } from '../model/data'
 import type { Kpi } from '../model/types'
@@ -58,10 +59,13 @@ export function ThematicView({
         <PortfolioBrief onEvidence={onEvidence} />
       </motion.div>
 
-      {/* six equal tiles fill a 3×2 grid exactly — no hero, no dead space (R4 fix 2);
-          container-queried so the grid reflows when BOTaina's panel takes space */}
+      {/* The five thematic areas: 2 over 3, on one six-column grid so both rows
+          are the same height (auto-rows-fr) — the top pair is WIDER, never
+          taller. Five cards fill both rows exactly; no cell is left over.
+          Container-queried so it reflows when BOTaina's panel takes space:
+          stacked, then 2-over-2-over-1, then the full 2-over-3. */}
       <motion.div
-        className="mt-14 grid grid-cols-1 gap-4 @xl:grid-cols-2 @4xl:grid-cols-3"
+        className="mt-14 grid auto-rows-fr grid-cols-6 gap-4"
         initial="off"
         animate="on"
         variants={{ on: { transition: { staggerChildren: 0.05 } } }}
@@ -69,11 +73,38 @@ export function ThematicView({
         {cards.map((c) => (
           <motion.div
             key={c.themeId}
+            className={`col-span-6 ${
+              c.span === 3
+                ? '@xl:col-span-3'
+                : c.themeId === 'health'
+                  ? '@xl:col-span-6 @4xl:col-span-2'
+                  : '@xl:col-span-3 @4xl:col-span-2'
+            }`}
             variants={{ off: { opacity: 0, y: 16 }, on: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.32, 0.72, 0, 1] } } }}
           >
             <ThemeCard def={c} onOpen={onOpenTheme} />
           </motion.div>
         ))}
+      </motion.div>
+
+      {/* the structural break, stated rather than implied */}
+      <motion.div
+        className="mt-12 flex items-center gap-4"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.35, duration: 0.5 }}
+      >
+        <span className="label text-[10px] text-ink-mute">Enabling function</span>
+        <span className="h-px flex-1 bg-ink-mute/20" />
+      </motion.div>
+
+      <motion.div
+        className="mt-4"
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4, duration: 0.5, ease: [0.32, 0.72, 0, 1] }}
+      >
+        <OEBand onOpen={onOpenTheme} />
       </motion.div>
 
       <footer className="mt-9 text-center text-[11px] text-ink-mute/80">
