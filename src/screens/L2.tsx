@@ -17,7 +17,7 @@ import { buildGroupCards, type GroupCard, type YearKey } from '../components/cha
 import { EChart } from '../components/charts/EChart'
 import { BotainaFigure } from '../components/Botaina'
 import { KpiCard } from '../components/KpiCard'
-import { ViewSwitcher, ListView, CompareView, EntityView, type ViewId, loadView, saveView } from './views'
+import { ViewSwitcher, ListView, EntityView, type ViewId, loadView, saveView } from './views'
 import { Spark } from '../components/Shell'
 
 const THEME_NAME: Record<string, string> = {
@@ -471,13 +471,6 @@ export function L2({
           </div>
         ) : view === 'list' ? (
           <ListView kpis={sortedVisible} hue={theme.fill} sort={filters.sort} year={filters.yr} />
-        ) : view === 'compare' ? (
-          <CompareView
-            kpis={visible}
-            defaults={[...movers.attention, ...movers.performing]}
-            hue={theme.fill}
-            onOpenKpi={onOpenKpi}
-          />
         ) : view === 'entity' && entities.length > 1 ? (
           <EntityView kpis={sortedVisible} hue={theme.fill} year={filters.yr} />
         ) : (

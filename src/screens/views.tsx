@@ -1,28 +1,32 @@
 /**
  * Alternate explore views (R8): List (fast scan, in-place expand to the full
- * drawer detail), Compare (small set on one normalised axis), By Entity
- * (entity sections, multi-entity themes only). One shared filter/search/sort
- * state lives in L2; these only change the arrangement. Chart marks are the
- * platform's shared components — BulletMicro for rows, the EChart adapter for
- * anything larger. Rationale: docs/r8-views.md
+ * drawer detail) and By Entity (entity sections, multi-entity themes only).
+ * One shared filter/search/sort state lives in L2; these only change the
+ * arrangement. Chart marks are the platform's shared components — BulletMicro
+ * for rows. Rationale: docs/r8-views.md
  */
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { LayoutGrid, List as ListIcon, BarChart3, Building2, Plus, X, ChevronDown, ChevronUp } from 'lucide-react'
+import { LayoutGrid, List as ListIcon, Building2, ChevronDown, ChevronUp } from 'lucide-react'
 import type { Kpi } from '../model/types'
 import { statusOf, STATUS_COLOR, type YearKey } from '../components/charts/builders'
-import { AXIS } from '../components/charts/EChart'
-import { EChart } from '../components/charts/EChart'
 import { BulletMicro } from '../components/marks'
 import { KpiDetailBody } from '../components/KpiDrawer'
 import { EntityIcon } from '../components/EntityIcon'
 import { fmt } from '../model/data'
 import { rankable } from '../model/spotlight'
 
-export type ViewId = 'grid' | 'list' | 'compare' | 'entity'
+export type ViewId = 'grid' | 'list' | 'entity'
 
-export const loadView = (themeId: string): ViewId =>
-  (sessionStorage.getItem(`almishkat.view.${themeId}`) as ViewId) ?? 'grid'
+const VIEW_IDS: ViewId[] = ['grid', 'list', 'entity']
+
+/** A view id persisted by an earlier session may no longer exist (Compare was
+ *  removed) — an unrecognised value falls back to Grid rather than rendering
+ *  nothing. */
+export const loadView = (themeId: string): ViewId => {
+  const v = sessionStorage.getItem(`almishkat.view.${themeId}`) as ViewId | null
+  return v && VIEW_IDS.includes(v) ? v : 'grid'
+}
 export const saveView = (themeId: string, v: ViewId) => sessionStorage.setItem(`almishkat.view.${themeId}`, v)
 
 /* ---------- the switcher ---------- */
@@ -41,7 +45,6 @@ export function ViewSwitcher({
   const options: { id: ViewId; label: string; Icon: typeof LayoutGrid }[] = [
     { id: 'grid', label: 'Grid', Icon: LayoutGrid },
     { id: 'list', label: 'List', Icon: ListIcon },
-    { id: 'compare', label: 'Compare', Icon: BarChart3 },
     ...(multiEntity ? [{ id: 'entity' as ViewId, label: 'By Entity', Icon: Building2 }] : []),
   ]
   return (
@@ -213,178 +216,6 @@ export function ListView({
           </div>
         )
       })}
-    </div>
-  )
-}
-
-/* ---------- Compare view ---------- */
-
-const CAP = 8
-const comparable = (k: Kpi) =>
-  k.polarity === 'Green' && (k.targets['2026'].value ?? 0) > 0 && k.actuals['2026Q1'].value !== null
-
-export function CompareView({
-  kpis,
-  defaults,
-  hue,
-  onOpenKpi,
-}: {
-  kpis: Kpi[]
-  defaults: Kpi[]
-  hue: string
-  onOpenKpi: (k: Kpi) => void
-}) {
-  const [ids, setIds] = useState<string[]>(() =>
-    defaults.filter(comparable).slice(0, 4).map((k) => k.id),
-  )
-  const [pickerOpen, setPickerOpen] = useState(false)
-  const pool = useMemo(() => kpis.filter(comparable), [kpis])
-  const selected = pool.filter((k) => ids.includes(k.id))
-  const excludedCount = kpis.length - pool.length
-  const atCap = selected.length >= CAP
-
-  const rows = selected
-    .map((k) => ({
-      k,
-      pct: Math.round(((k.actuals['2026Q1'].value as number) / (k.targets['2026'].value as number)) * 100),
-    }))
-    .sort((a, b) => b.pct - a.pct)
-
-  return (
-    <div className="mt-5">
-      <div className="flex flex-wrap items-center gap-2">
-        {selected.map((k) => (
-          <span key={k.id} className="flex items-center gap-1.5 rounded-chip bg-card px-2.5 py-1 text-[12px] shadow-(--shadow-card)">
-            <span className="font-medium text-ink">{k.name}</span>
-            <span className="text-ink-mute">{k.entity}</span>
-            <button onClick={() => setIds((s) => s.filter((i) => i !== k.id))} aria-label={`Remove ${k.name}`} className="text-ink-mute hover:text-maroon">
-              <X size={12} strokeWidth={2} />
-            </button>
-          </span>
-        ))}
-        <div className="relative">
-          <button
-            onClick={() => !atCap && setPickerOpen((o) => !o)}
-            disabled={atCap}
-            className="flex items-center gap-1 rounded-chip px-2.5 py-1 text-[12px] font-medium transition-colors"
-            style={atCap ? { color: '#9aaba5', cursor: 'default' } : { color: hue, background: 'var(--color-card)', boxShadow: 'var(--shadow-card)' }}
-          >
-            <Plus size={13} strokeWidth={2} /> {atCap ? `${CAP} is the legible limit — remove one to add` : 'Add indicator'}
-          </button>
-          {pickerOpen && !atCap && (
-            <div className="absolute left-0 top-[calc(100%+6px)] z-30 max-h-[280px] w-[340px] overflow-y-auto rounded-input bg-card p-1.5 shadow-(--shadow-card-hover)">
-              {pool
-                .filter((k) => !ids.includes(k.id))
-                .map((k) => (
-                  <button
-                    key={k.id}
-                    onClick={() => {
-                      setIds((s) => [...s, k.id])
-                      setPickerOpen(false)
-                    }}
-                    className="flex w-full items-baseline justify-between gap-3 rounded-chip px-2.5 py-1.5 text-left text-[12.5px] transition-colors hover:bg-cream"
-                  >
-                    <span className="min-w-0 truncate text-ink">{k.name}</span>
-                    <span className="shrink-0 text-[11px] text-ink-mute">{k.entity}</span>
-                  </button>
-                ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {rows.length === 0 ? (
-        <div className="mt-5 rounded-card bg-card p-6 text-[13.5px] italic text-ink-mute shadow-(--shadow-card)">
-          Nothing comparable is selected — add indicators with a 2026 target and a Q1 reading.
-        </div>
-      ) : (
-        <>
-          {/* one shared axis: % of full-year 2026 target, so mixed units compare honestly */}
-          <div className="mt-4 rounded-card bg-card p-5 shadow-(--shadow-card)">
-            <div className="mb-1 text-[11.5px] text-ink-mute">
-              Q1 actual as % of the full-year 2026 target — the only axis these units share
-            </div>
-            <EChart
-              height={Math.max(160, rows.length * 44 + 60)}
-              option={{
-                grid: { left: 210, right: 70, top: 10, bottom: 24 },
-                xAxis: { type: 'value', ...AXIS, axisLabel: { ...AXIS.axisLabel, formatter: '{value}%' } },
-                yAxis: {
-                  type: 'category',
-                  // R10 fix 1: names wrap instead of being sliced mid-word
-                  data: rows.map((r) => `${r.k.name}  ·  ${r.k.entity}`).reverse(),
-                  ...AXIS,
-                  axisLabel: { ...AXIS.axisLabel, fontFamily: 'Instrument Sans', fontSize: 11.5, width: 195, overflow: 'break' as const },
-                },
-                series: [
-                  {
-                    type: 'bar',
-                    // R10 fix 7: each bar carries its own verdict colour
-                    data: rows
-                      .map((r) => {
-                        const st = statusOf(r.k)
-                        const fill = st === 'met' || st === 'behind' || st === 'breach' ? STATUS_COLOR[st].fill : hue
-                        return { value: r.pct, itemStyle: { color: fill, borderRadius: [0, 4, 4, 0] } }
-                      })
-                      .reverse(),
-                    barMaxWidth: 18,
-                    label: {
-                      show: true,
-                      position: 'right',
-                      fontFamily: 'Space Grotesk',
-                      fontWeight: 700,
-                      fontSize: 12,
-                      color: '#47605a',
-                      formatter: '{c}%',
-                    },
-                    markLine: {
-                      silent: true,
-                      symbol: 'none',
-                      lineStyle: { type: 'dashed', color: '#9ca3af', width: 1.2 },
-                      label: { formatter: 'full year', position: 'insideEndTop', color: '#9ca3af', fontSize: 10 },
-                      data: [{ xAxis: 100 }],
-                    },
-                  },
-                ],
-              }}
-            />
-          </div>
-
-          {/* the figures behind the visual */}
-          <div className="mt-3 overflow-hidden rounded-card bg-card shadow-(--shadow-card)">
-            <table className="w-full text-[12.5px]">
-              <thead>
-                <tr className="border-b border-cream text-left text-ink-mute">
-                  <th className="px-4 py-2 font-medium">Indicator</th>
-                  <th className="px-3 py-2 font-medium">Entity</th>
-                  <th className="num px-3 py-2 text-right font-medium">Q1 actual</th>
-                  <th className="num px-3 py-2 text-right font-medium">2026 target</th>
-                  <th className="num px-4 py-2 text-right font-medium">% of target</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((r) => (
-                  <tr key={r.k.id} className="cursor-pointer border-b border-cream/70 last:border-0 hover:bg-cream/50" onClick={() => onOpenKpi(r.k)}>
-                    <td className="px-4 py-2 font-medium text-ink">{r.k.name}</td>
-                    <td className="px-3 py-2 text-ink-soft">{r.k.entity}</td>
-                    <td className="num px-3 py-2 text-right">{fmt(r.k.actuals['2026Q1'].value)}</td>
-                    <td className="num px-3 py-2 text-right">{fmt(r.k.targets['2026'].value)}</td>
-                    <td className="num px-4 py-2 text-right font-bold" style={{ color: hue }}>
-                      {r.pct}%
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </>
-      )}
-      {excludedCount > 0 && (
-        <p className="mt-2.5 text-[11.5px] text-ink-mute">
-          {excludedCount} of the current set can't sit on this axis (no 2026 target, no Q1 reading, or a
-          ceiling indicator) — they're in Grid and List, not hidden.
-        </p>
-      )}
     </div>
   )
 }
