@@ -1,128 +1,71 @@
-# The Quarterly Brief — decisions and exclusions
+# The Quarterly Brief — The Two Findings
 
-Replaces the per-visit daily brief entirely. Built 14 Aug 2026.
+Rebuilt 15 Aug 2026 from the question of what a quarterly executive brief is.
+Supersedes the four-block memo of 14 Aug, which failed both of the tests that
+matter: it took work to parse, and it looked like a competent dashboard.
 
-## Structure
+## What it is
 
-Four blocks, fixed order, sources never mixed:
+The quarter stated as two facts, one from each source, each given a full-bleed
+moment: one serif sentence, one chart big enough to read as an image, one line
+of meaning in BOTaina's voice. Beneath each hero, a quiet ledger of that
+source's other findings. Then three asks. One scroll.
 
-| # | Block | Source | Findings |
-|---|-------|--------|----------|
-| 01 | Executive View · what went well | Release 1 only | 2 |
-| 02 | Executive View · what to watch | Release 1 only | 3 |
-| 03 | Thematic areas · what went well | Release 2 only | 2 |
-| 04 | Thematic areas · what to watch | Release 2 only | 3 |
+## The four directions considered
 
-Executive View leads because Release 1 is the more senior KPI set — QF's broader
-operating base, not thematic. The two halves sit inside two "movements", each
-headed with its own release and indicator count so the hierarchy is stated, not
-implied.
+| | What it is | CEO takeaway | Why rejected |
+|---|---|---|---|
+| A · The Letter | Continuous addressed prose from BOTaina, charts inline | She's read an opinion | Prose hides structure; "well / watch" has to be excavated; eight charts in a letter isn't a letter |
+| B · The Front Page | Headline + image above the fold, two source columns below | The quarter at a glance | Two-column density collapses on a phone; the format wants more stories, the brief wants fewer |
+| C · Ten Sentences | Ten sentences and a figure each, everything else behind a tap | Ten true things | Wins comprehension, fails uplift; a notification, not a flagship; violates "charts stay" |
+| **D · The Two Findings** | Two full-bleed moments + a ledger + asks | The two things that mattered, and that the rest is there | **Chosen** — the only one passing both tests at once |
 
-Ten findings, not twelve: the "watch" blocks carry three each and the "well"
-blocks two, because what needs a decision is worth more of a CEO's attention
-than what is already working.
+## Selection logic
 
-## Colour
+Heroes are chosen by magnitude of real movement in their source, regardless of
+direction. This quarter that gives two falls: EC footfall (Release 1 row 56,
+237,801 → 36,546, −85% in one month) and WISH beneficiaries (Release 2, 23,150
+peak → 900). Honesty over balance: promoting a lesser "went well" finding to
+hero for optics would be lying with layout.
 
-Colour carries the source, so the two halves are told apart before a word is
-read:
+The ledger carries the remaining eight, four per source, interleaved and
+marked with a glyph and a word (● went well / ○ to watch), never a section
+header. Same verified set as before. No new figures.
 
-- **Thematic findings** take their own theme's colour — 3px spine, kicker, and
-  chart hue all set from `themeById(...).fill`. The colour is what says which
-  theme a finding belongs to; no label has to.
-- **Executive findings** take no theme colour at all — sidra green charts, ink
-  kickers, no spine (they keep the same 23px left inset so the text column
-  never shifts between blocks).
+## The "any other client" critique, applied
 
-## Charts
+- Two heroes then a ledger is a shape anyone could produce. What makes it
+  Al Mishkat's is the selection — the heroes are chosen by this data, and both
+  are bad news because that is what the data says.
+- Numbered 01–04 eyebrows: gone. Coloured side-stripes: gone. Section labels
+  "Across the Foundation": gone — the heroes are the sections. Cards: gone —
+  the ledger is a register with hairlines. Glass: none. BOTaina's greeting
+  avatar at the top: gone — she appears three times, as the meaning line under
+  each hero and at the sign-off, and carries more weight for it.
+- The asks are lines, not cards. The whole line is the control.
 
-Three treatments, all reusing the L2 system (`AXIS`, `TOOLTIP`, `STATUS_COLOR`
-imported directly from the existing chart modules):
+## Verification (the eight points)
 
-- **BriefTrend** — short bar series, last bar at full colour and the rest at
-  35%, optional dashed target line. 6 uses.
-- **BriefLedger** — the R10 status-ledger rows: value against target on a
-  track, lime only for genuinely met. 3 uses.
-- **BriefFigures** — a plain figure table, used once, for the finding that is
-  *about* the cells; a chart there would dress a measurement problem up as a
-  result.
+1. **One pass.** Two hero sentences of ≤12 words, eight ledger sentences of
+   ≤16, one meaning line each. Nothing on the page asks to be read twice.
+2. **Under two minutes.** 803 words rendered, of which 237 are trace lines
+   (verbatim cell references, scanned not read). Reading load ~430 words of
+   finding prose plus three asks. Scroll height ~5,750px at desktop.
+3. **Traceability.** Every figure asserted in `parse_release1.py` (Release 1)
+   or checked against `kpis.json` (Release 2). Release 1 hero + ledger sit in
+   one `<section>`, Release 2 in another; nothing crosses.
+4. **Uplift.** Set beside a well-made annual review: two moments with big type,
+   one chart each, macro whitespace; nothing else competing.
+5. **Charts in ~1s.** Six charts: 3 trends (hero footfall Jan/Feb/Mar, hero
+   WISH 2022→Q1 26 with target, and row-size revenue / adoption / vacancies /
+   training) plus 3 ledgers and 1 figure table. No legends anywhere.
+6. **Platform-consistent.** `BriefTrend`/`BriefLedger`/`BriefFigures` reuse
+   the L2 chart theme (`AXIS`, `TOOLTIP`, `STATUS_COLOR`); theme `fill` on
+   thematic marks; sidra on executive; `.voice` serif; `.ai-ring` on BOTaina.
+7. **Humanized.** All twelve BOTaina lines audited: em dashes cut from 8/12 to
+   3/12, three "A, not B" formulas reduced to one, every hard specific kept.
+8. **Directions recorded.** Above.
 
-Release 2 findings could have used `snapshotFor` directly, but Release 1's
-executive rows are a different type entirely (`ExecKpi`, with monthly columns
-the thematic set has never had). One set of primitives taking plain numbers
-keeps both halves visually identical; the reuse is of the treatment and the
-shared theme rather than the data type.
-
-Two collision fixes found in browser verification:
-- the target-line label now sits in a reserved 112px right margin — labelled
-  inside the plot it collided with whichever bar sat near it (695 at the right
-  end, then 610 at the left);
-- series longer than three points render at 194px rather than 156px, because
-  WISH's 900-to-23,150 range crushed its small bars into the target line.
-
-## What the data actually said
-
-Three claims were checked and corrected before they shipped:
-
-1. **"Four entities have gone quiet"** — cut entirely. All four
-   (DIFI publications and revenue, Earthna publications, Policy Hub
-   international engagements) are `IN_PROGRESS` with a Q1 zero, which under the
-   platform's own rule means *not yet reported*, never *stopped*. The finding
-   would have contradicted the product's core honesty rule.
-2. **The unit problem is bigger than three rows.** Five executive indicators —
-   Budget Variance, Employee Turnover, Qatarization, and both Diabetes outcome
-   rows — change convention *between their own columns*: Qatarization stores
-   0.26 for 2025 and 25 for Q1. The 2025 actual and the 2026 target agree with
-   each other; the Q1 column is the outlier, so only that column is flagged.
-3. **WISE is not a success story.** Five WISE indicators sit exactly on their
-   full-year 2026 number at Q1 (27,375,000 of 27,375,000; 9 of 9; 7 of 7;
-   8 of 8; 6 of 6). It appears in block 04, not 03 — celebrating the prize
-   funding as a win in "what went well" while flagging it as suspect would have
-   been incoherent.
-
-## Named but not charted
-
-- **Genomes Sequenced** — 38,683 against a 30,000 full-year target, but the
-  sheet's own comment says it is reported cumulatively since 2022. Named in the
-  accounting rather than counted as an overshoot.
-- **Precision Health** — has no Release 2 indicators at all, so it cannot appear
-  in blocks 03–04. Stated in the accounting so its absence is not read as an
-  oversight. Blocks 03–04 cover Sustainability, Organizational Excellence,
-  Social Progress, Artificial Intelligence and Progressive Education.
-
-## Entry and state
-
-The lamp is the only way in. `App.tsx` no longer auto-opens a brief after the
-loader or on load; the `open-brief` event dispatched by the lamp is the single
-entry point. State is one quarter-keyed flag, `almishkat.qbrief.2026q1` — lit
-until first open, quiet after. The existing `lamp-catch` animation already
-runs once and never loops, so a new quarter lights it with a single soft catch.
-
-## Removed
-
-`Briefing.tsx` (paced one-item-per-screen sequence, persona toggle),
-`engine.ts` (lead rotation, `ledIds`, visit counts, continuity lines,
-ask-topic memory — BotainaDock's `recordAskTopic` call went with it), and
-`visuals.tsx` (the six bespoke briefing SVGs, replaced by the three
-platform-consistent primitives).
-
-## Reading time
-
-310 words across the ten findings' headlines and meaning lines; ~460 including
-the hook, asks and accounting. Trace lines (the verbatim cell references under
-each chart) are scanned rather than read. Under two minutes standing up.
-
-## Verified in browser
-
-1. Four blocks, correct order, Executive View first ✓
-2. Blocks 01–02 Release 1 only, 03–04 Release 2 only ✓
-3. Every figure traced to a cell — asserted in `parse_release1.py`, checked
-   against `kpis.json` for Release 2 ✓
-4. All five thematic findings carry a themed spine (2.88px measured, exact
-   theme fills); all five executive findings measure 0px ✓
-5. 6 canvases + 3 ledgers + 1 table render on scroll ✓
-6. One continuous scroll; the rail jumps but is never required ✓
-7. Reading load 310 words of finding prose ✓
-8. Lamp lit → open → quiet ("You're up to date"), no auto-open on load or
-   reload; asks open BOTaina with the question loaded; Release 2 trace lines
-   open the KPI drawer ✓
+Also verified live: lamp lit → opens → quiet; ask tap closes the brief and
+opens BOTaina with the question loaded; Release 2 trace lines open the KPI
+drawer; zero elements with a coloured left border > 1px; zero backdrop-filter.

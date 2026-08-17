@@ -1,16 +1,15 @@
 /**
- * The Quarterly Brief — one memo per quarter, the platform's flagship.
+ * The Quarterly Brief — The Two Findings.
  *
- * Four blocks, in this order and never mixed:
- *   1 · Executive View  what went well     ] Release 1 only
- *   2 · Executive View  what to watch      ]
- *   3 · Thematic areas  what went well     ] Release 2 only
- *   4 · Thematic areas  what to watch      ]
+ * The quarter stated as two facts, one from each source: the largest verified
+ * movement across QF's executive indicators (Release 1) and the largest across
+ * the thematic areas (Release 2). Each is a hero. Everything else is a ledger
+ * beneath the hero of its source. Then three asks.
  *
- * Content is code so every sentence stays welded to the cells it cites, and
- * findings are ranked by genuine movement rather than the size of the number.
- * No rotation and no per-visit memory — one quarter-keyed read flag drives
- * the lamp, which is the only way in.
+ * Heroes are chosen by magnitude of movement regardless of direction — honesty
+ * over balance. Release 1 and Release 2 never cross. Content is code so every
+ * sentence stays welded to the cells it cites. One quarter-keyed read flag
+ * drives the lamp, which is the only way in.
  */
 import { execFacts, execKpis, type ExecKpi } from '../model/exec'
 import { find, inventory, themeById } from '../model/data'
@@ -31,8 +30,11 @@ export type Mark =
   | { kind: 'ledger'; rows: LedgerRow[] }
   | { kind: 'figures'; cols: string[]; rows: { label: string; values: string[]; flag?: boolean }[]; flagCol?: number }
 
+export type Verdict = 'well' | 'watch'
+
 export interface QFinding {
   id: string
+  verdict: Verdict
   /** Release 2 only: the theme whose colour this finding carries. */
   themeId?: string
   /** Who the indicator belongs to — entity or executive category. */
@@ -41,22 +43,18 @@ export interface QFinding {
   mark: Mark
   /** Verbatim cells, so the figure can be checked without leaving the page. */
   trace: string
-  /** What it means — never a restatement of the number. */
+  /** What it means — BOTaina's line. Never a restatement of the number. */
   means: string
   /** Release 2 only: opens this KPI's drawer. */
   kpiId?: string
 }
 
-export interface QBlock {
-  n: string
-  title: string
-  findings: QFinding[]
-}
-export interface QMovement {
-  key: string
+export interface QSource {
+  key: 'exec' | 'thematic'
   name: string
-  source: string
-  blocks: [QBlock, QBlock]
+  release: string
+  hero: QFinding
+  ledger: QFinding[]
 }
 export interface QAsk {
   q: string
@@ -64,10 +62,10 @@ export interface QAsk {
 }
 export interface QuarterlyBriefData {
   dateLine: string
-  hook: { shape: string; line: string }
-  movements: [QMovement, QMovement]
+  sources: [QSource, QSource]
   asks: QAsk[]
   accounting: string
+  signoff: string
 }
 
 /* ————— helpers ————— */
@@ -86,58 +84,58 @@ const q1 = (k: Kpi) => k.actuals['2026Q1']?.value ?? 0
 const t26 = (k: Kpi) => k.targets['2026']?.value ?? 0
 const kpiSeries = (k: Kpi): [string, number][] =>
   k.movementSeries.map(([y, v]) => [y === '2026Q1' ? 'Q1 26' : y, v])
+const N = (v: number | null | undefined) => new Intl.NumberFormat('en').format(v ?? 0)
 
 export function buildQuarterlyBrief(): QuarterlyBriefData {
   const x = execFacts
-
-  /* ——————————————————————————————————————————————
-   * 1 · EXECUTIVE VIEW — what went well (Release 1)
-   * —————————————————————————————————————————————— */
   const aiAdopt = execKpis.find((k) => k.row === 53)!
 
-  const execWell: QFinding[] = [
+  /* ——————————————————————————————————————————————
+   * EXECUTIVE VIEW — Release 1
+   * —————————————————————————————————————————————— */
+
+  const execHero: QFinding = {
+    id: 'ec-footfall',
+    verdict: 'watch',
+    source: 'Education City · City Operations',
+    finding: "Education City's footfall fell 85% in March.",
+    mark: { kind: 'trend', series: monthSeries(x.footfall), unit: 'visitors per month' },
+    trace: `Release 1 row 56 · Jan 211,772 · Feb 237,801 · Mar 36,546 · full-year 2025: 3,051,433`,
+    means: 'Two strong months, then a cliff. Calendar, access or counting: three different owners.',
+  }
+
+  const unitBreak = [
+    { k: x.excluded[0], label: 'Budget Variance' },
+    { k: execKpis.find((k) => k.row === 70)!, label: 'Employee Turnover' },
+    { k: x.qatarization, label: 'Qatarization' },
+    { k: x.excluded[1], label: 'Diabetes Prevention' },
+    { k: x.excluded[2], label: 'Diabetes Control' },
+  ]
+
+  const execLedger: QFinding[] = [
     {
       id: 'revenue',
+      verdict: 'well',
       source: 'Financial Health · CFO Division',
-      finding: 'Revenue reached QAR 545m by March — 27% of everything last year earned, in one quarter.',
+      finding: 'Revenue reached QAR 545m by March — 27% of all of last year.',
       mark: { kind: 'trend', series: monthSeries(x.revenue), unit: 'QAR millions, cumulative' },
-      trace: `Release 1 row 65 · 171 → 342 → 545 cumulative · full-year 2025: ${new Intl.NumberFormat('en').format(x.revenue.actuals['2025'] as number)}`,
-      means: 'Even month to month, not front-loaded — a rate rather than one deal landing in January.',
+      trace: `Release 1 row 65 · 171 → 342 → 545 cumulative · full-year 2025: ${N(x.revenue.actuals['2025'])}`,
+      means: 'Even month to month. A rate, not one deal landing in January.',
     },
     {
       id: 'ai-adoption',
+      verdict: 'well',
       source: 'Research · HBKU',
-      finding: 'External adoption of QF-built AI tools more than doubled, from 19 to 42.',
+      finding: 'External adoption of QF-built AI tools doubled, 19 to 42.',
       mark: { kind: 'trend', series: yearSeries(aiAdopt), unit: 'tools adopted externally' },
-      trace: `Release 1 row 53 · ${yearSeries(aiAdopt).map(([y, v]) => `${y} ${v}`).join(' · ')} · annual, 2025 is the latest reading`,
+      trace: `Release 1 row 53 · ${yearSeries(aiAdopt).map(([y, v]) => `${y} ${v}`).join(' · ')} · annual, 2025 is latest`,
       means: "Uptake outside QF's own walls — the hardest thing for a research base to prove.",
-    },
-  ]
-
-  /* ——————————————————————————————————————————————
-   * 2 · EXECUTIVE VIEW — what to watch (Release 1)
-   * —————————————————————————————————————————————— */
-  const unitBreak = [
-    { k: x.excluded[0], label: 'Budget Variance' }, // row 63
-    { k: execKpis.find((k) => k.row === 70)!, label: 'Employee Turnover' },
-    { k: x.qatarization, label: 'Qatarization' },
-    { k: x.excluded[1], label: 'Diabetes Prevention' }, // row 51
-    { k: x.excluded[2], label: 'Diabetes Control' }, // row 52
-  ]
-
-  const execWatch: QFinding[] = [
-    {
-      id: 'ec-footfall',
-      source: 'EC Community · City Operations',
-      finding: "Education City's footfall fell 85% in March — 237,801 visitors in February, 36,546 in March.",
-      mark: { kind: 'trend', series: monthSeries(x.footfall), unit: 'visitors per month' },
-      trace: `Release 1 row 56 · Jan 211,772 · Feb 237,801 · Mar 36,546 · full-year 2025: 3,051,433`,
-      means: 'Two strong months, then a cliff. Calendar, access, or counting — three different owners.',
     },
     {
       id: 'vacancies',
+      verdict: 'watch',
       source: 'Operational Strength · Human Capital',
-      finding: 'Vacancies rose every month to 695 — more open roles than any year-end since 2022.',
+      finding: 'Vacancies rose every month to 695, above any year-end since 2022.',
       mark: {
         kind: 'trend',
         series: monthSeries(x.vacancies),
@@ -146,17 +144,16 @@ export function buildQuarterlyBrief(): QuarterlyBriefData {
         unit: 'open vacancies',
       },
       trace: 'Release 1 row 69 · 610 → 673 → 695 · year-ends 451 / 521 / 620 / 614 · leadership steady at 14',
-      means: 'Growth in the body of the organisation, not its leadership — expansion, if the hiring plan agrees.',
+      means: 'Growth in the body of the organisation, not its leadership. Expansion, if the hiring plan agrees.',
     },
     {
       id: 'unit-break',
+      verdict: 'watch',
       source: 'Five indicators · CFO Division, Human Capital, QDA',
-      finding: 'Five executive indicators change their unit between their history and their Q1 column.',
+      finding: 'Five indicators change unit between their history and their Q1 column.',
       mark: {
         kind: 'figures',
         cols: ['2025 actual', 'Q1 2026', '2026 target'],
-        // the 2025 actual and the 2026 target agree with each other; the Q1
-        // column is the one that breaks the row's own convention
         flagCol: 1,
         rows: unitBreak.map(({ k, label }) => ({
           label,
@@ -169,22 +166,39 @@ export function buildQuarterlyBrief(): QuarterlyBriefData {
         })),
       },
       trace: 'Release 1 rows 63, 70, 71, 51, 52 · Qatarization stores 0.26 for 2025 and 25 for Q1',
-      means: "A measurement problem, not a performance one. Until it's settled, these five can't be read against their own targets.",
+      means: "This is a measurement problem. Until it's settled, none of the five can be read.",
     },
   ]
 
   /* ——————————————————————————————————————————————
-   * 3 · THEMATIC — what went well (Release 2)
+   * THEMATIC AREAS — Release 2
    * —————————————————————————————————————————————— */
+  const wish = facts.wish.kpi
   const ecoBenef = facts.eco.kpis.benef
   const training = facts.oe.training.kpi
+  const wiseExact = ['WISE Prize Funding Awarded', 'Edtech Testbed Schools - Government', 'Edtech Testbed Schools - PUE', 'WISE Accelerator Beneficiaries', 'Products Supported']
+    .map((nm) => find(nm, 'WISE'))
+    .filter((k): k is Kpi => Boolean(k))
 
-  const themeWell: QFinding[] = [
+  const thematicHero: QFinding = {
+    id: 'wish',
+    verdict: 'watch',
+    themeId: 'social',
+    source: 'WISH · Social Progress',
+    finding: 'WISH reached 900 people. Three years ago, 23,150.',
+    mark: { kind: 'trend', series: kpiSeries(wish), target: t26(wish), targetLabel: 'full-year target 5,000', unit: 'people reached' },
+    trace: 'Release 2 · WISH · 11,939 → 23,150 → 2,000 → 1,170 → 900 · target 5,000 · media mentions 700 → 12',
+    means: 'Three reported years of decline is a delivery model, not a bad quarter — and nobody has minuted it.',
+    kpiId: wish.id,
+  }
+
+  const thematicLedger: QFinding[] = [
     {
       id: 'eco-schools',
+      verdict: 'well',
       themeId: 'sustain',
       source: 'Earthna · Sustainability',
-      finding: `Eco-Schools reached ${new Intl.NumberFormat('en').format(facts.eco.beneficiaries ?? 0)} students and teachers across ${facts.eco.registered} Qatari schools.`,
+      finding: `Eco-Schools reached ${N(facts.eco.beneficiaries)} students and teachers in ${facts.eco.registered} schools.`,
       mark: {
         kind: 'ledger',
         rows: [
@@ -193,45 +207,26 @@ export function buildQuarterlyBrief(): QuarterlyBriefData {
         ],
       },
       trace: `Release 2 · Earthna · ${facts.eco.registered} registered of ${t26(facts.eco.kpis.reg)} · ${facts.eco.certified} certified of ${t26(facts.eco.kpis.cert)}`,
-      means: 'National scale inside one quarter, with certification — the expensive part — already following registration.',
+      means: 'National scale inside one quarter, and certification, the expensive part, is already following.',
       kpiId: ecoBenef.id,
     },
     {
       id: 'oe-training',
+      verdict: 'well',
       themeId: 'oe',
       source: 'Human Capital · Organizational Excellence',
-      finding: 'Training more than doubled over four years, to 15 hours per employee against a target of 4.',
+      finding: 'Training doubled over four years to 15 hours per employee, against a target of 4.',
       mark: { kind: 'trend', series: kpiSeries(training), target: t26(training), targetLabel: 'target 4 hours', unit: 'hours per employee' },
       trace: 'Release 2 · Human Capital · 6.02 → 10.7 → 11.4 → 15.0 hours · target 4 · attendance 41% → 66%',
-      means: 'Four straight years of increase against a target untouched since 2022. The target has stopped measuring the work.',
+      means: 'Four straight years up against a target untouched since 2022. The target stopped measuring the work.',
       kpiId: training.id,
-    },
-  ]
-
-  /* ——————————————————————————————————————————————
-   * 4 · THEMATIC — what to watch (Release 2)
-   * —————————————————————————————————————————————— */
-  const wish = facts.wish.kpi
-  const wiseExact = ['WISE Prize Funding Awarded', 'Edtech Testbed Schools - Government', 'Edtech Testbed Schools - PUE', 'WISE Accelerator Beneficiaries', 'Products Supported']
-    .map((nm) => find(nm, 'WISE'))
-    .filter((k): k is Kpi => Boolean(k))
-
-  const themeWatch: QFinding[] = [
-    {
-      id: 'wish',
-      themeId: 'social',
-      source: 'WISH · Social Progress',
-      finding: 'WISH reached 900 people this quarter. Three years ago it reached 23,150.',
-      mark: { kind: 'trend', series: kpiSeries(wish), target: t26(wish), targetLabel: 'full-year target 5,000', unit: 'people reached' },
-      trace: 'Release 2 · WISH · 11,939 → 23,150 → 2,000 → 1,170 → 900 · target 5,000 · media mentions 700 → 12',
-      means: 'Three reported years of decline is a delivery model, not a bad quarter — and nobody has minuted the narrowing.',
-      kpiId: wish.id,
     },
     {
       id: 'ai-theme',
+      verdict: 'watch',
       themeId: 'ai',
       source: 'WISE · Artificial Intelligence',
-      finding: "QF's newest priority carries two indicators: one policy recommendation of three, and no adoptions.",
+      finding: "QF's newest priority has two indicators: one recommendation of three, no adoptions.",
       mark: {
         kind: 'ledger',
         rows: [
@@ -240,14 +235,15 @@ export function buildQuarterlyBrief(): QuarterlyBriefData {
         ],
       },
       trace: 'Release 2 · WISE · recommendations 1 of 3 · adoptions 0 of 1 · the whole theme',
-      means: 'A quarter is too early to judge adoption. Two indicators for the flagship priority is not too early to judge.',
+      means: 'Too early to judge adoption. Two indicators for the flagship priority is not too early to judge.',
       kpiId: facts.ai.recKpi?.id,
     },
     {
       id: 'wise-exact',
+      verdict: 'watch',
       themeId: 'edu',
       source: 'WISE · Progressive Education',
-      finding: 'Five WISE indicators landed exactly on their full-year 2026 number in the first quarter.',
+      finding: 'Five WISE indicators landed exactly on their full-year number in the first quarter.',
       mark: {
         kind: 'ledger',
         rows: wiseExact.map((k) => ({
@@ -257,8 +253,8 @@ export function buildQuarterlyBrief(): QuarterlyBriefData {
           exact: true,
         })),
       },
-      trace: `Release 2 · WISE · 27,375,000 of 27,375,000 · 9 of 9 · 7 of 7 · 8 of 8 · 6 of 6 · part of ${inventory.targetMet} of ${inventory.total} already at target`,
-      means: 'Landing on 27,375,000 of 27,375,000 is not measurement. For nine more months these can only report ceremony.',
+      trace: `Release 2 · WISE · 27,375,000 of 27,375,000 · 9 of 9 · 7 of 7 · 8 of 8 · 6 of 6 · of ${inventory.targetMet} at target overall`,
+      means: 'Landing on 27,375,000 of 27,375,000 is not measurement. Nine more months of ceremony.',
       kpiId: wiseExact[0]?.id,
     },
   ]
@@ -269,43 +265,36 @@ export function buildQuarterlyBrief(): QuarterlyBriefData {
       owner: 'City Operations',
     },
     {
-      q: 'Five executive indicators store Q1 figures in different units from their own history. Whose numbers are right?',
+      q: 'Five executive indicators store Q1 in different units from their own history. Whose numbers are right?',
       owner: 'CFO Division, Human Capital & QDA reporting leads',
     },
     {
-      q: `Which of the ${inventory.targetMet} indicators already at their full-year 2026 target are being re-based, and by whom?`,
+      q: `Which of the ${inventory.targetMet} indicators already at their 2026 target are being re-based, and by whom?`,
       owner: 'Strategy & Performance',
     },
   ]
 
   return {
-    dateLine: `Q1 2026 · generated ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}`,
-    hook: {
-      shape: 'A quarter that earned well, counted badly, and finished too early.',
-      line: `I read ${execKpis.length} executive indicators and ${inventory.total} thematic ones. Ten findings and three questions survived.`,
-    },
-    movements: [
+    dateLine: `Q1 2026 · ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}`,
+    sources: [
       {
         key: 'exec',
         name: 'Executive View',
-        source: `Release 1 · ${execKpis.length} executive indicators across QF's operating base`,
-        blocks: [
-          { n: '01', title: 'What went well', findings: execWell },
-          { n: '02', title: 'What to watch', findings: execWatch },
-        ],
+        release: `Release 1 · ${execKpis.length} executive indicators`,
+        hero: execHero,
+        ledger: execLedger,
       },
       {
         key: 'thematic',
         name: 'Thematic areas',
-        source: `Release 2 · ${inventory.total} indicators across the thematic portfolio`,
-        blocks: [
-          { n: '03', title: 'What went well', findings: themeWell },
-          { n: '04', title: 'What to watch', findings: themeWatch },
-        ],
+        release: `Release 2 · ${inventory.total} thematic indicators`,
+        hero: thematicHero,
+        ledger: thematicLedger,
       },
     ],
     asks,
-    accounting: `Every figure traces to a cell, and the two workbooks are never mixed: blocks 01–02 are Release 1, blocks 03–04 Release 2. Precision Health has no Release 2 indicators, so it cannot appear. Genomes Sequenced reads 38,683 against a 30,000 target but is cumulative since 2022, so it is named rather than counted.`,
+    accounting: `Every figure traces to a cell. The two workbooks never mix — Executive View is Release 1, the themes are Release 2. Precision Health has no Release 2 indicators, so it cannot appear. Genomes Sequenced reads 38,683 against 30,000 but is cumulative since 2022, so it is named, not counted.`,
+    signoff: 'That is the quarter. Everything else is on the dashboard, and I am one tap away.',
   }
 }
 

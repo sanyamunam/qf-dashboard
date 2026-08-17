@@ -31,6 +31,7 @@ export function BriefTrend({
   unit,
   interpret,
   height,
+  size,
 }: {
   series: [string, number][]
   hue: string
@@ -39,11 +40,14 @@ export function BriefTrend({
   unit?: string
   interpret: string
   height?: number
+  /** hero: the chart IS the image — taller, wider bars, bigger numbers */
+  size?: 'hero' | 'row'
 }) {
   const last = series.length - 1
+  const hero = size === 'hero'
   // a long series with a wide range (WISH runs 900 to 23,150) crushes its small
   // bars against the target line at card height — give those charts more room
-  const h = height ?? (series.length > 3 ? 194 : 156)
+  const h = height ?? (hero ? 264 : series.length > 3 ? 194 : 156)
   const max = Math.max(...series.map(([, v]) => v), target ?? 0)
   return (
     <EChart
@@ -52,9 +56,14 @@ export function BriefTrend({
         // a target line needs its own right margin: labelled inside the plot it
         // collides with whichever bar happens to sit near it (the L2 bullet
         // reserves margin the same way)
-        grid: { left: 8, right: target ? 112 : 14, top: 30, bottom: 24, containLabel: true },
+        grid: { left: 8, right: target ? (hero ? 150 : 112) : 14, top: hero ? 40 : 30, bottom: hero ? 30 : 24, containLabel: true },
         tooltip: TOOLTIP(interpret),
-        xAxis: { type: 'category', data: series.map(([l]) => l), ...AXIS },
+        xAxis: {
+          type: 'category',
+          data: series.map(([l]) => l),
+          ...AXIS,
+          axisLabel: { ...AXIS.axisLabel, fontSize: hero ? 13 : 11 },
+        },
         yAxis: { type: 'value', min: 0, max: max * 1.18, ...AXIS, axisLabel: { show: false }, splitLine: { show: false } },
         series: [
           {
@@ -62,9 +71,9 @@ export function BriefTrend({
             name: unit ?? 'reading',
             data: series.map(([, v], i) => ({
               value: v,
-              itemStyle: { color: hue, opacity: i === last ? 1 : 0.35, borderRadius: [4, 4, 0, 0] },
+              itemStyle: { color: hue, opacity: i === last ? 1 : 0.35, borderRadius: hero ? [6, 6, 0, 0] : [4, 4, 0, 0] },
             })),
-            barMaxWidth: 54,
+            barMaxWidth: hero ? 96 : 54,
             label: {
               show: true,
               position: 'top',
@@ -72,7 +81,7 @@ export function BriefTrend({
               fontWeight: 700,
               color: '#122822',
               formatter: (p: unknown) => n((p as { value: number }).value),
-              fontSize: 12,
+              fontSize: hero ? 17 : 12,
             },
             markLine: target
               ? {
