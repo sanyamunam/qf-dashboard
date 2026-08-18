@@ -1,13 +1,13 @@
 /**
- * The Quarterly Brief — one screen, no scroll. BOTaina tells you the quarter.
+ * The Quarterly Brief — a one-page written report, in BOTaina's hand.
  *
- * Release 1 only: the Executive View's own indicators. Every tile is one
- * finding — a figure, a small mark, and the line BOTaina says when you tap it.
- * Content is code so every sentence stays welded to the cells it cites. One
- * quarter-keyed read flag drives the lamp, which is the only way in.
+ * Prose leads, numbers support. Her opening paragraph, then four short titled
+ * paragraphs each with one small mark set into the margin as evidence, then
+ * one question and her sign-off. Release 1 only. Content is code so every
+ * sentence stays welded to the cells it cites. One quarter-keyed read flag
+ * drives the lamp, which is the only way in.
  */
 import { execFacts, execKpis, type ExecKpi } from '../model/exec'
-import type { LedgerRow } from './briefCharts'
 
 export const QBRIEF_KEY = 'almishkat.qbrief.2026q1'
 export const isBriefUnread = () => !localStorage.getItem(QBRIEF_KEY)
@@ -16,166 +16,94 @@ export const markBriefRead = () => {
   window.dispatchEvent(new Event('brief-read'))
 }
 
-export type Mark =
-  | { kind: 'trend'; series: [string, number][]; target?: number; targetLabel?: string; unit?: string }
-  | { kind: 'ledger'; rows: LedgerRow[] }
-  | { kind: 'figures'; cols: string[]; rows: { label: string; values: string[]; flag?: boolean }[]; flagCol?: number }
-  | { kind: 'none' }
+/** The small mark in the margin beside a paragraph. */
+export type Margin =
+  | { kind: 'bars'; series: [string, number][]; emphasisLast?: boolean; target?: number }
+  | { kind: 'pair'; a: { value: string; label: string }; b: { value: string; label: string } }
+  | { kind: 'table'; rows: { label: string; was: string; now: string }[] }
 
-export type Verdict = 'well' | 'watch' | 'note'
-
-export interface Tile {
+export interface Paragraph {
   id: string
-  verdict: Verdict
-  /** the tile's own headline: a figure or a short claim */
-  figure: string
-  label: string
-  source: string
-  mark: Mark
-  /** what BOTaina says when the tile is tapped */
-  says: string
+  title: string
+  /** 2–3 sentences. The figures are IN the sentences. */
+  text: string
+  margin: Margin
+  /** verbatim cells, small, under the mark */
   trace: string
 }
 
 export interface QuarterlyBriefData {
   dateLine: string
-  /** her opening — the quarter in two sentences */
-  greeting: string
-  /** the hero: the one finding that gets the big chart */
-  hero: Tile
-  /** the big number */
-  lead: Tile
-  tiles: Tile[]
-  ask: { q: string; owner: string }
+  opening: string
+  paragraphs: Paragraph[]
+  question: { q: string; owner: string }
+  signoff: string
 }
 
-const monthSeries = (k: ExecKpi): [string, number][] =>
+const months = (k: ExecKpi): [string, number][] =>
   (['jan', 'feb', 'mar'] as const)
     .filter((m) => typeof k.monthly[m] === 'number')
     .map((m) => [m === 'jan' ? 'Jan' : m === 'feb' ? 'Feb' : 'Mar', k.monthly[m] as number])
-const yearSeries = (k: ExecKpi): [string, number][] =>
-  (['2022', '2023', '2024', '2025'] as const)
-    .filter((y) => typeof k.actuals[y] === 'number')
-    .map((y) => [y, k.actuals[y] as number])
 const N = (v: number | null | undefined) => new Intl.NumberFormat('en').format(v ?? 0)
 
 export function buildQuarterlyBrief(): QuarterlyBriefData {
   const x = execFacts
   const aiAdopt = execKpis.find((k) => k.row === 53)!
-  const grads = x.gradEmployment
-  const carbon = x.carbon
-
-  const lead: Tile = {
-    id: 'revenue',
-    verdict: 'well',
-    figure: 'QAR 545m',
-    label: 'revenue by March',
-    source: 'CFO Division · row 65',
-    mark: { kind: 'trend', series: monthSeries(x.revenue), unit: 'QAR m, cumulative' },
-    says: `Let me start with the money. QAR 545m by March, which is 27% of everything last year earned, in one quarter — and it came in evenly, 171, 342, 545. That is a rate, not one deal.`,
-    trace: `171 → 342 → 545 cumulative · full-year 2025: ${N(x.revenue.actuals['2025'])}`,
-  }
-
-  const hero: Tile = {
-    id: 'footfall',
-    verdict: 'watch',
-    figure: '−85%',
-    label: 'Education City footfall, February to March',
-    source: 'City Operations · row 56',
-    mark: { kind: 'trend', series: monthSeries(x.footfall), unit: 'visitors per month' },
-    says: `This is the one I would ask about. Footfall held above 200,000 in January and February, then dropped to 36,546 in March. That is not a slow month; something changed — the calendar, access, or how it is counted.`,
-    trace: 'Jan 211,772 · Feb 237,801 · Mar 36,546 · full-year 2025: 3,051,433',
-  }
-
-  const unitBreak = [
-    { k: x.excluded[0], label: 'Budget Variance' },
-    { k: execKpis.find((k) => k.row === 70)!, label: 'Employee Turnover' },
-    { k: x.qatarization, label: 'Qatarization' },
-    { k: x.excluded[1], label: 'Diabetes Prevention' },
-    { k: x.excluded[2], label: 'Diabetes Control' },
-  ]
-
-  const tiles: Tile[] = [
-    {
-      id: 'vacancies',
-      verdict: 'watch',
-      figure: '695',
-      label: 'open vacancies, up every month',
-      source: 'Human Capital · row 69',
-      mark: { kind: 'trend', series: monthSeries(x.vacancies), target: 614, targetLabel: '2025 year-end', unit: 'vacancies' },
-      says: `You are hiring. Open roles rose 610, 673, 695 — more than any year-end since 2022 — while leadership vacancies stayed at 14 all quarter. Growth in the body of the organisation, not its head.`,
-      trace: '610 → 673 → 695 · year-ends 451 / 521 / 620 / 614 · leadership 15 → 14 → 14 (row 66)',
-    },
-    {
-      id: 'ai-adoption',
-      verdict: 'well',
-      figure: '19 → 42',
-      label: 'AI tools adopted outside QF',
-      source: 'HBKU · row 53',
-      mark: { kind: 'trend', series: yearSeries(aiAdopt), unit: 'tools adopted' },
-      says: `Adoption of QF-built AI tools by outside organisations more than doubled, from 19 to 42. That is uptake beyond our own walls, which is the hardest thing for a research base to prove.`,
-      trace: `${yearSeries(aiAdopt).map(([y, v]) => `${y} ${v}`).join(' · ')} · annual, 2025 is latest`,
-    },
-    {
-      id: 'graduates',
-      verdict: 'well',
-      figure: '72%',
-      label: 'graduates employed, target 80%',
-      source: 'Higher Education · row 3',
-      mark: {
-        kind: 'trend',
-        series: yearSeries(grads).map(([y, v]) => [y, Math.round(v * 100)]),
-        target: 80,
-        targetLabel: 'target 80%',
-        unit: '% employed',
-      },
-      says: `Graduate employment reached 72%, up from 54% in 2022, against a target of 80% for 2026. It reports annually, so the next reading is at year end.`,
-      trace: `54% → 65% → 65% → 72% · 2026 target 80%`,
-    },
-    {
-      id: 'carbon',
-      verdict: 'note',
-      figure: `${N(Math.round(carbon.monthly.mar ?? 0))} t`,
-      label: 'EC carbon footprint by March',
-      source: 'City Operations · row 57',
-      mark: { kind: 'trend', series: monthSeries(carbon).map(([m, v]) => [m, Math.round(v)]), unit: 'tonnes, cumulative' },
-      says: `Carbon is tracking at ${N(Math.round(carbon.monthly.mar ?? 0))} tonnes by March against a full-year 2026 target of ${N(carbon.targets['2026'])}. On this pace the year lands near it — worth a look, not an alarm.`,
-      trace: `20,877 → 42,831 → 61,379 cumulative · full-year 2025: 285,000 · 2026 target ${N(carbon.targets['2026'])}`,
-    },
-    {
-      id: 'unit-break',
-      verdict: 'watch',
-      figure: '5',
-      label: 'indicators that changed their unit',
-      source: 'CFO Division · Human Capital · QDA',
-      mark: {
-        kind: 'figures',
-        cols: ['2025', 'Q1 26', 'target'],
-        flagCol: 1,
-        rows: unitBreak.map(({ k, label }) => ({
-          label,
-          values: [
-            k.actuals['2025'] === null ? '—' : String(k.actuals['2025']),
-            k.q1 === null ? '—' : String(k.q1),
-            k.targets['2026'] === null ? '—' : String(k.targets['2026']),
-          ],
-          flag: true,
-        })),
-      },
-      says: `Five indicators changed their units between last year and this quarter — Qatarization stores 0.26 for 2025 and 25 for Q1. Until that is settled I cannot read them for you, and neither can anyone else.`,
-      trace: 'rows 63, 70, 71, 51, 52 · the Q1 column is the one that breaks convention',
-    },
-  ]
+  const turnover = execKpis.find((k) => k.row === 70)!
 
   return {
     dateLine: `Q1 2026 · ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}`,
-    greeting: `Here is your quarter, from ${execKpis.length} executive indicators. Money came in well, Education City emptied out in March, and five numbers do not add up. Tap anything and I will explain.`,
-    hero,
-    lead,
-    tiles,
-    ask: {
+
+    opening: `Here is the quarter, from ${execKpis.length} executive indicators. Revenue came in strongly and evenly. Education City emptied out in March and I do not yet know why. We are hiring faster than at any point since 2022. And five indicators cannot be read this quarter because they changed their units.`,
+
+    paragraphs: [
+      {
+        id: 'money',
+        title: 'The money',
+        text: `Revenue reached QAR 545 million by March — 27% of everything last year earned, in one quarter. It arrived evenly, 171 then 342 then 545, so this is a rate rather than one deal landing in January. Held for the year it clears 2025's ${N(x.revenue.actuals['2025'])} million.`,
+        margin: { kind: 'bars', series: months(x.revenue), emphasisLast: true },
+        trace: 'CFO Division · row 65 · QAR m, cumulative',
+      },
+      {
+        id: 'footfall',
+        title: 'Education City in March',
+        text: `Footfall held above 200,000 in January and February, then fell to 36,546 in March — an 85% drop in one month. Last year the site drew ${N(x.footfall.actuals['2025'])} visitors; on March's pace this year would not come close. Whether that is the events calendar, an access change or a change in counting has three different owners, and I would ask.`,
+        margin: { kind: 'bars', series: months(x.footfall), emphasisLast: true },
+        trace: 'City Operations · row 56 · visitors per month',
+      },
+      {
+        id: 'hiring',
+        title: 'Hiring',
+        text: `Open vacancies rose every month — 610, 673, 695 — and 695 is more than any year-end since 2022. Leadership vacancies held at 14 throughout, so the growth is in the body of the organisation, not its head. Alongside the best turnover in four years this reads as expansion, though only the hiring plan can confirm it. External adoption of QF-built AI tools also doubled, from 19 to 42.`,
+        margin: {
+          kind: 'pair',
+          a: { value: '695', label: 'open vacancies, March' },
+          b: { value: '14', label: 'leadership vacancies, steady' },
+        },
+        trace: `Human Capital · rows 69, 66 · HBKU row 53: ${aiAdopt.actuals['2024']} → ${aiAdopt.actuals['2025']}`,
+      },
+      {
+        id: 'units',
+        title: 'Five numbers that do not add up',
+        text: `Five indicators changed their unit between last year and this quarter. Qatarization stores 0.26 for 2025 and 25 for the quarter; Employee Turnover 0.07 then 1.32; Budget Variance 0.1 then 18. The 2025 actual and the 2026 target agree with each other, so the Q1 column is the one out of step. Until it is settled these five cannot be read against their own targets — by me or by anyone.`,
+        margin: {
+          kind: 'table',
+          rows: [
+            { label: 'Qatarization', was: String(x.qatarization.actuals['2025']), now: String(x.qatarization.q1) },
+            { label: 'Employee Turnover', was: String(turnover.actuals['2025']), now: String(turnover.q1) },
+            { label: 'Budget Variance', was: String(x.excluded[0].actuals['2025']), now: String(x.excluded[0].q1) },
+            { label: 'Diabetes Prevention', was: String(x.excluded[1].actuals['2025']), now: String(x.excluded[1].q1) },
+            { label: 'Diabetes Control', was: String(x.excluded[2].actuals['2025']), now: String(x.excluded[2].q1) },
+          ],
+        },
+        trace: 'rows 71, 70, 63, 51, 52 · 2025 actual → Q1 2026',
+      },
+    ],
+
+    question: {
       q: 'What happened at Education City in March — the events calendar, an access change, or a change in counting?',
       owner: 'City Operations',
     },
+    signoff: 'That is the quarter. The rest is on the dashboard, and I am one tap away.',
   }
 }

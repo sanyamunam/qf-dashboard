@@ -1,59 +1,47 @@
 /**
- * The Quarterly Brief — one screen, no scroll. BOTaina tells you the quarter.
+ * The Quarterly Brief — a one-page written report, in BOTaina's hand.
  *
- * Top: her avatar and one greeting. Below: the quarter as a bento — the lead
- * number and the hero chart take the large cells, the other findings fill in
- * around them, each with a figure and a small mark. Tap any tile and she says
- * its line in the speech panel; the panel is where the telling happens.
+ * Typeset like a memo, not laid out like a screen. Her opening paragraph in
+ * serif; four short titled paragraphs in two text columns so the page fits one
+ * screen; beside each paragraph, one small mark set into the margin the way a
+ * printed report puts a chart in the margin — evidence, not a widget. Then the
+ * one question worth asking, and her sign-off.
  *
- * Release 1 only. No scroll at desktop; the grid reflows to a stack on narrow
- * screens, where scrolling is the honest fallback.
+ * Nothing else. No tiles, no verdict dots, no tap-to-reveal. Printed, it would
+ * be a good one-page memo. Release 1 only.
  */
-import { useEffect, useMemo, useState } from 'react'
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
+import { useEffect, useMemo } from 'react'
+import { motion, useReducedMotion } from 'framer-motion'
 import { ArrowRight, X } from 'lucide-react'
-import { buildQuarterlyBrief, markBriefRead, type Tile } from './quarterly'
-import { BriefTrend, BriefFigures } from './briefCharts'
+import { buildQuarterlyBrief, markBriefRead, type Paragraph, type Margin } from './quarterly'
 import { Spark } from '../components/Shell'
-import { STATUS_COLOR } from '../components/charts/builders'
 import type { Kpi } from '../model/types'
 
 const EASE: [number, number, number, number] = [0.32, 0.72, 0, 1]
 const SIDRA = '#034638'
 const MAROON = '#8a1538'
-
-const VERDICT = {
-  well: { dot: STATUS_COLOR.met.fill, word: 'went well', text: STATUS_COLOR.met.text },
-  watch: { dot: MAROON, word: 'to watch', text: MAROON },
-  note: { dot: '#7e938d', word: 'noted', text: '#47605a' },
-} as const
+const MUTE = '#7e938d'
+const INK = '#122822'
 
 export function QuarterlyBrief({
   onExit,
   onAskBotaina,
 }: {
   onExit: () => void
-  /** kept for the App contract; Release 1 tiles have no thematic KPI to open */
   onOpenKpi?: (kpi: Kpi) => void
   onAskBotaina: (q: string) => void
 }) {
   const brief = useMemo(() => buildQuarterlyBrief(), [])
-  const [active, setActive] = useState<Tile | null>(null)
   const reduced = useReducedMotion()
 
   useEffect(() => {
     markBriefRead()
   }, [])
-
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') (active ? setActive(null) : onExit())
-    }
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onExit()
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [onExit, active])
-
-  const said = active?.says ?? brief.greeting
+  }, [onExit])
 
   return (
     <motion.div
@@ -65,12 +53,12 @@ export function QuarterlyBrief({
       role="dialog"
       aria-label="The Quarterly Brief"
     >
-      {/* masthead */}
-      <div className="flex shrink-0 items-center justify-between gap-4 border-b border-ink/10 px-5 py-3 md:px-8">
+      {/* running head */}
+      <div className="flex shrink-0 items-center justify-between gap-4 px-6 pt-4 md:px-12">
         <div className="flex min-w-0 items-center gap-3">
           <img src="/al-mishkat.png" alt="Al-Mishkat" className="h-6 w-auto shrink-0" />
-          <span className="truncate text-[12.5px] text-ink-soft">
-            The Quarterly Brief <span className="text-ink-mute">· Executive View · {brief.dateLine}</span>
+          <span className="truncate text-[12px] text-ink-mute">
+            The Quarterly Brief · Executive View · {brief.dateLine}
           </span>
         </div>
         <button
@@ -81,145 +69,150 @@ export function QuarterlyBrief({
         </button>
       </div>
 
-      {/* the screen: BOTaina's panel + the bento, sized to the viewport */}
-      <div className="mx-auto grid min-h-0 w-full max-w-[1320px] flex-1 grid-rows-[auto_minmax(0,1fr)] gap-4 overflow-y-auto px-5 py-4 md:gap-5 md:px-8 md:py-5 lg:overflow-hidden">
-        {/* her line — the telling. Changes when a tile is tapped. */}
-        <div
-          className="flex items-start gap-4 rounded-card p-4 md:items-center md:p-5"
-          style={{ background: 'var(--ai-wash-subtle)', boxShadow: 'inset 0 0 0 1px rgba(20,97,82,0.14)' }}
+      {/* the page */}
+      <div className="mx-auto flex min-h-0 w-full max-w-[1120px] flex-1 flex-col overflow-y-auto px-6 pb-5 pt-5 md:px-12 md:pt-6">
+        {/* opening — she writes, she doesn't greet */}
+        <motion.div
+          className="flex shrink-0 items-start gap-4"
+          initial={reduced ? false : { opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: EASE }}
         >
-          <span className="ai-ring block shrink-0 rounded-full p-[2px]">
-            <span className="block h-12 w-12 overflow-hidden rounded-full bg-cream md:h-14 md:w-14">
+          <span className="ai-ring mt-1 block shrink-0 rounded-full p-[2px]">
+            <span className="block h-11 w-11 overflow-hidden rounded-full bg-cream">
               <img src="/botaina.gif" alt="BOTaina" className="h-full w-full object-cover" />
             </span>
           </span>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 text-[11px] font-semibold tracking-tight" style={{ color: 'var(--ai-green-mid)' }}>
-              <Spark size={11} /> BOTaina{active ? ` · ${active.label}` : ''}
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5 text-[11px] font-semibold" style={{ color: 'var(--ai-green-mid)' }}>
+              <Spark size={11} /> BOTaina · Q1 2026
             </div>
-            <AnimatePresence mode="wait" initial={false}>
-              <motion.p
-                key={active?.id ?? 'greeting'}
-                className="voice mt-1 max-w-[88ch] text-[15.5px] leading-snug text-ink md:text-[17px]"
-                initial={reduced ? false : { opacity: 0, y: 4 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={reduced ? undefined : { opacity: 0, y: -4 }}
-                transition={{ duration: 0.28, ease: EASE }}
-              >
-                {said}
-              </motion.p>
-            </AnimatePresence>
-            {active && (
-              <div className="num mt-1.5 text-[11px] text-ink-mute">
-                {active.source} · {active.trace}
-              </div>
-            )}
+            <p className="voice mt-1 max-w-[74ch] text-[17px] leading-[1.42] text-ink md:text-[20px]" style={{ textWrap: 'pretty' }}>
+              {brief.opening}
+            </p>
           </div>
-          {active ? (
-            <button
-              onClick={() => setActive(null)}
-              className="shrink-0 rounded-full px-2.5 py-1 text-[11.5px] text-ink-mute transition-colors hover:text-sidra"
-            >
-              back
-            </button>
-          ) : (
-            <button
-              onClick={() => onAskBotaina(brief.ask.q)}
-              className="hidden shrink-0 items-center gap-1.5 rounded-full py-2 pe-3.5 ps-3.5 text-[12.5px] font-semibold text-white md:flex"
-              style={{ background: 'var(--ai-border-gradient)' }}
-              title={`Put to ${brief.ask.owner}`}
-            >
-              Ask about March <ArrowRight size={13} strokeWidth={2} />
-            </button>
-          )}
+        </motion.div>
+
+        <hr className="my-5 shrink-0 border-ink/15 md:my-6" />
+
+        {/* four paragraphs, two text columns, a mark in each margin */}
+        <div className="grid grid-cols-1 gap-x-14 gap-y-6 md:grid-cols-2 md:gap-y-7">
+          {brief.paragraphs.map((p, i) => (
+            <Para key={p.id} p={p} index={i} />
+          ))}
         </div>
 
-        {/* the bento — 6 columns × 2 rows at desktop */}
-        <div className="grid min-h-0 grid-cols-2 gap-3 md:grid-cols-6 md:grid-rows-2 md:gap-4">
-          <TileBox t={brief.lead} active={active} onPick={setActive} className="col-span-2 md:col-span-2 md:row-span-1" big />
-          <TileBox t={brief.hero} active={active} onPick={setActive} className="col-span-2 md:col-span-4 md:row-span-1" hero />
-          {brief.tiles.map((t) => (
-            <TileBox
-              key={t.id}
-              t={t}
-              active={active}
-              onPick={setActive}
-              className={t.id === 'unit-break' ? 'col-span-2 md:col-span-2' : 'col-span-1'}
-            />
-          ))}
+        {/* the close */}
+        <div className="mt-5 flex shrink-0 flex-col gap-3 border-t border-ink/15 pt-4 md:mt-6 md:flex-row md:items-center md:justify-between md:gap-8">
+          <button
+            onClick={() => onAskBotaina(brief.question.q)}
+            className="group flex min-w-0 items-start gap-3 text-left"
+            title={`Put to ${brief.question.owner}`}
+          >
+            <span className="mt-[3px] shrink-0 text-[10.5px] font-semibold uppercase tracking-[0.06em] text-ink-mute">Ask</span>
+            <span className="min-w-0">
+              <span className="voice block text-[16px] leading-snug text-ink transition-colors group-hover:text-sidra md:text-[17.5px]">
+                {brief.question.q}
+              </span>
+              <span className="mt-0.5 block text-[11.5px] text-ink-mute">
+                {brief.question.owner} · <span style={{ color: 'var(--ai-green-mid)' }}>tap to put it to BOTaina</span>
+                <ArrowRight size={11} className="ml-1 inline transition-transform group-hover:translate-x-0.5" />
+              </span>
+            </span>
+          </button>
+          <p className="voice shrink-0 text-[14.5px] italic text-ink-soft md:max-w-[34ch] md:text-right">{brief.signoff}</p>
         </div>
       </div>
     </motion.div>
   )
 }
 
-function TileBox({
-  t,
-  active,
-  onPick,
-  className,
-  big,
-  hero,
-}: {
-  t: Tile
-  active: Tile | null
-  onPick: (t: Tile | null) => void
-  className?: string
-  big?: boolean
-  hero?: boolean
-}) {
-  const on = active?.id === t.id
-  const v = VERDICT[t.verdict]
-  const hue = t.verdict === 'watch' ? MAROON : SIDRA
+/** A titled paragraph with its margin mark. Text first; the mark is evidence. */
+function Para({ p, index }: { p: Paragraph; index: number }) {
+  const reduced = useReducedMotion()
   return (
-    <button
-      onClick={() => onPick(on ? null : t)}
-      aria-pressed={on}
-      className={`group relative flex min-h-0 min-w-0 flex-col overflow-hidden rounded-card bg-card p-3.5 text-left transition-all duration-200 md:p-4 ${className ?? ''}`}
-      style={{
-        boxShadow: on ? `0 0 0 2px ${hue}, var(--shadow-card-hover)` : 'var(--shadow-card)',
-        transform: on ? 'translateY(-1px)' : undefined,
-      }}
+    <motion.section
+      aria-label={p.title}
+      className="grid min-w-0 grid-cols-[minmax(0,1fr)_128px] gap-x-6"
+      initial={reduced ? false : { opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, delay: 0.08 + index * 0.06, ease: EASE }}
     >
-      <div className="flex items-center gap-1.5 text-[10.5px] font-medium">
-        <span aria-hidden className="inline-block h-1.5 w-1.5 rounded-full" style={{ background: v.dot }} />
-        <span style={{ color: v.text }}>{v.word}</span>
-        <span className="truncate text-ink-mute">· {t.source.split(' · ')[0]}</span>
+      <div className="min-w-0">
+        <h2 className="text-[14.5px] font-semibold tracking-tight text-ink">{p.title}</h2>
+        <p className="mt-1.5 text-[14px] leading-[1.5] text-ink-soft md:text-[14.5px]" style={{ textWrap: 'pretty' }}>
+          {p.text}
+        </p>
       </div>
+      <figure className="mt-[3px] min-w-0">
+        <MarginMark m={p.margin} />
+        <figcaption className="num mt-2 text-[10px] leading-tight text-ink-mute">{p.trace}</figcaption>
+      </figure>
+    </motion.section>
+  )
+}
 
-      <div className={`mt-1.5 flex items-baseline gap-2 ${hero || big ? 'md:mt-2' : ''}`}>
-        <span
-          className={`num font-bold leading-none ${big ? 'text-[34px] md:text-[44px]' : hero ? 'text-[30px] md:text-[38px]' : 'text-[24px] md:text-[26px]'}`}
-          style={{ color: t.verdict === 'watch' ? MAROON : SIDRA }}
-        >
-          {t.figure}
-        </span>
-      </div>
-      <div className={`mt-0.5 leading-tight text-ink-soft ${hero || big ? 'text-[13px]' : 'text-[11.5px]'}`}>{t.label}</div>
-
-      {/* the mark fills whatever height the row leaves — the tile is sized by
-          the grid, and the chart stretches to it, so no tile carries dead space */}
-      <div className="relative mt-2 min-h-[72px] flex-1">
-        {t.mark.kind === 'trend' ? (
-          <div className="absolute inset-0">
-            <BriefTrend
-              size={hero ? 'hero' : 'row'}
-              height="100%"
-              series={t.mark.series}
-              hue={hue}
-              target={t.mark.target}
-              targetLabel={t.mark.targetLabel}
-              unit={t.mark.unit}
-              interpret={t.says}
-              compact={!hero && !big}
-            />
+/** Tiny SVG marks — printed-report figures, not chart widgets. */
+function MarginMark({ m }: { m: Margin }) {
+  if (m.kind === 'bars') {
+    const W = 128, H = 72, pad = 2
+    const max = Math.max(...m.series.map(([, v]) => v), m.target ?? 0)
+    const n = m.series.length
+    const bw = Math.min(26, (W - pad * 2 - (n - 1) * 8) / n)
+    const step = (W - pad * 2 - bw) / Math.max(1, n - 1)
+    const h = (v: number) => Math.max(2, (v / max) * (H - 24))
+    return (
+      <svg viewBox={`0 0 ${W} ${H}`} width="100%" aria-hidden>
+        {m.series.map(([lbl, v], i) => {
+          const x = pad + i * step
+          const last = i === n - 1
+          const fill = m.emphasisLast && last ? (m.series[0][1] > v ? MAROON : SIDRA) : SIDRA
+          return (
+            <g key={lbl}>
+              <rect x={x} y={H - 14 - h(v)} width={bw} height={h(v)} rx={2} fill={fill} opacity={m.emphasisLast && !last ? 0.32 : 1} />
+              <text x={x + bw / 2} y={H - 3} textAnchor="middle" fontSize="8" fontFamily="var(--font-ui)" fill={MUTE}>
+                {lbl}
+              </text>
+              <text
+                x={x + bw / 2}
+                y={H - 17 - h(v)}
+                textAnchor="middle"
+                fontSize="8.5"
+                fontWeight="700"
+                fontFamily="var(--font-num)"
+                fill={m.emphasisLast && !last ? MUTE : INK}
+              >
+                {v >= 10000 ? `${Math.round(v / 1000)}k` : v}
+              </text>
+            </g>
+          )
+        })}
+      </svg>
+    )
+  }
+  if (m.kind === 'pair') {
+    return (
+      <div className="flex flex-col gap-2">
+        {[m.a, m.b].map((s) => (
+          <div key={s.label}>
+            <div className="num text-[24px] font-bold leading-none" style={{ color: INK }}>{s.value}</div>
+            <div className="mt-0.5 text-[10.5px] leading-tight text-ink-mute">{s.label}</div>
           </div>
-        ) : t.mark.kind === 'figures' ? (
-          <div className="text-[11px]">
-            <BriefFigures cols={t.mark.cols} rows={t.mark.rows} flagCol={t.mark.flagCol} dense />
-          </div>
-        ) : null}
+        ))}
       </div>
-    </button>
+    )
+  }
+  return (
+    <table className="w-full border-collapse">
+      <tbody>
+        {m.rows.map((r) => (
+          <tr key={r.label} className="border-t border-ink/10 first:border-0">
+            <td className="py-[3px] pr-1 text-[10px] leading-tight text-ink-mute">{r.label}</td>
+            <td className="num py-[3px] text-right text-[10.5px] text-ink-soft">{r.was}</td>
+            <td className="num py-[3px] pl-1.5 text-right text-[10.5px] font-semibold" style={{ color: MAROON }}>{r.now}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
   )
 }
