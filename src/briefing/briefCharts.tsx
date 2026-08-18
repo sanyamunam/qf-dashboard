@@ -32,6 +32,7 @@ export function BriefTrend({
   interpret,
   height,
   size,
+  compact,
 }: {
   series: [string, number][]
   hue: string
@@ -39,9 +40,12 @@ export function BriefTrend({
   targetLabel?: string
   unit?: string
   interpret: string
-  height?: number
+  /** pixels, or '100%' to fill a parent with a definite height */
+  height?: number | string
   /** hero: the chart IS the image — taller, wider bars, bigger numbers */
   size?: 'hero' | 'row'
+  /** compact: a small tile — tight margins, no target label, smaller type */
+  compact?: boolean
 }) {
   const last = series.length - 1
   const hero = size === 'hero'
@@ -55,14 +59,24 @@ export function BriefTrend({
       option={{
         // a target line needs its own right margin: labelled inside the plot it
         // collides with whichever bar happens to sit near it (the L2 bullet
-        // reserves margin the same way)
-        grid: { left: 8, right: target ? (hero ? 150 : 112) : 14, top: hero ? 40 : 30, bottom: hero ? 30 : 24, containLabel: true },
-        tooltip: TOOLTIP(interpret),
+        // reserves margin the same way). A compact tile can't spare the margin,
+        // so its target is a bare dashed line and the tile's label names it.
+        grid: {
+          left: compact ? 2 : 8,
+          right: target && !compact ? (hero ? 150 : 112) : compact ? 4 : 14,
+          top: hero ? 40 : compact ? 22 : 30,
+          bottom: hero ? 30 : compact ? 18 : 24,
+          containLabel: true,
+        },
+        // on the brief, tapping a tile is how you get the interpretation — a
+        // hover tooltip repeating it over the bars is noise, and it competes
+        // with the tap. Only the hero keeps the platform tooltip.
+        tooltip: hero ? TOOLTIP(interpret) : { show: false },
         xAxis: {
           type: 'category',
           data: series.map(([l]) => l),
           ...AXIS,
-          axisLabel: { ...AXIS.axisLabel, fontSize: hero ? 13 : 11 },
+          axisLabel: { ...AXIS.axisLabel, fontSize: hero ? 13 : compact ? 9.5 : 11 },
         },
         yAxis: { type: 'value', min: 0, max: max * 1.18, ...AXIS, axisLabel: { show: false }, splitLine: { show: false } },
         series: [
@@ -73,7 +87,7 @@ export function BriefTrend({
               value: v,
               itemStyle: { color: hue, opacity: i === last ? 1 : 0.35, borderRadius: hero ? [6, 6, 0, 0] : [4, 4, 0, 0] },
             })),
-            barMaxWidth: hero ? 96 : 54,
+            barMaxWidth: hero ? 96 : compact ? 28 : 54,
             label: {
               show: true,
               position: 'top',
@@ -81,23 +95,25 @@ export function BriefTrend({
               fontWeight: 700,
               color: '#122822',
               formatter: (p: unknown) => n((p as { value: number }).value),
-              fontSize: hero ? 17 : 12,
+              fontSize: hero ? 17 : compact ? 10 : 12,
             },
             markLine: target
               ? {
                   silent: true,
                   symbol: 'none',
-                  lineStyle: { type: 'dashed', color: '#47605a', width: 1.6 },
-                  label: {
-                    formatter: targetLabel ?? `target ${n(target)}`,
-                    // beyond the plot, in the reserved margin — never over a bar
-                    position: 'end',
-                    align: 'left',
-                    color: '#47605a',
-                    fontSize: 11,
-                    fontFamily: 'Instrument Sans',
-                    fontWeight: 600,
-                  },
+                  lineStyle: { type: 'dashed', color: '#47605a', width: compact ? 1.2 : 1.6 },
+                  label: compact
+                    ? { show: false }
+                    : {
+                        formatter: targetLabel ?? `target ${n(target)}`,
+                        // beyond the plot, in the reserved margin — never over a bar
+                        position: 'end',
+                        align: 'left',
+                        color: '#47605a',
+                        fontSize: 11,
+                        fontFamily: 'Instrument Sans',
+                        fontWeight: 600,
+                      },
                   data: [{ yAxis: target }],
                 }
               : undefined,
@@ -168,19 +184,23 @@ export function BriefFigures({
   cols,
   rows,
   flagCol,
+  dense,
 }: {
   cols: string[]
   rows: { label: string; values: string[]; flag?: boolean }[]
   flagCol?: number
+  /** dense: fits a small tile — tighter rows, smaller type */
+  dense?: boolean
 }) {
+  const py = dense ? 'py-[3px]' : 'py-2'
   return (
     <div className="overflow-x-auto">
       <table className="w-full border-collapse text-left">
         <thead>
           <tr>
-            <th className="label pb-2 text-[10px] font-semibold text-ink-mute">indicator</th>
+            <th className={`label pb-1 text-[${dense ? '9px' : '10px'}] font-semibold text-ink-mute`}>indicator</th>
             {cols.map((c) => (
-              <th key={c} className="label pb-2 pl-4 text-right text-[10px] font-semibold text-ink-mute">
+              <th key={c} className={`label pb-1 pl-3 text-right text-[${dense ? '9px' : '10px'}] font-semibold text-ink-mute`}>
                 {c}
               </th>
             ))}
@@ -189,11 +209,11 @@ export function BriefFigures({
         <tbody>
           {rows.map((r) => (
             <tr key={r.label} className="border-t border-ink-mute/15">
-              <td className="py-2 pr-3 text-[12.5px] text-ink-soft">{r.label}</td>
+              <td className={`${py} pr-2 ${dense ? 'text-[11px]' : 'text-[12.5px]'} text-ink-soft`}>{r.label}</td>
               {r.values.map((v, i) => (
                 <td
                   key={i}
-                  className="num py-2 pl-4 text-right text-[13px] font-semibold"
+                  className={`num ${py} pl-3 text-right ${dense ? 'text-[11.5px]' : 'text-[13px]'} font-semibold`}
                   style={{ color: r.flag && i === flagCol ? STATUS_COLOR.breach.text : '#122822' }}
                 >
                   {v}

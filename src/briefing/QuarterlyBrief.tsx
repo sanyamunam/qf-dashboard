@@ -1,53 +1,63 @@
 /**
- * The Quarterly Brief — The Two Findings.
+ * The Quarterly Brief — one screen, no scroll. BOTaina tells you the quarter.
  *
- * Two full-bleed moments carry the whole screen: the largest movement in each
- * source, stated in one sentence with one chart big enough to read as an
- * image. Beneath each hero, a quiet ledger of that source's other findings —
- * a register, not a card grid. Then three asks, each line the control.
+ * Top: her avatar and one greeting. Below: the quarter as a bento — the lead
+ * number and the hero chart take the large cells, the other findings fill in
+ * around them, each with a figure and a small mark. Tap any tile and she says
+ * its line in the speech panel; the panel is where the telling happens.
  *
- * Colour carries source: thematic hero and ledger marks take their theme's
- * fill; executive takes sidra. BOTaina appears three times — the meaning line
- * under each hero, and the sign-off — never as a greeting.
+ * Release 1 only. No scroll at desktop; the grid reflows to a stack on narrow
+ * screens, where scrolling is the honest fallback.
  */
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { motion, useInView, useReducedMotion } from 'framer-motion'
-import { ArrowRight, X, Copy, Check } from 'lucide-react'
-import { buildQuarterlyBrief, markBriefRead, themeColour, type QFinding, type QSource } from './quarterly'
-import { BriefTrend, BriefLedger, BriefFigures } from './briefCharts'
+import { useEffect, useMemo, useState } from 'react'
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
+import { ArrowRight, X } from 'lucide-react'
+import { buildQuarterlyBrief, markBriefRead, type Tile } from './quarterly'
+import { BriefTrend, BriefFigures } from './briefCharts'
 import { Spark } from '../components/Shell'
-import { kpis } from '../model/data'
+import { STATUS_COLOR } from '../components/charts/builders'
 import type { Kpi } from '../model/types'
 
 const EASE: [number, number, number, number] = [0.32, 0.72, 0, 1]
 const SIDRA = '#034638'
 const MAROON = '#8a1538'
 
+const VERDICT = {
+  well: { dot: STATUS_COLOR.met.fill, word: 'went well', text: STATUS_COLOR.met.text },
+  watch: { dot: MAROON, word: 'to watch', text: MAROON },
+  note: { dot: '#7e938d', word: 'noted', text: '#47605a' },
+} as const
+
 export function QuarterlyBrief({
   onExit,
-  onOpenKpi,
   onAskBotaina,
 }: {
   onExit: () => void
-  onOpenKpi: (kpi: Kpi) => void
+  /** kept for the App contract; Release 1 tiles have no thematic KPI to open */
+  onOpenKpi?: (kpi: Kpi) => void
   onAskBotaina: (q: string) => void
 }) {
   const brief = useMemo(() => buildQuarterlyBrief(), [])
-  const scrollRef = useRef<HTMLDivElement>(null)
+  const [active, setActive] = useState<Tile | null>(null)
+  const reduced = useReducedMotion()
 
   useEffect(() => {
     markBriefRead()
   }, [])
 
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onExit()
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') (active ? setActive(null) : onExit())
+    }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [onExit])
+  }, [onExit, active])
+
+  const said = active?.says ?? brief.greeting
 
   return (
     <motion.div
-      className="fixed inset-0 z-[60] bg-cream"
+      className="fixed inset-0 z-[60] flex flex-col bg-cream"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -55,304 +65,161 @@ export function QuarterlyBrief({
       role="dialog"
       aria-label="The Quarterly Brief"
     >
-      <div ref={scrollRef} className="h-full overflow-y-auto">
-        {/* masthead — plain, dated, leavable */}
-        <div className="sticky top-0 z-10 border-b border-ink/10 bg-cream">
-          <div className="mx-auto flex max-w-[960px] items-center justify-between gap-4 px-6 py-3.5 md:px-10">
-            <div className="flex min-w-0 items-center gap-3">
-              <img src="/al-mishkat.png" alt="Al-Mishkat" className="h-7 w-auto shrink-0" />
-              <span className="truncate text-[12.5px] text-ink-soft">
-                The Quarterly Brief <span className="text-ink-mute">· {brief.dateLine}</span>
-              </span>
+      {/* masthead */}
+      <div className="flex shrink-0 items-center justify-between gap-4 border-b border-ink/10 px-5 py-3 md:px-8">
+        <div className="flex min-w-0 items-center gap-3">
+          <img src="/al-mishkat.png" alt="Al-Mishkat" className="h-6 w-auto shrink-0" />
+          <span className="truncate text-[12.5px] text-ink-soft">
+            The Quarterly Brief <span className="text-ink-mute">· Executive View · {brief.dateLine}</span>
+          </span>
+        </div>
+        <button
+          onClick={onExit}
+          className="flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-[12.5px] font-medium text-ink-soft transition-colors hover:text-sidra"
+        >
+          Open dashboard <X size={14} strokeWidth={1.7} />
+        </button>
+      </div>
+
+      {/* the screen: BOTaina's panel + the bento, sized to the viewport */}
+      <div className="mx-auto grid min-h-0 w-full max-w-[1320px] flex-1 grid-rows-[auto_minmax(0,1fr)] gap-4 overflow-y-auto px-5 py-4 md:gap-5 md:px-8 md:py-5 lg:overflow-hidden">
+        {/* her line — the telling. Changes when a tile is tapped. */}
+        <div
+          className="flex items-start gap-4 rounded-card p-4 md:items-center md:p-5"
+          style={{ background: 'var(--ai-wash-subtle)', boxShadow: 'inset 0 0 0 1px rgba(20,97,82,0.14)' }}
+        >
+          <span className="ai-ring block shrink-0 rounded-full p-[2px]">
+            <span className="block h-12 w-12 overflow-hidden rounded-full bg-cream md:h-14 md:w-14">
+              <img src="/botaina.gif" alt="BOTaina" className="h-full w-full object-cover" />
+            </span>
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 text-[11px] font-semibold tracking-tight" style={{ color: 'var(--ai-green-mid)' }}>
+              <Spark size={11} /> BOTaina{active ? ` · ${active.label}` : ''}
             </div>
-            <button
-              onClick={onExit}
-              className="flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 text-[12.5px] font-medium text-ink-soft transition-colors hover:text-sidra"
-            >
-              Open dashboard <X size={14} strokeWidth={1.7} />
-            </button>
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.p
+                key={active?.id ?? 'greeting'}
+                className="voice mt-1 max-w-[88ch] text-[15.5px] leading-snug text-ink md:text-[17px]"
+                initial={reduced ? false : { opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={reduced ? undefined : { opacity: 0, y: -4 }}
+                transition={{ duration: 0.28, ease: EASE }}
+              >
+                {said}
+              </motion.p>
+            </AnimatePresence>
+            {active && (
+              <div className="num mt-1.5 text-[11px] text-ink-mute">
+                {active.source} · {active.trace}
+              </div>
+            )}
           </div>
-        </div>
-
-        <div className="mx-auto max-w-[960px] px-6 pb-32 md:px-10">
-          {brief.sources.map((s, i) => (
-            <Source key={s.key} s={s} first={i === 0} root={scrollRef} onOpenKpi={onOpenKpi} />
-          ))}
-
-          <Asks brief={brief} onAskBotaina={onAskBotaina} />
-
-          {/* the close — one accounting sentence, then BOTaina signs */}
-          <div className="mt-24 max-w-[62ch]">
-            <p className="text-[13.5px] leading-relaxed text-ink-mute">{brief.accounting}</p>
-            <div className="mt-8 flex items-center gap-4">
-              <span className="ai-ring block shrink-0 rounded-full p-[2px]">
-                <span className="block h-11 w-11 overflow-hidden rounded-full bg-cream">
-                  <img src="/botaina.gif" alt="BOTaina" className="h-full w-full object-cover" />
-                </span>
-              </span>
-              <p className="voice text-[17px] italic leading-snug text-ink">{brief.signoff}</p>
-            </div>
+          {active ? (
             <button
-              onClick={onExit}
-              className="mt-10 flex items-center gap-2 rounded-full px-6 py-3 text-[14.5px] font-semibold text-white transition-transform hover:scale-[1.03]"
-              style={{ background: SIDRA }}
+              onClick={() => setActive(null)}
+              className="shrink-0 rounded-full px-2.5 py-1 text-[11.5px] text-ink-mute transition-colors hover:text-sidra"
             >
-              Open the dashboard <ArrowRight size={16} strokeWidth={2} />
+              back
             </button>
-          </div>
-        </div>
-      </div>
-    </motion.div>
-  )
-}
-
-/** One source: its hero moment, then its ledger. */
-function Source({
-  s,
-  first,
-  root,
-  onOpenKpi,
-}: {
-  s: QSource
-  first: boolean
-  root: React.RefObject<HTMLDivElement | null>
-  onOpenKpi: (kpi: Kpi) => void
-}) {
-  return (
-    <section aria-label={s.name} className={first ? 'pt-14 md:pt-24' : 'pt-28 md:pt-40'}>
-      <Hero f={s.hero} sourceName={s.name} release={s.release} root={root} onOpenKpi={onOpenKpi} />
-      <Ledger rows={s.ledger} root={root} onOpenKpi={onOpenKpi} />
-    </section>
-  )
-}
-
-/** The moment: one sentence, one image, one line of meaning. */
-function Hero({
-  f,
-  sourceName,
-  release,
-  root,
-  onOpenKpi,
-}: {
-  f: QFinding
-  sourceName: string
-  release: string
-  root: React.RefObject<HTMLDivElement | null>
-  onOpenKpi: (kpi: Kpi) => void
-}) {
-  const ref = useRef<HTMLDivElement>(null)
-  const inView = useInView(ref, { once: true, amount: 0.2, root })
-  const reduced = useReducedMotion()
-  const hue = themeColour(f.themeId)
-  const kpi = f.kpiId ? (kpis.find((k) => k.id === f.kpiId) ?? null) : null
-
-  return (
-    <div ref={ref}>
-      <div className="flex items-baseline gap-3 text-[12px]">
-        <span className="font-semibold tracking-tight text-ink">{sourceName}</span>
-        <span className="text-ink-mute">{release}</span>
-      </div>
-
-      <motion.h2
-        className="voice mt-6 max-w-[18ch] text-[38px] leading-[1.06] tracking-[-0.01em] text-ink md:text-[54px]"
-        style={{ textWrap: 'balance' }}
-        initial={reduced ? false : { opacity: 0, y: 14 }}
-        animate={inView ? { opacity: 1, y: 0 } : {}}
-        transition={{ duration: 0.7, ease: EASE }}
-      >
-        {f.finding}
-      </motion.h2>
-
-      <div className="mt-10">
-        {inView && f.mark.kind === 'trend' && (
-          <BriefTrend
-            size="hero"
-            series={f.mark.series}
-            hue={hue}
-            target={f.mark.target}
-            targetLabel={f.mark.targetLabel}
-            unit={f.mark.unit}
-            interpret={f.means}
-          />
-        )}
-      </div>
-
-      <Trace f={f} kpi={kpi} onOpenKpi={onOpenKpi} className="mt-3" />
-
-      <motion.p
-        className="voice mt-7 max-w-[46ch] text-[19px] italic leading-snug text-ink md:text-[21px]"
-        initial={reduced ? false : { opacity: 0 }}
-        animate={inView ? { opacity: 1 } : {}}
-        transition={{ duration: 0.6, delay: 0.5, ease: EASE }}
-      >
-        {f.means}
-        <span className="not-italic text-ink-mute"> — BOTaina</span>
-      </motion.p>
-    </div>
-  )
-}
-
-/** The register: verdict, sentence, small mark. No cards. */
-function Ledger({
-  rows,
-  root,
-  onOpenKpi,
-}: {
-  rows: QFinding[]
-  root: React.RefObject<HTMLDivElement | null>
-  onOpenKpi: (kpi: Kpi) => void
-}) {
-  return (
-    <div className="mt-20 md:mt-24">
-      {rows.map((f, i) => (
-        <LedgerRow key={f.id} f={f} index={i} root={root} onOpenKpi={onOpenKpi} />
-      ))}
-    </div>
-  )
-}
-
-function LedgerRow({
-  f,
-  index,
-  root,
-  onOpenKpi,
-}: {
-  f: QFinding
-  index: number
-  root: React.RefObject<HTMLDivElement | null>
-  onOpenKpi: (kpi: Kpi) => void
-}) {
-  const ref = useRef<HTMLDivElement>(null)
-  const inView = useInView(ref, { once: true, amount: 0.3, root })
-  const reduced = useReducedMotion()
-  const hue = themeColour(f.themeId)
-  const kpi = f.kpiId ? (kpis.find((k) => k.id === f.kpiId) ?? null) : null
-  const well = f.verdict === 'well'
-
-  return (
-    <motion.div
-      ref={ref}
-      className="grid gap-x-10 gap-y-5 border-t border-ink/10 py-8 md:grid-cols-[minmax(0,1fr)_300px] md:items-start"
-      initial={reduced ? false : { opacity: 0, y: 10 }}
-      animate={inView ? { opacity: 1, y: 0 } : {}}
-      transition={{ duration: 0.5, delay: 0.04 * index, ease: EASE }}
-    >
-      <div className="min-w-0">
-        {/* the verdict: a glyph and a word — never a section header */}
-        <div className="flex items-center gap-2 text-[11.5px] font-medium">
-          <span
-            aria-hidden
-            className="inline-block h-2 w-2 rounded-full"
-            style={well ? { background: SIDRA } : { border: `1.5px solid ${MAROON}` }}
-          />
-          <span style={{ color: well ? SIDRA : MAROON }}>{well ? 'went well' : 'to watch'}</span>
-          <span className="text-ink-mute">· {f.source}</span>
-        </div>
-        <h3 className="voice mt-2.5 max-w-[34ch] text-[21px] leading-[1.25] text-ink md:text-[23px]">{f.finding}</h3>
-        <p className="mt-2.5 max-w-[56ch] text-[14px] leading-relaxed text-ink-soft">{f.means}</p>
-        <Trace f={f} kpi={kpi} onOpenKpi={onOpenKpi} className="mt-2.5" />
-      </div>
-
-      <div className="min-w-0 md:pt-1">
-        {inView &&
-          (f.mark.kind === 'trend' ? (
-            <BriefTrend
-              size="row"
-              height={132}
-              series={f.mark.series}
-              hue={hue}
-              target={f.mark.target}
-              targetLabel={f.mark.targetLabel}
-              unit={f.mark.unit}
-              interpret={f.means}
-            />
-          ) : f.mark.kind === 'ledger' ? (
-            <BriefLedger rows={f.mark.rows} hue={hue} />
           ) : (
-            <BriefFigures cols={f.mark.cols} rows={f.mark.rows} flagCol={f.mark.flagCol} />
+            <button
+              onClick={() => onAskBotaina(brief.ask.q)}
+              className="hidden shrink-0 items-center gap-1.5 rounded-full py-2 pe-3.5 ps-3.5 text-[12.5px] font-semibold text-white md:flex"
+              style={{ background: 'var(--ai-border-gradient)' }}
+              title={`Put to ${brief.ask.owner}`}
+            >
+              Ask about March <ArrowRight size={13} strokeWidth={2} />
+            </button>
+          )}
+        </div>
+
+        {/* the bento — 6 columns × 2 rows at desktop */}
+        <div className="grid min-h-0 grid-cols-2 gap-3 md:grid-cols-6 md:grid-rows-2 md:gap-4">
+          <TileBox t={brief.lead} active={active} onPick={setActive} className="col-span-2 md:col-span-2 md:row-span-1" big />
+          <TileBox t={brief.hero} active={active} onPick={setActive} className="col-span-2 md:col-span-4 md:row-span-1" hero />
+          {brief.tiles.map((t) => (
+            <TileBox
+              key={t.id}
+              t={t}
+              active={active}
+              onPick={setActive}
+              className={t.id === 'unit-break' ? 'col-span-2 md:col-span-2' : 'col-span-1'}
+            />
           ))}
+        </div>
       </div>
     </motion.div>
   )
 }
 
-function Trace({
-  f,
-  kpi,
-  onOpenKpi,
+function TileBox({
+  t,
+  active,
+  onPick,
   className,
+  big,
+  hero,
 }: {
-  f: QFinding
-  kpi: Kpi | null
-  onOpenKpi: (kpi: Kpi) => void
+  t: Tile
+  active: Tile | null
+  onPick: (t: Tile | null) => void
   className?: string
+  big?: boolean
+  hero?: boolean
 }) {
-  const cls = `num block max-w-[70ch] text-left text-[11px] leading-relaxed text-ink-mute ${className ?? ''}`
-  return kpi ? (
-    <button onClick={() => onOpenKpi(kpi)} className={`${cls} underline decoration-dotted underline-offset-4 transition-colors hover:text-sidra`}>
-      {f.trace}
-    </button>
-  ) : (
-    <p className={cls}>{f.trace}</p>
-  )
-}
-
-/** Three asks. Each line is the control — tap it and BOTaina has the question. */
-function Asks({
-  brief,
-  onAskBotaina,
-}: {
-  brief: ReturnType<typeof buildQuarterlyBrief>
-  onAskBotaina: (q: string) => void
-}) {
-  const [copied, setCopied] = useState(false)
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(
-        `Al Mishkat — the asks, ${brief.dateLine}\n${brief.asks.map((a) => `• ${a.q} — ${a.owner}`).join('\n')}`,
-      )
-      setCopied(true)
-      setTimeout(() => setCopied(false), 1800)
-    } catch {
-      /* clipboard unavailable */
-    }
-  }
-
+  const on = active?.id === t.id
+  const v = VERDICT[t.verdict]
+  const hue = t.verdict === 'watch' ? MAROON : SIDRA
   return (
-    <section aria-label="The asks" className="pt-28 md:pt-40">
-      <h2 className="voice text-[34px] leading-none tracking-[-0.01em] text-ink md:text-[42px]">Three things to ask.</h2>
-      <p className="mt-3 text-[13px] text-ink-mute">Tap one and BOTaina has it ready.</p>
-
-      <div className="mt-8">
-        {brief.asks.map((a, i) => (
-          <button
-            key={a.q}
-            onClick={() => onAskBotaina(a.q)}
-            className="group grid w-full gap-x-6 gap-y-1 border-t border-ink/10 py-6 text-left transition-colors last:border-b md:grid-cols-[minmax(0,1fr)_auto] md:items-center"
-          >
-            <span className="min-w-0">
-              <span className="voice block max-w-[52ch] text-[19px] leading-snug text-ink transition-colors group-hover:text-sidra md:text-[21px]">
-                {a.q}
-              </span>
-              <span className="mt-1.5 block text-[12.5px] text-ink-mute">
-                For <span className="font-medium text-ink-soft">{a.owner}</span>
-              </span>
-            </span>
-            <span className="flex shrink-0 items-center gap-1.5 text-[12.5px] font-medium text-sidra opacity-60 transition-opacity group-hover:opacity-100">
-              <Spark size={11} /> Ask BOTaina
-              <ArrowRight size={14} strokeWidth={2} className="transition-transform duration-300 group-hover:translate-x-1" />
-            </span>
-            <span className="sr-only">{`ask ${i + 1} of ${brief.asks.length}`}</span>
-          </button>
-        ))}
+    <button
+      onClick={() => onPick(on ? null : t)}
+      aria-pressed={on}
+      className={`group relative flex min-h-0 min-w-0 flex-col overflow-hidden rounded-card bg-card p-3.5 text-left transition-all duration-200 md:p-4 ${className ?? ''}`}
+      style={{
+        boxShadow: on ? `0 0 0 2px ${hue}, var(--shadow-card-hover)` : 'var(--shadow-card)',
+        transform: on ? 'translateY(-1px)' : undefined,
+      }}
+    >
+      <div className="flex items-center gap-1.5 text-[10.5px] font-medium">
+        <span aria-hidden className="inline-block h-1.5 w-1.5 rounded-full" style={{ background: v.dot }} />
+        <span style={{ color: v.text }}>{v.word}</span>
+        <span className="truncate text-ink-mute">· {t.source.split(' · ')[0]}</span>
       </div>
 
-      <button
-        onClick={copy}
-        className="mt-5 flex items-center gap-2 text-[13px] font-medium text-ink-soft transition-colors hover:text-sidra"
-      >
-        {copied ? <Check size={14} /> : <Copy size={14} />} {copied ? 'Copied' : 'Copy the three'}
-      </button>
-    </section>
+      <div className={`mt-1.5 flex items-baseline gap-2 ${hero || big ? 'md:mt-2' : ''}`}>
+        <span
+          className={`num font-bold leading-none ${big ? 'text-[34px] md:text-[44px]' : hero ? 'text-[30px] md:text-[38px]' : 'text-[24px] md:text-[26px]'}`}
+          style={{ color: t.verdict === 'watch' ? MAROON : SIDRA }}
+        >
+          {t.figure}
+        </span>
+      </div>
+      <div className={`mt-0.5 leading-tight text-ink-soft ${hero || big ? 'text-[13px]' : 'text-[11.5px]'}`}>{t.label}</div>
+
+      {/* the mark fills whatever height the row leaves — the tile is sized by
+          the grid, and the chart stretches to it, so no tile carries dead space */}
+      <div className="relative mt-2 min-h-[72px] flex-1">
+        {t.mark.kind === 'trend' ? (
+          <div className="absolute inset-0">
+            <BriefTrend
+              size={hero ? 'hero' : 'row'}
+              height="100%"
+              series={t.mark.series}
+              hue={hue}
+              target={t.mark.target}
+              targetLabel={t.mark.targetLabel}
+              unit={t.mark.unit}
+              interpret={t.says}
+              compact={!hero && !big}
+            />
+          </div>
+        ) : t.mark.kind === 'figures' ? (
+          <div className="text-[11px]">
+            <BriefFigures cols={t.mark.cols} rows={t.mark.rows} flagCol={t.mark.flagCol} dense />
+          </div>
+        ) : null}
+      </div>
+    </button>
   )
 }
