@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, LayoutGroup } from 'framer-motion'
 import { Loader } from './components/Loader'
-import { ThematicView, Executive, Bdo } from './screens/Misc'
+import { ThematicView, Bdo } from './screens/Misc'
+import { Executive } from './screens/Executive'
+import { Search } from './screens/Search'
 import { L2 } from './screens/L2'
 import { KpiDrawer } from './components/KpiDrawer'
 import { NavPill, type RouteId } from './components/Shell'
@@ -12,7 +14,7 @@ import { THEMES } from './model/data'
 import { facts } from './model/facts'
 
 // Home is parked (TODO: Home content model) — no route resolves to it.
-type Route = { screen: 'themes' | 'exec' | 'bdo' } | { screen: 'l2'; themeId: string }
+type Route = { screen: 'themes' | 'exec' | 'bdo' | 'search' } | { screen: 'l2'; themeId: string }
 
 const THEME_BY_NAME = Object.fromEntries(THEMES.map((t) => [t.name, t.id]))
 
@@ -23,6 +25,7 @@ function parseHash(): Route {
     if (THEMES.some((t) => t.id === id)) return { screen: 'l2', themeId: id }
   }
   if (h === 'exec' || h === 'bdo') return { screen: h }
+  if (h.startsWith('search')) return { screen: 'search' }
   return { screen: 'themes' } // '', 'home', and anything unknown resolve here
 }
 
@@ -59,7 +62,14 @@ export default function App() {
   const prevKey = useRef(routeKey(parseHash()))
 
   useEffect(() => {
-    const target = route.screen === 'l2' ? `t/${route.themeId}` : route.screen === 'themes' ? 'themes' : route.screen
+    const target =
+      route.screen === 'l2'
+        ? `t/${route.themeId}`
+        : route.screen === 'themes'
+          ? 'themes'
+          : route.screen === 'search'
+            ? location.hash.replace('#', '') || 'search'
+            : route.screen
     const current = location.hash.replace('#', '').split('?')[0]
     if (current !== target) location.hash = target
     // restore the scroll position this route was left at (back nav), else start at top
@@ -113,8 +123,13 @@ export default function App() {
   }
 
   const openEvidence = (kpi: Kpi) => {
+    /* From the Executive Dashboard or the search listing the overlay opens IN
+       PLACE — navigating to the KPI's theme would throw away the reader's
+       filters. Elsewhere (header search on a thematic page) the L2 context
+       is the right landing. */
     const themeId = THEME_BY_NAME[kpi.theme]
-    if (themeId) go({ screen: 'l2', themeId })
+    const stay = route.screen === 'exec' || route.screen === 'search'
+    if (themeId && !stay) go({ screen: 'l2', themeId })
     setDrawerKpi(kpi)
   }
 
@@ -124,7 +139,8 @@ export default function App() {
     go({ screen: 'l2', themeId: 'social' })
   }
 
-  const active: RouteId | null = route.screen === 'l2' ? 'themes' : route.screen
+  const active: RouteId | null =
+    route.screen === 'l2' ? 'themes' : route.screen === 'search' ? 'exec' : route.screen
 
   return (
     <LayoutGroup>
@@ -144,6 +160,7 @@ export default function App() {
             )}
             {route.screen === 'exec' && <Executive onEvidence={openEvidence} />}
             {route.screen === 'bdo' && <Bdo />}
+            {route.screen === 'search' && <Search onEvidence={openEvidence} onBack={() => go({ screen: 'exec' })} />}
             {route.screen === 'l2' && (
               <L2
                 themeId={route.themeId}

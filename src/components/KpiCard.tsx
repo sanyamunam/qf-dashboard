@@ -82,6 +82,8 @@ export function KpiCard({
   size = 'sm',
   onOpen,
   meta,
+  status,
+  line,
   className = '',
 }: {
   group: Kpi[]
@@ -90,6 +92,11 @@ export function KpiCard({
   size?: 'sm' | 'lg'
   onOpen: () => void
   meta?: string
+  /** a status chip row, for mixed listings where placement alone does not
+   *  state the verdict (the Executive Dashboard's four states) */
+  status?: React.ReactNode
+  /** the card's own sentence, where the caller knows better than aiLineFor */
+  line?: string
   className?: string
 }) {
   const k = group[0]
@@ -103,9 +110,9 @@ export function KpiCard({
      figure can never be mistaken for a current one */
   const figure =
     s.length > 0
-      ? `${fmt(last[1])}${last[0] === '2026Q1' ? '' : ` (${last[0]})`}`
+      ? `${fmt(last[1])}${k.unit ?? ''}${last[0] === '2026Q1' ? '' : ` (${last[0]})`}`
       : k.actuals['2026Q1'].value !== null
-        ? fmt(k.actuals['2026Q1'].value)
+        ? `${fmt(k.actuals['2026Q1'].value)}${k.unit ?? ''}`
         : (k.actuals['2026Q1'].raw ?? '—')
   const Arrow = pol.dir === 'up' ? ArrowUpRight : pol.dir === 'down' ? ArrowDownRight : Minus
 
@@ -124,6 +131,8 @@ export function KpiCard({
     >
       {/* a finding earns an accent edge; a quiet card stays quiet */}
       {loud && <span aria-hidden className="absolute inset-y-0 start-0 w-[3px]" style={{ background: pol.tone }} />}
+
+      {status && <div className="mb-1.5 flex items-center gap-2">{status}</div>}
 
       <div className="flex items-start justify-between gap-2">
         <span className="min-w-0">
@@ -162,7 +171,7 @@ export function KpiCard({
         <span className="mt-0.5 shrink-0">
           <Spark size={10} />
         </span>
-        <span className={lg ? 'line-clamp-2' : 'line-clamp-1'}>{aiLineFor(group)}</span>
+        <span className={lg ? 'line-clamp-2' : 'line-clamp-1'}>{line ?? aiLineFor(group)}</span>
       </p>
     </button>
   )

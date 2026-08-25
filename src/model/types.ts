@@ -22,6 +22,9 @@ export interface Kpi {
   framework: 'Impact' | 'Strategic' | 'Operational'
   name: string
   definition: string | null
+  /** appended to every figure this KPI renders — '%' for a proportion. Without
+   *  it a normalised rate reads as a bare count. */
+  unit?: string
   l1Chart: string | null
   chartGroup: string | null
   l2Chart: string | null

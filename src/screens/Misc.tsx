@@ -114,14 +114,7 @@ export function ThematicView({
   )
 }
 
-export function Executive({ onEvidence }: { onEvidence: (kpi: Kpi) => void }) {
-  return (
-    <div className="mx-auto min-h-dvh max-w-[900px] px-5 pb-36 md:px-8">
-      <AppHeader />
-      <Standing onEvidence={onEvidence} />
-    </div>
-  )
-}
+// The Executive screen moved to screens/Executive.tsx — the OBS-workbook dashboard.
 
 // TODO: BDO content model — nav item and route exist; no KPIs invented.
 export function Bdo() {

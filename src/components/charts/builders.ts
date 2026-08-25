@@ -386,7 +386,10 @@ export function snapshotFor(group: Kpi[], hue: string, title?: string, scale: Ch
         k.state !== 'REPORTS_AT_YEAR_END' &&
         k.state !== 'IDLE_THIS_CYCLE' &&
         q1IsReal(k) &&
-        (k.targets['2026'].value ?? 0) > 0,
+        /* a zero target is a real target when lower is better — Budget
+           Variance's ceiling IS 0. A zero target on a Green KPI stays
+           excluded: that is the cyclical off-year artifact. */
+        ((k.targets['2026'].value ?? 0) > 0 || (k.polarity === 'Red' && k.targets['2026'].value === 0)),
     )
     .map((k) => ({
       k,
@@ -414,7 +417,7 @@ export function snapshotFor(group: Kpi[], hue: string, title?: string, scale: Ch
       if (!last) return null
       const tk = last[0] === '2026Q1' ? '2026' : last[0]
       const t = k.targets[tk]?.value ?? null
-      if (t === null || t <= 0) return null
+      if (t === null || (t <= 0 && !(k.polarity === 'Red' && t === 0))) return null
       return { k, value: last[1], target: t, year: last[0], status: DATED_STATUS }
     })
     .filter((p): p is Position => p !== null)

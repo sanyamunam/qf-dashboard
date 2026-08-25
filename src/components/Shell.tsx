@@ -9,6 +9,17 @@ import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { LayoutDashboard, Layers, Crown, Handshake, Bell, CalendarDays, ChevronDown, Search } from 'lucide-react'
 import { findings, kpis, fmt, THEMES } from '../model/data'
+import { execRows, obsAsKpi } from '../model/dash'
+
+/**
+ * The header search reaches all 240 rows: the 151 thematic KPIs plus the 89
+ * Executive rows adapted from the OBS workbook. Built once, lazily.
+ */
+let CORPUS: Kpi[] | null = null
+const searchCorpus = (): Kpi[] => {
+  if (!CORPUS) CORPUS = [...kpis, ...execRows.map((r) => obsAsKpi(r.row))]
+  return CORPUS
+}
 import type { Kpi } from '../model/types'
 
 export type RouteId = 'themes' | 'exec' | 'bdo'
@@ -213,7 +224,7 @@ export function GlobalSearch({ onPick, light }: { onPick: (k: Kpi) => void; ligh
   }, [])
 
   const results = q.trim()
-    ? kpis
+    ? searchCorpus()
         .map((k) => {
           const hay = [k.name, k.entity, k.category, k.definition ?? '']
           const idx = hay.findIndex((h) => h.toLowerCase().includes(q.toLowerCase()))
@@ -254,14 +265,16 @@ export function GlobalSearch({ onPick, light }: { onPick: (k: Kpi) => void; ligh
           }}
           onFocus={() => setOpen(true)}
           onKeyDown={(e) => {
-            if (e.key === 'Enter' && results[0]) {
-              onPick(results[0]!.k)
+            /* Enter hands the whole question to the search listing — the
+               dropdown is a quick pick, the page is for a real query */
+            if (e.key === 'Enter') {
+              location.hash = `search?q=${encodeURIComponent(q.trim())}`
               setOpen(false)
               setQ('')
             }
             if (e.key === 'Escape') setOpen(false)
           }}
-          placeholder="Find any of the 151 indicators"
+          placeholder="Ask across all 240 indicators"
           className={`w-full bg-transparent text-[13px] outline-none ${light ? 'text-white placeholder:text-white/60' : 'placeholder:text-ink-mute'}`}
           aria-label="Search all indicators"
         />
@@ -277,7 +290,8 @@ export function GlobalSearch({ onPick, light }: { onPick: (k: Kpi) => void; ligh
             className="absolute inset-x-0 top-[calc(100%+6px)] z-50 overflow-hidden rounded-input bg-card shadow-(--shadow-card-hover)"
           >
             {results.length ? (
-              results.map((r) => (
+              <>
+              {results.map((r) => (
                 <button
                   key={r!.k.id}
                   onClick={() => {
@@ -297,7 +311,18 @@ export function GlobalSearch({ onPick, light }: { onPick: (k: Kpi) => void; ligh
                     {r!.k.actuals['2026Q1'].value !== null ? fmt(r!.k.actuals['2026Q1'].value) : r!.k.actuals['2026Q1'].raw ?? '—'}
                   </span>
                 </button>
-              ))
+              ))}
+              <button
+                onClick={() => {
+                  location.hash = `search?q=${encodeURIComponent(q.trim())}`
+                  setOpen(false)
+                  setQ('')
+                }}
+                className="w-full border-t border-cream px-3.5 py-2.5 text-left text-[12px] font-semibold text-sidra transition-colors hover:bg-cream"
+              >
+                Search all 240 indicators →
+              </button>
+              </>
             ) : (
               <div className="px-3.5 py-3 text-[12.5px] text-ink-mute">No indicator matches "{q}".</div>
             )}
