@@ -14,7 +14,7 @@ import { motion } from 'framer-motion'
 import { ArrowLeft, ChevronDown, ChevronRight, Search as SearchIcon, X } from 'lucide-react'
 import { GlobalSearch, HeaderCluster, Spark } from '../components/Shell'
 import { KpiCard } from '../components/KpiCard'
-import { DashMark } from '../components/charts/DashMarks'
+import { CardMark } from '../components/charts/Marks2'
 import { themeByName } from '../model/data'
 import {
   obsKpis,
@@ -374,7 +374,7 @@ export function Search({ onEvidence, onBack }: { onEvidence: (kpi: Kpi) => void;
                   onOpen={() => onEvidence(obsAsKpi(k.row))}
                   status={<RowMeta k={k} p={period} />}
                   line={lineFor(k, period)}
-                  mark={<DashMark k={k} p={period} hue={hueFor(k.theme)} />}
+                  mark={<CardMark k={k} p={period} />}
                   figure={figureFor(k, period)}
                   delta={deltaFor(k, period)}
                 />

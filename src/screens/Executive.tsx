@@ -19,7 +19,7 @@ import { ArrowUpRight, ChevronDown, X } from 'lucide-react'
 import { GlobalSearch, HeaderCluster, Spark } from '../components/Shell'
 import { AiRead } from '../components/AiRead'
 import { KpiCard } from '../components/KpiCard'
-import { DashMark } from '../components/charts/DashMarks'
+import { CardMark } from '../components/charts/Marks2'
 import { themeByName, fmt } from '../model/data'
 import {
   dashTen,
@@ -356,7 +356,7 @@ export function Executive({ onEvidence }: { onEvidence: (kpi: Kpi) => void }) {
                       onOpen={() => onEvidence(obsAsKpi(k.row))}
                       status={<CardMeta k={k} p={period} />}
                       line={lineFor(k, period)}
-                      mark={<DashMark k={k} p={period} hue={hueFor(k.theme)} />}
+                      mark={<CardMark k={k} p={period} />}
                       figure={figureFor(k, period)}
                       delta={deltaFor(k, period)}
                       className="flex-1"
