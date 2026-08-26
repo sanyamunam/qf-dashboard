@@ -111,7 +111,10 @@ export function AskBar({ shift = 0 }: { shift?: number }) {
 
   return (
     <motion.div
-      className="fixed bottom-4 left-1/2 z-40 w-[calc(100%-40px)] max-w-[1116px]"
+      /* a single field, centred — not a full-bleed bar. Stretched to the page
+         gutters it read as a docked panel lying across the last row of cards
+         rather than as one control */
+      className="fixed bottom-5 left-1/2 z-40 w-[calc(100%-40px)] max-w-[620px]"
       animate={{ x: `calc(-50% + ${shift}px)` }}
       transition={{ duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
     >
