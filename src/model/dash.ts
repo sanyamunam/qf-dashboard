@@ -265,6 +265,12 @@ export function figureFor(k: ObsKpi, p: Period): string {
 
 const n = (k: ObsKpi, v: number) => `${fmt(v)}${unitOf(k)}`
 
+/** `a` or `an` for a figure, by how it is read aloud: 8… and 11/18… take `an`. */
+const article = (figure: string): string => {
+  const digits = figure.replace(/[^\d]/g, '')
+  return /^8/.test(digits) || /^1[18]/.test(digits) ? 'An' : 'A'
+}
+
 /**
  * The card's sentence — written to say what the MARK CANNOT.
  *
@@ -304,7 +310,9 @@ export function lineFor(k: ObsKpi, p: Period): string {
   if (kind === 'trend') {
     const future = anyTarget.find(([y]) => Number(y) >= 2026)
     if (future)
-      return `A ${n(k, future[1])} commitment stands for ${future[0]}, measured when the year closes — not in a quarter.`
+      /* "A 80%" — the article follows how the figure is SPOKEN, and 8, 11 and
+         18 all open with a vowel sound */
+      return `${article(n(k, future[1]))} ${n(k, future[1])} commitment stands for ${future[0]}, measured when the year closes — not in a quarter.`
     /**
      * The old sentence ran verbatim on four of five cards in one screenshot,
      * which is a caption saying nothing. Every value is labelled on the mark

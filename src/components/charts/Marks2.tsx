@@ -10,6 +10,7 @@
  * no column supports.
  */
 import { fmt } from '../../model/data'
+import { TREND_ACTUAL, TREND_ACTUAL_PAST, TREND_TARGET, TREND_RULE, TREND_AXIS_INK } from './trendPalette'
 import { selectL1, selectL2, type L1Mark, type L2Mark, type TrendPoint, type Period } from '../../model/chartSelect'
 import type { ObsKpi } from '../../model/obs'
 
@@ -279,7 +280,7 @@ function TrendLabels({
     <>
       {points.map((p, i) =>
         p.target !== null ? (
-          <text key={`t${p.year}`} x={x(i)} y={TARGET_Y} textAnchor="middle" fontSize="8.5" fill={RED} opacity="0.75">
+          <text key={`t${p.year}`} x={x(i)} y={TARGET_Y} textAnchor="middle" fontSize="8.5" fill={TREND_TARGET}>
             {compact(p.target)}
             {unit}
           </text>
@@ -294,7 +295,7 @@ function TrendLabels({
             textAnchor="middle"
             fontSize={i === latest ? 11.5 : 9.5}
             fontWeight={i === latest ? 700 : 500}
-            fill={i === latest ? BRAND : GREY}
+            fill={i === latest ? TREND_ACTUAL : TREND_AXIS_INK}
           >
             {compact(p.actual)}
             {unit}
@@ -305,13 +306,41 @@ function TrendLabels({
   )
 }
 
+/**
+ * Two words, inline — only where the chart actually carries both series. A
+ * boxed legend on a card this size costs more room than the chart it explains.
+ */
+function TrendKey({ shape }: { shape: 'bar' | 'line' }) {
+  return (
+    <div className="mt-1.5 flex items-center gap-3 text-[9.5px]" style={{ color: TREND_AXIS_INK }}>
+      <span className="flex items-center gap-1.5">
+        <svg width="14" height="8" aria-hidden>
+          {shape === 'bar' ? (
+            <rect x="4" y="0" width="6" height="8" rx="1.5" fill={TREND_ACTUAL} />
+          ) : (
+            <line x1="0" y1="4" x2="14" y2="4" stroke={TREND_ACTUAL} strokeWidth="2.5" />
+          )}
+        </svg>
+        actual
+      </span>
+      <span className="flex items-center gap-1.5">
+        <svg width="14" height="8" aria-hidden>
+          <line x1="0" y1="4" x2="14" y2="4" stroke={TREND_TARGET} strokeWidth="2" strokeDasharray={shape === 'bar' ? undefined : '4 2.5'} />
+          {shape === 'line' && <circle cx="7" cy="4" r="2.6" fill="#fff" stroke={TREND_TARGET} strokeWidth="1.5" />}
+        </svg>
+        target
+      </span>
+    </div>
+  )
+}
+
 /** The axis at its ends only — with every bar labelled by value, a full row of
  *  years is a second layer of text saying less. The rest live in the tooltip. */
 function EndYears({ points, x }: { points: TrendPoint[]; x: (i: number) => number }) {
   return (
     <>
       {[0, points.length - 1].map((i) => (
-        <text key={points[i].year} x={x(i)} y={YEAR_Y} textAnchor="middle" fontSize="9.5" fill={GREY}>
+        <text key={points[i].year} x={x(i)} y={YEAR_Y} textAnchor="middle" fontSize="9.5" fill={TREND_AXIS_INK}>
           {points[i].year}
         </text>
       ))}
@@ -330,72 +359,94 @@ const trendTitle = (points: TrendPoint[], unit: string) =>
     )
     .join(' · ')
 
-/** X · counts — solid bars are actuals, hollow dashed are the committed path,
- *  and the red dashed target line is drawn only where a target exists. */
+/**
+ * X · counts — the bar is the actual, and where a target exists a tick sits
+ * across the bar at the target's height.
+ *
+ * NEVER a stacked bar. Stacking means parts of a whole, and actual + target
+ * sum to nothing: 1,027 delivered against a 1,100 commitment is not 2,127 of
+ * anything. The tick is the L1 bullet bar's target marker rotated vertical, so
+ * there is no new grammar to learn — bar below the tick is short, bar past it
+ * has passed. A year with no target simply has no tick.
+ */
 export function BarTrend({ m }: { m: Extract<L2Mark, { kind: 'bars' }> }) {
   const { x, y, step } = trendScale(m.points)
   const bw = Math.min(30, step * 0.62)
   const lastActual = m.points.filter((p) => p.actual !== null).slice(-1)[0]
   const latest = m.points.indexOf(lastActual)
   const divider = m.points.findIndex((p) => p.future)
-  /* target segments break wherever the sheet set none — never interpolated */
-  const segs: string[][] = []
-  let cur: string[] = []
-  m.points.forEach((p, i) => {
-    if (p.target === null) {
-      if (cur.length) segs.push(cur)
-      cur = []
-      return
-    }
-    cur.push(`${x(i) - bw / 2},${y(p.target)}`, `${x(i) + bw / 2},${y(p.target)}`)
-  })
-  if (cur.length) segs.push(cur)
+  /** the tick overhangs the bar slightly so it reads as a marker, not a cap */
+  const tw = bw / 2 + 3
 
   return (
-    <svg viewBox={`0 0 ${TREND_W} ${TREND_H}`} height={TREND_H} width="100%" style={{ overflow: 'visible' }} role="img">
-      <title>{trendTitle(m.points, m.unit)}</title>
-      {m.points.map((p, i) =>
-        p.actual !== null ? (
-          <rect
-            key={p.year}
-            x={x(i) - bw / 2}
-            y={y(p.actual)}
-            width={bw}
-            height={Math.max(2, BASE_Y - y(p.actual))}
-            rx="4"
-            fill={p === lastActual ? BRAND : BAR_MUTED}
-          />
-        ) : p.target !== null ? (
-          <rect
-            key={p.year}
-            x={x(i) - bw / 2}
-            y={y(p.target)}
-            width={bw}
-            height={Math.max(2, BASE_Y - y(p.target))}
-            rx="4"
-            fill="none"
-            stroke={BRAND}
-            strokeWidth="1.4"
-            strokeDasharray="4 3"
-            opacity="0.55"
-          />
-        ) : null,
-      )}
-      {segs.map((s, i) => (
-        <polyline key={i} points={s.join(' ')} fill="none" stroke={RED} strokeWidth="2" strokeDasharray="5 3" />
-      ))}
-      {divider > 0 && (
-        <line x1={x(divider) - step / 2} y1={PLOT_TOP} x2={x(divider) - step / 2} y2={BASE_Y} stroke={BORDER} strokeDasharray="3 3" />
-      )}
-      <line x1="0" y1={BASE_Y} x2={TREND_W} y2={BASE_Y} stroke={BORDER} />
-      <TrendLabels points={m.points} x={x} unit={m.unit} latest={latest} />
-      <EndYears points={m.points} x={x} />
-    </svg>
+    <>
+      <svg viewBox={`0 0 ${TREND_W} ${TREND_H}`} height={TREND_H} width="100%" style={{ overflow: 'visible' }} role="img">
+        <title>{trendTitle(m.points, m.unit)}</title>
+        {m.points.map((p, i) =>
+          p.actual !== null ? (
+            <rect
+              key={p.year}
+              x={x(i) - bw / 2}
+              y={y(p.actual)}
+              width={bw}
+              height={Math.max(2, BASE_Y - y(p.actual))}
+              rx="4"
+              fill={p === lastActual ? TREND_ACTUAL : TREND_ACTUAL_PAST}
+            />
+          ) : p.target !== null ? (
+            /* a committed year with nothing delivered yet: the outline shows
+               the size of the commitment without claiming a reading */
+            <rect
+              key={p.year}
+              x={x(i) - bw / 2}
+              y={y(p.target)}
+              width={bw}
+              height={Math.max(2, BASE_Y - y(p.target))}
+              rx="4"
+              fill="none"
+              stroke={TREND_TARGET}
+              strokeWidth="1.4"
+              strokeDasharray="4 3"
+            />
+          ) : null,
+        )}
+        {/* one tick per year that HAS a target — discrete markers, never a path
+            joining them, which would draw a commitment across years that set
+            none */}
+        {m.points.map((p, i) =>
+          p.target !== null && p.actual !== null ? (
+            <line
+              key={`tk${p.year}`}
+              x1={x(i) - tw}
+              y1={y(p.target)}
+              x2={x(i) + tw}
+              y2={y(p.target)}
+              stroke={TREND_TARGET}
+              strokeWidth="2.5"
+              strokeLinecap="round"
+            />
+          ) : null,
+        )}
+        {divider > 0 && (
+          <line x1={x(divider) - step / 2} y1={PLOT_TOP} x2={x(divider) - step / 2} y2={BASE_Y} stroke={TREND_RULE} strokeDasharray="3 3" />
+        )}
+        <line x1="0" y1={BASE_Y} x2={TREND_W} y2={BASE_Y} stroke={TREND_RULE} />
+        <TrendLabels points={m.points} x={x} unit={m.unit} latest={latest} />
+        <EndYears points={m.points} x={x} />
+      </svg>
+      {m.hasTarget && <TrendKey shape="bar" />}
+    </>
   )
 }
 
-/** X · percentages — a level that persists, so a line. Solid actual, red
- *  dashed target, hollow points on the future path. */
+/**
+ * X · percentages — a level that persists, so a line. Solid actual with filled
+ * points; the commitment is a second dashed line with hollow points, in the
+ * neutral target treatment, over EVERY year that set one — historical as well
+ * as future. It breaks wherever the sheet set none rather than spanning the
+ * gap: only 30/43/42/47 of 240 rows carry a historical target, so a target
+ * series is usually partial and drawing through it would invent commitments.
+ */
 export function LineTrend({ m }: { m: Extract<L2Mark, { kind: 'line' }> }) {
   const { x, y, step } = trendScale(m.points)
   const acts = m.points.map((p, i) => ({ ...p, i })).filter((p) => p.actual !== null)
@@ -414,27 +465,31 @@ export function LineTrend({ m }: { m: Extract<L2Mark, { kind: 'line' }> }) {
   if (cur.length > 1) segs.push(cur)
 
   return (
-    <svg viewBox={`0 0 ${TREND_W} ${TREND_H}`} height={TREND_H} width="100%" style={{ overflow: 'visible' }} role="img">
-      <title>{trendTitle(m.points, m.unit)}</title>
-      {segs.map((s, i) => (
-        <polyline key={i} points={s.join(' ')} fill="none" stroke={RED} strokeWidth="2" strokeDasharray="5 3" opacity={i > 0 ? 0.7 : 1} />
-      ))}
-      <polyline points={acts.map((p) => `${x(p.i)},${y(p.actual as number)}`).join(' ')} fill="none" stroke={BRAND} strokeWidth="2.5" />
-      {acts.map((p) => (
-        <circle key={p.year} cx={x(p.i)} cy={y(p.actual as number)} r={p === last ? 5.5 : 3.5} fill={BRAND} />
-      ))}
-      {m.points.map((p, i) =>
-        p.future && p.target !== null ? (
-          <circle key={`f${p.year}`} cx={x(i)} cy={y(p.target)} r="4" fill="#fff" stroke={RED} strokeWidth="1.6" />
-        ) : null,
-      )}
-      {divider > 0 && (
-        <line x1={x(divider) - step / 2} y1={PLOT_TOP} x2={x(divider) - step / 2} y2={BASE_Y} stroke={BORDER} strokeDasharray="3 3" />
-      )}
-      <line x1="0" y1={BASE_Y} x2={TREND_W} y2={BASE_Y} stroke={BORDER} />
-      <TrendLabels points={m.points} x={x} unit={m.unit} latest={last ? last.i : -1} />
-      <EndYears points={m.points} x={x} />
-    </svg>
+    <>
+      <svg viewBox={`0 0 ${TREND_W} ${TREND_H}`} height={TREND_H} width="100%" style={{ overflow: 'visible' }} role="img">
+        <title>{trendTitle(m.points, m.unit)}</title>
+        {segs.map((s, i) => (
+          <polyline key={i} points={s.join(' ')} fill="none" stroke={TREND_TARGET} strokeWidth="2" strokeDasharray="5 3" />
+        ))}
+        <polyline points={acts.map((p) => `${x(p.i)},${y(p.actual as number)}`).join(' ')} fill="none" stroke={TREND_ACTUAL} strokeWidth="2.5" />
+        {acts.map((p) => (
+          <circle key={p.year} cx={x(p.i)} cy={y(p.actual as number)} r={p === last ? 5.5 : 3.5} fill={TREND_ACTUAL} />
+        ))}
+        {/* hollow points on every committed year, not only the future ones */}
+        {m.points.map((p, i) =>
+          p.target !== null ? (
+            <circle key={`t${p.year}`} cx={x(i)} cy={y(p.target)} r="4" fill="#fff" stroke={TREND_TARGET} strokeWidth="1.6" />
+          ) : null,
+        )}
+        {divider > 0 && (
+          <line x1={x(divider) - step / 2} y1={PLOT_TOP} x2={x(divider) - step / 2} y2={BASE_Y} stroke={TREND_RULE} strokeDasharray="3 3" />
+        )}
+        <line x1="0" y1={BASE_Y} x2={TREND_W} y2={BASE_Y} stroke={TREND_RULE} />
+        <TrendLabels points={m.points} x={x} unit={m.unit} latest={last ? last.i : -1} />
+        <EndYears points={m.points} x={x} />
+      </svg>
+      {m.hasTarget && <TrendKey shape="line" />}
+    </>
   )
 }
 
@@ -447,7 +502,10 @@ export function TwoValueMark({ m }: { m: Extract<L2Mark, { kind: 'twoValue' }> }
       style={c.partial ? { border: `1px dashed ${BORDER}` } : { background: '#f4f2f8' }}
     >
       <div className="text-[10px]" style={{ color: GREY }}>{c.label}</div>
-      <div className="text-[24px] font-bold leading-none" style={{ color: c.partial ? '#53565a' : BRAND, marginTop: 4 }}>
+      {/* neutral ink, like every other L2 reading — in brand green these two
+          figures read as a verdict on an indicator with too few readings to
+          call a direction at all */}
+      <div className="text-[24px] font-bold leading-none" style={{ color: c.partial ? '#53565a' : TREND_ACTUAL, marginTop: 4 }}>
         {val(c.value, m.unit)}
       </div>
       <div className="mt-1.5 text-[10px]" style={{ color: GREY }}>{c.span}</div>

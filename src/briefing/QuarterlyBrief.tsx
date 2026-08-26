@@ -17,8 +17,10 @@ import { buildQuarterlyBrief, markBriefRead, type Paragraph, type Margin } from 
 import { Spark } from '../components/Shell'
 import type { Kpi } from '../model/types'
 
+import { TREND_ACTUAL, TREND_ACTUAL_PAST, TREND_TARGET } from '../components/charts/trendPalette'
+
 const EASE: [number, number, number, number] = [0.32, 0.72, 0, 1]
-const SIDRA = '#034638'
+
 const MAROON = '#8a1538'
 const MUTE = '#7e938d'
 const INK = '#122822'
@@ -166,10 +168,20 @@ function MarginMark({ m }: { m: Margin }) {
         {m.series.map(([lbl, v], i) => {
           const x = pad + i * step
           const last = i === n - 1
-          const fill = m.emphasisLast && last ? (m.series[0][1] > v ? MAROON : SIDRA) : SIDRA
           return (
             <g key={lbl}>
-              <rect x={x} y={H - 14 - h(v)} width={bw} height={h(v)} rx={2} fill={fill} opacity={m.emphasisLast && !last ? 0.32 : 1} />
+              {/* the bar states the reading, never the verdict. This used to
+                  turn maroon on a decline, which is the status palette making
+                  a judgement inside a trend — the prose beside it is where
+                  this brief says whether a fall is bad news. */}
+              <rect
+                x={x}
+                y={H - 14 - h(v)}
+                width={bw}
+                height={h(v)}
+                rx={2}
+                fill={m.emphasisLast && !last ? TREND_ACTUAL_PAST : TREND_ACTUAL}
+              />
               <text x={x + bw / 2} y={H - 3} textAnchor="middle" fontSize="8" fontFamily="var(--font-ui)" fill={MUTE}>
                 {lbl}
               </text>
@@ -187,6 +199,24 @@ function MarginMark({ m }: { m: Margin }) {
             </g>
           )
         })}
+        {/* one tick per bar where a target exists — the same grammar as the
+            listing trends, never a stacked segment */}
+        {m.target !== undefined &&
+          m.series.map(([lbl], i) => {
+            const x = pad + i * step
+            return (
+              <line
+                key={`t${lbl}`}
+                x1={x - 2}
+                y1={H - 14 - h(m.target as number)}
+                x2={x + bw + 2}
+                y2={H - 14 - h(m.target as number)}
+                stroke={TREND_TARGET}
+                strokeWidth="1.6"
+                strokeLinecap="round"
+              />
+            )
+          })}
       </svg>
     )
   }

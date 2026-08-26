@@ -4,6 +4,7 @@
  * unit, cap). Two KPIs with the same data shape always get the same component.
  */
 import type { EChartsOption } from 'echarts'
+import { TREND_ACTUAL, TREND_TARGET } from './trendPalette'
 import type { Kpi } from '../../model/types'
 import { AXIS, TOOLTIP, TARGET_LINE } from './EChart'
 
@@ -566,7 +567,12 @@ export function overlayTrendOption(group: Kpi[], hue: string): EChartsOption {
   }
   const series: object[] = []
   group.forEach((k, i) => {
-    const color = group.length === 1 ? hue : SERIES_PALETTE[i % SERIES_PALETTE.length]
+    /* NEVER the status palette, and never the thematic hue: two of the six
+       thematic hues are the status colours to the eye, so a trend drawn in one
+       states a verdict the trend is not making. A single indicator takes the
+       neutral ink; members of a group need telling apart, which is identity
+       rather than judgement, so they keep the series palette. */
+    const color = group.length === 1 ? TREND_ACTUAL : SERIES_PALETTE[i % SERIES_PALETTE.length]
     series.push({
       name: `${short(k.name, 30)} — actual`,
       type: 'bar',
@@ -582,15 +588,19 @@ export function overlayTrendOption(group: Kpi[], hue: string): EChartsOption {
         formatter: (p: { value: number | null }) => (p.value === null ? '' : nf(p.value)),
       },
     })
+    const targetColor = group.length === 1 ? TREND_TARGET : color
     series.push({
       name: `${short(k.name, 30)} — target`,
       type: 'line',
       data: AXIS_YEARS.map((y) => k.targets[y]?.value ?? null),
-      lineStyle: { type: 'dashed', width: 1.6, color },
-      itemStyle: { color: '#ffffff', borderColor: color, borderWidth: 1.6 },
+      lineStyle: { type: 'dashed', width: 1.6, color: targetColor },
+      itemStyle: { color: '#ffffff', borderColor: targetColor, borderWidth: 1.6 },
       symbol: 'circle',
       symbolSize: 7,
-      connectNulls: true,
+      /* a year that set no target is a gap, not a point to draw through —
+         only 30/43/42/47 of 240 rows carry a historical target, so joining
+         across the nulls invents commitments nobody made */
+      connectNulls: false,
       z: 3,
     })
   })
