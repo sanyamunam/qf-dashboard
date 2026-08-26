@@ -286,14 +286,33 @@ export function lineFor(k: ObsKpi, p: Period): string {
       const hi = Math.max(...vals)
       return `Closed years have run ${n(k, lo)} to ${n(k, hi)} — the plan allows ${n(k, t)}.`
     }
-    return `The first reading this indicator carries, against a commitment set for ${p === 'q1' ? '2026' : '2025'}.`
+    /* named, so eight first-reading cards in one listing do not all carry the
+       same sentence — the commitment is the part that differs */
+    return `The first reading this indicator carries, against a commitment of ${n(k, t)} for ${p === 'q1' ? '2026' : '2025'}.`
   }
 
   if (kind === 'trend') {
     const future = anyTarget.find(([y]) => Number(y) >= 2026)
     if (future)
-      return `A ${n(k, future[1])} commitment stands for ${future[0]}, and it is measured when the year closes — not in a quarter.`
-    return 'No target has ever been set for this indicator, so its direction is tracked but never scored.'
+      return `A ${n(k, future[1])} commitment stands for ${future[0]}, measured when the year closes — not in a quarter.`
+    /**
+     * The old sentence ran verbatim on four of five cards in one screenshot,
+     * which is a caption saying nothing. Every value is labelled on the mark
+     * now, so this states the one thing the labels do not: the shape of the
+     * whole run, which differs card to card.
+     */
+    if (years.length >= 2) {
+      const first = years[0][1]
+      const last = years[years.length - 1][1]
+      const pts = unitOf(k) === '%'
+      const swing = pts ? last - first : first === 0 ? null : (last - first) / Math.abs(first)
+      const flat = swing === null || Math.abs(swing) < (pts ? 1 : 0.03)
+      const shape = flat
+        ? 'has held level'
+        : `is ${swing! > 0 ? 'up' : 'down'} ${pts ? `${Math.abs(Math.round(swing!))} points` : `${Math.round(Math.abs(swing!) * 100)}%`}`
+      return `Untargeted, so direction only: across ${years.length} closed years it ${shape}.`
+    }
+    return 'Untargeted — direction is tracked, but never scored.'
   }
 
   if (kind === 'twoReadings')

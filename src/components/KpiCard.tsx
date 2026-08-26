@@ -14,6 +14,7 @@ import { ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react'
 import type { Kpi } from '../model/types'
 import { fmt } from '../model/data'
 import { EntityIcon } from './EntityIcon'
+import { ThemeIcon } from './ThemeIcon'
 import { KpiIdentity } from './KpiIdentity'
 import { aiLineFor } from './charts/builders'
 import { SnapshotMark } from './charts/SnapshotMark'
@@ -145,20 +146,26 @@ export function KpiCard({
       {/* a finding earns an accent edge; a quiet card stays quiet */}
       {loud && <span aria-hidden className="absolute inset-y-0 start-0 w-[3px]" style={{ background: pol.tone }} />}
 
-      {status && <div className="mb-1.5 flex items-center gap-2">{status}</div>}
-
-      <div className="flex items-start justify-between gap-2">
-        <span className="min-w-0">
-          {title && group.length > 1 ? (
-            <>
-              <span className="block text-[11px] leading-tight text-ink-mute">{k.entity} · {group.length} indicators</span>
-              <span className={`mt-0.5 block font-semibold leading-tight text-ink ${lg ? 'text-[13.5px]' : 'text-[13px]'}`}>{title}</span>
-            </>
-          ) : (
-            <KpiIdentity kpi={k} />
-          )}
+      {/* the header row: what kind of thing this is (theme, as a mark) and how
+          it is doing (status, as words — that is the varying part a reader
+          scans for). The entity rides on the right as its logo. */}
+      <div className="mb-1.5 flex items-center gap-2">
+        <ThemeIcon theme={k.theme} size={lg ? 15 : 14} />
+        {status && <span className="flex min-w-0 flex-1 items-center gap-2">{status}</span>}
+        <span className="ms-auto">
+          <EntityIcon entity={k.entity} size={lg ? 22 : 20} />
         </span>
-        <EntityIcon entity={k.entity} size={lg ? 22 : 20} />
+      </div>
+
+      <div className="min-w-0">
+        {title && group.length > 1 ? (
+          <>
+            <span className="block text-[11px] leading-tight text-ink-mute">{group.length} indicators</span>
+            <span className={`mt-0.5 block font-semibold leading-tight text-ink ${lg ? 'text-[13.5px]' : 'text-[13px]'}`}>{title}</span>
+          </>
+        ) : (
+          <KpiIdentity kpi={k} showEntity={false} />
+        )}
       </div>
 
       {group.length > 1 ? (

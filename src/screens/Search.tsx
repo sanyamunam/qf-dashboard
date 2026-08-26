@@ -53,14 +53,16 @@ const hueFor = (theme: string | null) => themeByName(theme ?? '').fill
 function RowMeta({ k, p }: { k: ObsKpi; p: Period }) {
   const s = statusFor(k, p)
   return (
-    <span className="flex w-full min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+    /* the theme used to be spelled out here too, and in a 240-row listing it
+       wrapped to a second line on nearly every card. It is the card's theme
+       icon now; what stays is the dashboard, which the icon cannot say and
+       which is the real discriminator in a mixed listing. */
+    <span className="flex w-full min-w-0 items-center gap-x-3">
       <span className="flex min-w-0 items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-ink-soft">
         <span aria-hidden className="h-2 w-2 shrink-0 rounded-full" style={{ background: STATUS_DOT[s] }} />
         <span className="truncate">{STATUS_LABEL[s]}</span>
       </span>
-      <span className="truncate text-[10.5px] font-medium uppercase tracking-[0.08em] text-ink-mute">
-        {dashOf(k)} · {themeOf(k)}
-      </span>
+      <span className="truncate text-[10.5px] font-medium uppercase tracking-[0.08em] text-ink-mute">{dashOf(k)}</span>
     </span>
   )
 }

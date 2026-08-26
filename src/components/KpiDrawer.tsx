@@ -17,6 +17,7 @@ import { SnapshotMark } from './charts/SnapshotMark'
 import { AiRead } from './AiRead'
 import { BotainaFigure } from './Botaina'
 import { EntityIcon } from './EntityIcon'
+import { ThemeIcon } from './ThemeIcon'
 import { kpis as allKpis } from '../model/data'
 
 /**
@@ -273,8 +274,18 @@ export function KpiDrawer({ kpi, group, onClose }: { kpi: Kpi | null; group?: Kp
                   <EntityIcon entity={kpi.entity} size={30} />
                 </span>
                 <div className="min-w-0">
-                  <div className="label text-ink-mute">
-                    {kpi.entity} · {kpi.framework} · {kpi.category}
+                  {/* the overlay is where the card's icon and logo are spelled
+                      out — there is room here, and a reader who came for the
+                      detail may genuinely need the names */}
+                  <div className="label flex flex-wrap items-center gap-x-1.5 gap-y-1 text-ink-mute">
+                    <ThemeIcon theme={kpi.theme} size={13} />
+                    <span>{kpi.theme || 'Thematic area unassigned'}</span>
+                    <span aria-hidden>·</span>
+                    <span>{kpi.entity}</span>
+                    <span aria-hidden>·</span>
+                    <span>{kpi.framework}</span>
+                    <span aria-hidden>·</span>
+                    <span>{kpi.category}</span>
                   </div>
                   <h2 className="mt-1.5 text-[21px] font-semibold leading-tight text-ink">{kpi.name}</h2>
                 </div>

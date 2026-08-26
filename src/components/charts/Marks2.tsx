@@ -201,17 +201,110 @@ export function IdleMark() {
 
 const TREND_W = 320
 const TREND_H = 132
-const BASE_Y = 108
+/**
+ * A fixed two-row label band above the plot, and the plot below it.
+ *
+ * Labelling every bar and every point means up to fourteen numbers on one
+ * card, and floating each one over its own mark is how `1,027` ended up
+ * sitting on top of its bar. Reserving two rows at a constant height solves it
+ * by construction rather than by nudging: the target row is always at
+ * TARGET_Y, the actual row always at ACTUAL_Y, the plot never rises above
+ * PLOT_TOP, so no label can reach a mark or another label. It also keeps the
+ * baseline grid identical across a row of cards regardless of how many labels
+ * each one carries.
+ */
+const TARGET_Y = 9
+const ACTUAL_Y = 23
+const PLOT_TOP = 32
+const BASE_Y = 112
+const YEAR_Y = 128
 
 function trendScale(points: TrendPoint[]) {
   const vals = points.flatMap((p) => [p.actual, p.target]).filter((v): v is number => v !== null)
   const max = Math.max(...vals, 1)
   const min = Math.min(0, ...vals)
-  const y = (v: number) => BASE_Y - ((v - min) / (max - min || 1)) * (BASE_Y - 24)
+  const y = (v: number) => BASE_Y - ((v - min) / (max - min || 1)) * (BASE_Y - PLOT_TOP)
   const step = TREND_W / points.length
   const x = (i: number) => step * i + step / 2
   return { x, y, step }
 }
+
+/**
+ * Every reading labelled, in its own column. The most recent actual carries
+ * the weight; earlier years sit lighter and a shade smaller, so four numbers
+ * do not read as four equal claims. A target is the reference, never the
+ * reading — smaller again, and quieter.
+ *
+ * A year with no target simply has no target label. Targets exist for only
+ * 30/43/42/47 of 240 rows across 2022–25; drawing one where none was set
+ * would fabricate a commitment.
+ */
+function TrendLabels({
+  points,
+  x,
+  unit,
+  latest,
+}: {
+  points: TrendPoint[]
+  x: (i: number) => number
+  unit: string
+  /** index of the most recent reported actual */
+  latest: number
+}) {
+  return (
+    <>
+      {points.map((p, i) =>
+        p.target !== null ? (
+          <text key={`t${p.year}`} x={x(i)} y={TARGET_Y} textAnchor="middle" fontSize="8.5" fill={RED} opacity="0.75">
+            {compact(p.target)}
+            {unit}
+          </text>
+        ) : null,
+      )}
+      {points.map((p, i) =>
+        p.actual !== null ? (
+          <text
+            key={`a${p.year}`}
+            x={x(i)}
+            y={ACTUAL_Y}
+            textAnchor="middle"
+            fontSize={i === latest ? 11.5 : 9.5}
+            fontWeight={i === latest ? 700 : 500}
+            fill={i === latest ? BRAND : GREY}
+          >
+            {compact(p.actual)}
+            {unit}
+          </text>
+        ) : null,
+      )}
+    </>
+  )
+}
+
+/** The axis at its ends only — with every bar labelled by value, a full row of
+ *  years is a second layer of text saying less. The rest live in the tooltip. */
+function EndYears({ points, x }: { points: TrendPoint[]; x: (i: number) => number }) {
+  return (
+    <>
+      {[0, points.length - 1].map((i) => (
+        <text key={points[i].year} x={x(i)} y={YEAR_Y} textAnchor="middle" fontSize="9.5" fill={GREY}>
+          {points[i].year}
+        </text>
+      ))}
+    </>
+  )
+}
+
+/** Every year and its readings, for the tooltip the labels no longer carry. */
+const trendTitle = (points: TrendPoint[], unit: string) =>
+  points
+    .map(
+      (p) =>
+        `${p.year}: ${p.actual !== null ? `${fmt(p.actual)}${unit}` : p.future ? 'not yet due' : 'not reported'}${
+          p.target !== null ? ` (target ${fmt(p.target)}${unit})` : ''
+        }`,
+    )
+    .join(' · ')
 
 /** X · counts — solid bars are actuals, hollow dashed are the committed path,
  *  and the red dashed target line is drawn only where a target exists. */
@@ -219,7 +312,7 @@ export function BarTrend({ m }: { m: Extract<L2Mark, { kind: 'bars' }> }) {
   const { x, y, step } = trendScale(m.points)
   const bw = Math.min(30, step * 0.62)
   const lastActual = m.points.filter((p) => p.actual !== null).slice(-1)[0]
-  const firstActual = m.points.filter((p) => p.actual !== null)[0]
+  const latest = m.points.indexOf(lastActual)
   const divider = m.points.findIndex((p) => p.future)
   /* target segments break wherever the sheet set none — never interpolated */
   const segs: string[][] = []
@@ -235,7 +328,8 @@ export function BarTrend({ m }: { m: Extract<L2Mark, { kind: 'bars' }> }) {
   if (cur.length) segs.push(cur)
 
   return (
-    <svg viewBox={`0 0 ${TREND_W} ${TREND_H}`} height={TREND_H} width="100%" style={{ overflow: 'visible' }} aria-hidden>
+    <svg viewBox={`0 0 ${TREND_W} ${TREND_H}`} height={TREND_H} width="100%" style={{ overflow: 'visible' }} role="img">
+      <title>{trendTitle(m.points, m.unit)}</title>
       {m.points.map((p, i) =>
         p.actual !== null ? (
           <rect
@@ -267,28 +361,11 @@ export function BarTrend({ m }: { m: Extract<L2Mark, { kind: 'bars' }> }) {
         <polyline key={i} points={s.join(' ')} fill="none" stroke={RED} strokeWidth="2" strokeDasharray="5 3" />
       ))}
       {divider > 0 && (
-        <line x1={x(divider) - step / 2} y1="8" x2={x(divider) - step / 2} y2={BASE_Y} stroke={BORDER} strokeDasharray="3 3" />
+        <line x1={x(divider) - step / 2} y1={PLOT_TOP} x2={x(divider) - step / 2} y2={BASE_Y} stroke={BORDER} strokeDasharray="3 3" />
       )}
       <line x1="0" y1={BASE_Y} x2={TREND_W} y2={BASE_Y} stroke={BORDER} />
-      {firstActual && (
-        <text x={x(m.points.indexOf(firstActual))} y={y(firstActual.actual as number) - 6} textAnchor="middle" fontSize="10" fill={GREY}>
-          {compact(firstActual.actual as number)}
-          {m.unit}
-        </text>
-      )}
-      {lastActual && (
-        <text x={x(m.points.indexOf(lastActual))} y={y(lastActual.actual as number) - 6} textAnchor="middle" fontSize="11" fontWeight="700" fill={BRAND}>
-          {compact(lastActual.actual as number)}
-          {m.unit}
-        </text>
-      )}
-      {m.points.map((p, i) =>
-        i === 0 || i === m.points.length - 1 || p === lastActual ? (
-          <text key={`y${p.year}`} x={x(i)} y={TREND_H - 8} textAnchor="middle" fontSize="10" fill={GREY}>
-            {p.year}
-          </text>
-        ) : null,
-      )}
+      <TrendLabels points={m.points} x={x} unit={m.unit} latest={latest} />
+      <EndYears points={m.points} x={x} />
     </svg>
   )
 }
@@ -313,7 +390,8 @@ export function LineTrend({ m }: { m: Extract<L2Mark, { kind: 'line' }> }) {
   if (cur.length > 1) segs.push(cur)
 
   return (
-    <svg viewBox={`0 0 ${TREND_W} ${TREND_H}`} height={TREND_H} width="100%" style={{ overflow: 'visible' }} aria-hidden>
+    <svg viewBox={`0 0 ${TREND_W} ${TREND_H}`} height={TREND_H} width="100%" style={{ overflow: 'visible' }} role="img">
+      <title>{trendTitle(m.points, m.unit)}</title>
       {segs.map((s, i) => (
         <polyline key={i} points={s.join(' ')} fill="none" stroke={RED} strokeWidth="2" strokeDasharray="5 3" opacity={i > 0 ? 0.7 : 1} />
       ))}
@@ -327,26 +405,11 @@ export function LineTrend({ m }: { m: Extract<L2Mark, { kind: 'line' }> }) {
         ) : null,
       )}
       {divider > 0 && (
-        <line x1={x(divider) - step / 2} y1="8" x2={x(divider) - step / 2} y2={BASE_Y} stroke={BORDER} strokeDasharray="3 3" />
+        <line x1={x(divider) - step / 2} y1={PLOT_TOP} x2={x(divider) - step / 2} y2={BASE_Y} stroke={BORDER} strokeDasharray="3 3" />
       )}
       <line x1="0" y1={BASE_Y} x2={TREND_W} y2={BASE_Y} stroke={BORDER} />
-      {acts[0] && (
-        <text x={x(acts[0].i)} y={y(acts[0].actual as number) - 9} textAnchor="middle" fontSize="10" fill={GREY}>
-          {val(acts[0].actual as number, m.unit)}
-        </text>
-      )}
-      {last && (
-        <text x={x(last.i)} y={y(last.actual as number) - 11} textAnchor="middle" fontSize="11" fontWeight="700" fill={BRAND}>
-          {val(last.actual as number, m.unit)}
-        </text>
-      )}
-      {m.points.map((p, i) =>
-        i === 0 || i === m.points.length - 1 || p === (last as unknown as TrendPoint) ? (
-          <text key={`y${p.year}`} x={x(i)} y={TREND_H - 8} textAnchor="middle" fontSize="10" fill={GREY}>
-            {p.year}
-          </text>
-        ) : null,
-      )}
+      <TrendLabels points={m.points} x={x} unit={m.unit} latest={last ? last.i : -1} />
+      <EndYears points={m.points} x={x} />
     </svg>
   )
 }
