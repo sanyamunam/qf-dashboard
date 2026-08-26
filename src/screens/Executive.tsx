@@ -52,17 +52,27 @@ const EASE: [number, number, number, number] = [0.32, 0.72, 0, 1]
 
 const hueFor = (theme: string | null) => themeByName(theme ?? '').fill
 
-/**
- * Status only. The thematic area is now the card's theme icon and the entity
- * is its logo — both sit in the same header row, so the one thing left to say
- * in words is the state, which is also the only one that varies card to card.
- */
+/** Status dot + thematic area in the card's header row, both named in words;
+ *  the entity is the card's logo, and hovering it gives the name. Row 11's
+ *  double gap is surfaced, never blank. */
 function CardMeta({ k, p }: { k: ObsKpi; p: Period }) {
   const s = statusFor(k, p)
   return (
-    <span className="flex min-w-0 items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-ink-soft">
-      <span aria-hidden className="h-2 w-2 shrink-0 rounded-full" style={{ background: STATUS_DOT[s] }} />
-      <span className="truncate">{STATUS_LABEL[s]}</span>
+    <span className="flex w-full min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+      <span className="flex min-w-0 items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-ink-soft">
+        <span aria-hidden className="h-2 w-2 shrink-0 rounded-full" style={{ background: STATUS_DOT[s] }} />
+        <span className="truncate">{STATUS_LABEL[s]}</span>
+      </span>
+      {k.theme ? (
+        <span className="flex min-w-0 items-center gap-1.5 text-[10.5px] font-medium uppercase tracking-[0.08em] text-ink-mute">
+          <span aria-hidden className="h-2 w-2 shrink-0 rounded-[3px]" style={{ background: hueFor(k.theme) }} />
+          <span className="truncate">{k.theme}</span>
+        </span>
+      ) : (
+        <span className="truncate text-[10.5px] font-semibold uppercase tracking-[0.08em]" style={{ color: '#8a1538' }}>
+          Entity &amp; thematic area unassigned
+        </span>
+      )}
     </span>
   )
 }
