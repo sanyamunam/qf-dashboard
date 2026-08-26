@@ -54,9 +54,17 @@ export const STATUS_LABEL: Record<DashStatus, string> = {
   monitoring: 'Monitoring',
 }
 
-/** Dot colours from the build's own status palette (marks/builders). */
+/**
+ * Dot colours. `performing` moved off the muted sage #3c6a5f onto QF's own
+ * reserved semantic lime, which the chart layer (STATUS_COLOR.met) was already
+ * using for the same verdict — so this removes an inconsistency rather than
+ * inventing a colour. It also matters for the trends: a muted sage occupies
+ * exactly the register a quiet thematic green needs, and measured in Lab it
+ * sat ΔE 18 from Sustainability. Against lime that separation is comfortable,
+ * which is what lets a trend carry its theme's hue at all.
+ */
 export const STATUS_DOT: Record<DashStatus, string> = {
-  performing: '#3c6a5f',
+  performing: '#78be20',
   atRisk: '#8a1538',
   notReported: '#9aaba5',
   monitoring: '#b8860b',

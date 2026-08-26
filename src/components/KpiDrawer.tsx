@@ -20,7 +20,8 @@ import { EntityIcon } from './EntityIcon'
 import { L1MarkView, L2MarkView } from './charts/Marks2'
 import { selectL1, selectL2 } from '../model/chartSelect'
 import { obsRow } from '../model/obs'
-import { kpis as allKpis } from '../model/data'
+import { kpis as allKpis, themeByName } from '../model/data'
+import { trendHues } from './charts/trendPalette'
 
 /**
  * The spacing scale for this panel — one generous step between the five
@@ -189,7 +190,7 @@ export function KpiDetailBody({ kpi, group: given }: { kpi: Kpi; group?: Kpi[] |
       <section style={{ marginTop: SECTION }}>
         <SectionHead note="actuals and targets, 2022–2028">History and outlook</SectionHead>
         {obsSource ? (
-          <L2MarkView mark={selectL2(obsSource, 'q1')} />
+          <L2MarkView mark={selectL2(obsSource, 'q1')} hues={trendHues(themeByName(obsSource.theme ?? '').id)} />
         ) : hasAnyReading ? (
           <>
             <EChart option={overlayTrendOption(group, '#034638')} height={group.length > 1 ? 250 : 220} />

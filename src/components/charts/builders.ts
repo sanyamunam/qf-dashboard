@@ -197,7 +197,7 @@ export type ChartStatus = 'met' | 'onpace' | 'behind' | 'neutral' | 'breach'
 /** Status colours: fill for marks, text dark enough to carry the number. */
 export const STATUS_COLOR: Record<'met' | 'behind' | 'breach', { fill: string; text: string }> = {
   met: { fill: '#78be20', text: '#3f7300' }, // QF semantic lime — reserved for genuinely good news
-  behind: { fill: '#dda32e', text: '#8a6512' }, // muted amber — visibly not the confident state
+  behind: { fill: '#c98a1e', text: '#8a6512' }, // deepened off Progressive Education's #e5a823, which it sat ΔE 5.9 from — indistinguishable
   breach: { fill: '#8a1538', text: '#8a1538' }, // maroon — the one real red
 }
 

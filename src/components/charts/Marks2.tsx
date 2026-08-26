@@ -9,8 +9,8 @@
  * tolerance in the sheet ends, and a smooth ramp would imply graded severity
  * no column supports.
  */
-import { fmt } from '../../model/data'
-import { TREND_ACTUAL, TREND_ACTUAL_PAST, TREND_TARGET, TREND_RULE, TREND_AXIS_INK } from './trendPalette'
+import { fmt, themeByName } from '../../model/data'
+import { trendHues, TREND_NEUTRAL, TREND_TARGET, TREND_RULE, TREND_AXIS_INK, type TrendHues } from './trendPalette'
 import { selectL1, selectL2, type L1Mark, type L2Mark, type TrendPoint, type Period } from '../../model/chartSelect'
 import type { ObsKpi } from '../../model/obs'
 
@@ -269,12 +269,14 @@ function TrendLabels({
   x,
   unit,
   latest,
+  hues,
 }: {
   points: TrendPoint[]
   x: (i: number) => number
   unit: string
   /** index of the most recent reported actual */
   latest: number
+  hues: TrendHues
 }) {
   return (
     <>
@@ -295,7 +297,7 @@ function TrendLabels({
             textAnchor="middle"
             fontSize={i === latest ? 11.5 : 9.5}
             fontWeight={i === latest ? 700 : 500}
-            fill={i === latest ? TREND_ACTUAL : TREND_AXIS_INK}
+            fill={i === latest ? hues.now : TREND_AXIS_INK}
           >
             {compact(p.actual)}
             {unit}
@@ -310,15 +312,15 @@ function TrendLabels({
  * Two words, inline — only where the chart actually carries both series. A
  * boxed legend on a card this size costs more room than the chart it explains.
  */
-function TrendKey({ shape }: { shape: 'bar' | 'line' }) {
+function TrendKey({ shape, hues }: { shape: 'bar' | 'line'; hues: TrendHues }) {
   return (
     <div className="mt-1.5 flex items-center gap-3 text-[9.5px]" style={{ color: TREND_AXIS_INK }}>
       <span className="flex items-center gap-1.5">
         <svg width="14" height="8" aria-hidden>
           {shape === 'bar' ? (
-            <rect x="4" y="0" width="6" height="8" rx="1.5" fill={TREND_ACTUAL} />
+            <rect x="4" y="0" width="6" height="8" rx="1.5" fill={hues.now} />
           ) : (
-            <line x1="0" y1="4" x2="14" y2="4" stroke={TREND_ACTUAL} strokeWidth="2.5" />
+            <line x1="0" y1="4" x2="14" y2="4" stroke={hues.now} strokeWidth="2.5" />
           )}
         </svg>
         actual
@@ -369,7 +371,7 @@ const trendTitle = (points: TrendPoint[], unit: string) =>
  * there is no new grammar to learn — bar below the tick is short, bar past it
  * has passed. A year with no target simply has no tick.
  */
-export function BarTrend({ m }: { m: Extract<L2Mark, { kind: 'bars' }> }) {
+export function BarTrend({ m, hues = TREND_NEUTRAL }: { m: Extract<L2Mark, { kind: 'bars' }>; hues?: TrendHues }) {
   const { x, y, step } = trendScale(m.points)
   const bw = Math.min(30, step * 0.62)
   const lastActual = m.points.filter((p) => p.actual !== null).slice(-1)[0]
@@ -391,7 +393,7 @@ export function BarTrend({ m }: { m: Extract<L2Mark, { kind: 'bars' }> }) {
               width={bw}
               height={Math.max(2, BASE_Y - y(p.actual))}
               rx="4"
-              fill={p === lastActual ? TREND_ACTUAL : TREND_ACTUAL_PAST}
+              fill={p === lastActual ? hues.now : hues.past}
             />
           ) : p.target !== null ? (
             /* a committed year with nothing delivered yet: the outline shows
@@ -431,10 +433,10 @@ export function BarTrend({ m }: { m: Extract<L2Mark, { kind: 'bars' }> }) {
           <line x1={x(divider) - step / 2} y1={PLOT_TOP} x2={x(divider) - step / 2} y2={BASE_Y} stroke={TREND_RULE} strokeDasharray="3 3" />
         )}
         <line x1="0" y1={BASE_Y} x2={TREND_W} y2={BASE_Y} stroke={TREND_RULE} />
-        <TrendLabels points={m.points} x={x} unit={m.unit} latest={latest} />
+        <TrendLabels points={m.points} x={x} unit={m.unit} latest={latest} hues={hues} />
         <EndYears points={m.points} x={x} />
       </svg>
-      {m.hasTarget && <TrendKey shape="bar" />}
+      {m.hasTarget && <TrendKey shape="bar" hues={hues} />}
     </>
   )
 }
@@ -447,7 +449,7 @@ export function BarTrend({ m }: { m: Extract<L2Mark, { kind: 'bars' }> }) {
  * gap: only 30/43/42/47 of 240 rows carry a historical target, so a target
  * series is usually partial and drawing through it would invent commitments.
  */
-export function LineTrend({ m }: { m: Extract<L2Mark, { kind: 'line' }> }) {
+export function LineTrend({ m, hues = TREND_NEUTRAL }: { m: Extract<L2Mark, { kind: 'line' }>; hues?: TrendHues }) {
   const { x, y, step } = trendScale(m.points)
   const acts = m.points.map((p, i) => ({ ...p, i })).filter((p) => p.actual !== null)
   const last = acts.slice(-1)[0]
@@ -471,9 +473,9 @@ export function LineTrend({ m }: { m: Extract<L2Mark, { kind: 'line' }> }) {
         {segs.map((s, i) => (
           <polyline key={i} points={s.join(' ')} fill="none" stroke={TREND_TARGET} strokeWidth="2" strokeDasharray="5 3" />
         ))}
-        <polyline points={acts.map((p) => `${x(p.i)},${y(p.actual as number)}`).join(' ')} fill="none" stroke={TREND_ACTUAL} strokeWidth="2.5" />
+        <polyline points={acts.map((p) => `${x(p.i)},${y(p.actual as number)}`).join(' ')} fill="none" stroke={hues.now} strokeWidth="2.5" />
         {acts.map((p) => (
-          <circle key={p.year} cx={x(p.i)} cy={y(p.actual as number)} r={p === last ? 5.5 : 3.5} fill={TREND_ACTUAL} />
+          <circle key={p.year} cx={x(p.i)} cy={y(p.actual as number)} r={p === last ? 5.5 : 3.5} fill={p === last ? hues.now : hues.past} />
         ))}
         {/* hollow points on every committed year, not only the future ones */}
         {m.points.map((p, i) =>
@@ -485,16 +487,16 @@ export function LineTrend({ m }: { m: Extract<L2Mark, { kind: 'line' }> }) {
           <line x1={x(divider) - step / 2} y1={PLOT_TOP} x2={x(divider) - step / 2} y2={BASE_Y} stroke={TREND_RULE} strokeDasharray="3 3" />
         )}
         <line x1="0" y1={BASE_Y} x2={TREND_W} y2={BASE_Y} stroke={TREND_RULE} />
-        <TrendLabels points={m.points} x={x} unit={m.unit} latest={last ? last.i : -1} />
+        <TrendLabels points={m.points} x={x} unit={m.unit} latest={last ? last.i : -1} hues={hues} />
         <EndYears points={m.points} x={x} />
       </svg>
-      {m.hasTarget && <TrendKey shape="line" />}
+      {m.hasTarget && <TrendKey shape="line" hues={hues} />}
     </>
   )
 }
 
 /** Y · two readings — never a line, and never a shared value axis. */
-export function TwoValueMark({ m }: { m: Extract<L2Mark, { kind: 'twoValue' }> }) {
+export function TwoValueMark({ m, hues = TREND_NEUTRAL }: { m: Extract<L2Mark, { kind: 'twoValue' }>; hues?: TrendHues }) {
   const cell = (c: { label: string; value: number; span: string; partial?: boolean }) => (
     <div
       key={c.label}
@@ -505,7 +507,7 @@ export function TwoValueMark({ m }: { m: Extract<L2Mark, { kind: 'twoValue' }> }
       {/* neutral ink, like every other L2 reading — in brand green these two
           figures read as a verdict on an indicator with too few readings to
           call a direction at all */}
-      <div className="text-[24px] font-bold leading-none" style={{ color: c.partial ? '#53565a' : TREND_ACTUAL, marginTop: 4 }}>
+      <div className="text-[24px] font-bold leading-none" style={{ color: c.partial ? '#53565a' : hues.now, marginTop: 4 }}>
         {val(c.value, m.unit)}
       </div>
       <div className="mt-1.5 text-[10px]" style={{ color: GREY }}>{c.span}</div>
@@ -558,14 +560,14 @@ export function L1MarkView({
   }
 }
 
-export function L2MarkView({ mark }: { mark: L2Mark }) {
+export function L2MarkView({ mark, hues = TREND_NEUTRAL }: { mark: L2Mark; hues?: TrendHues }) {
   switch (mark.kind) {
     case 'bars':
-      return <BarTrend m={mark} />
+      return <BarTrend m={mark} hues={hues} />
     case 'line':
-      return <LineTrend m={mark} />
+      return <LineTrend m={mark} hues={hues} />
     case 'twoValue':
-      return <TwoValueMark m={mark} />
+      return <TwoValueMark m={mark} hues={hues} />
     case 'baseline':
       return <BaselineMark m={mark} />
     case 'none':
@@ -574,6 +576,14 @@ export function L2MarkView({ mark }: { mark: L2Mark }) {
 }
 
 /* ─────────────────────────── the surface entry points ────────────────────── */
+
+/**
+ * A trend's colour is its indicator's THEMATIC identity, resolved here rather
+ * than passed down — a caller that had to supply the hue is a caller that
+ * could supply the wrong one. `themeByName` degrades an unknown or missing
+ * theme to the fallback id, which maps to the neutral ink.
+ */
+const huesFor = (k: ObsKpi) => trendHues(themeByName(k.theme ?? '').id)
 
 /**
  * L1 ONLY — every listing card outside the Executive Dashboard.
@@ -607,7 +617,7 @@ export function CardMark({ k, p }: { k: ObsKpi; p: Period }) {
   const l1 = selectL1(k, p)
   if (l1.kind === 'bullet' || l1.kind === 'gauge' || l1.kind === 'centredGauge') return <L1MarkView mark={l1} />
   const l2 = selectL2(k, p)
-  if (l2.kind !== 'none') return <L2MarkView mark={l2} />
+  if (l2.kind !== 'none') return <L2MarkView mark={l2} hues={huesFor(k)} />
   return <L1MarkView mark={l1} />
 }
 
@@ -623,7 +633,7 @@ export function OverlayMarks({ k, p }: { k: ObsKpi; p: Period }) {
     <div className="flex flex-col gap-5">
       <L1MarkView mark={l1} />
       {/* the card's mark is the trend when nothing scores it — don't draw it twice */}
-      {(scoring || !(l2.kind !== 'none')) && l2.kind !== 'none' && <L2MarkView mark={l2} />}
+      {(scoring || !(l2.kind !== 'none')) && l2.kind !== 'none' && <L2MarkView mark={l2} hues={huesFor(k)} />}
     </div>
   )
 }
