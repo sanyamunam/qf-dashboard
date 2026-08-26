@@ -16,7 +16,7 @@
 import { useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { ArrowUpRight, ChevronDown } from 'lucide-react'
-import { GlobalSearch, HeaderCluster, Spark, TopNav } from '../components/Shell'
+import { HeaderCluster, Spark, TopNav } from '../components/Shell'
 import { AiRead } from '../components/AiRead'
 import { KpiCard } from '../components/KpiCard'
 import { CardMark } from '../components/charts/Marks2'
@@ -241,10 +241,13 @@ export function Executive({ onEvidence }: { onEvidence: (kpi: Kpi) => void }) {
     <div className="mx-auto min-h-dvh max-w-[1180px] px-5 pb-36 md:px-8">
       <header className="pt-6">
         {/* one header row: logo, navigation, search entry, account */}
-        <div className="flex items-center justify-between gap-6">
+        {/* logo, navigation, account — the nav takes the centre now that the
+            header search, the lamp and the bell have gone */}
+        <div className="flex items-center gap-6">
           <img src="/al-mishkat.png" alt="Al-Mishkat" className="h-11 w-auto shrink-0" style={{ margin: '11px 0' }} />
-          <TopNav active="exec" />
-          <GlobalSearch onPick={onEvidence} />
+          <div className="flex flex-1 justify-center">
+            <TopNav active="exec" />
+          </div>
           <HeaderCluster hidePeriod />
         </div>
         <div className="mt-8 flex flex-wrap items-end justify-between gap-x-6 gap-y-3">

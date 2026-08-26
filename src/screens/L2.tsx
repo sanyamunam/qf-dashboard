@@ -285,9 +285,11 @@ export function L2({
         <div className="mx-auto max-w-[1180px] px-5 md:px-8">
           {/* the platform's top bar, light-on-dark, no surface of its own.
               One search per page: it lives in the explore section (R7 fix 1). */}
-          <div className="flex items-center justify-between gap-6 pt-4">
+          <div className="flex items-center gap-6 pt-4">
             <LogoWhite className="h-9 w-auto shrink-0" />
-            <TopNav active="themes" light />
+            <div className="flex flex-1 justify-center">
+              <TopNav active="themes" light />
+            </div>
             <HeaderCluster hidePeriod light />
           </div>
 

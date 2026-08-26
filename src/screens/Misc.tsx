@@ -6,7 +6,7 @@
  */
 import { motion } from 'framer-motion'
 import { Handshake } from 'lucide-react'
-import { AppHeader, Spark, HeaderCluster, GlobalSearch, TopNav } from '../components/Shell'
+import { AppHeader, Spark, HeaderCluster, TopNav } from '../components/Shell'
 import { PortfolioBrief } from '../components/PortfolioBrief'
 import { buildCards, ThemeCard } from '../components/ThemeCards'
 import { OEBand } from '../components/OEBand'
@@ -28,11 +28,12 @@ export function ThematicView({
       {/* header zone: logo at rest with its clear space, then title + orientation,
           context strip right-aligned on the title baseline */}
       <header className="pt-6">
-        <div className="flex items-center justify-between gap-8">
+        <div className="flex items-center gap-6">
           {/* clear space around the mark equals its height */}
           <img src="/al-mishkat.png" alt="Al-Mishkat" className="h-11 w-auto shrink-0" style={{ margin: '11px 0' }} />
-          <TopNav active="themes" />
-          <GlobalSearch onPick={onEvidence} />
+          <div className="flex flex-1 justify-center">
+            <TopNav active="themes" />
+          </div>
           <HeaderCluster hidePeriod />
         </div>
         <div className="mt-8 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
