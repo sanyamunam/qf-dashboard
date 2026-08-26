@@ -21,6 +21,7 @@ import {
   markKindFor,
   cardKpi,
   unitOf,
+  isPercentRow,
   type ObsKpi,
   type Period,
 } from '../../model/dash'
@@ -38,6 +39,90 @@ export const compactVal = (unit: string) => (n: number) => {
 }
 
 const yearLabel = (y: string) => (y === '2026Q1' ? 'Q1 26' : y)
+
+/* ─────────────── annual counts — bars, anchored at zero ───────────────
+ * The chart type follows the KIND OF NUMBER, so the rule holds everywhere:
+ * a COUNT accumulated over a period takes bars. Four graduate totals are four
+ * discrete figures — a line between them would claim a value existed in
+ * between, and that the series flows, and neither is true of a yearly count.
+ *
+ * Bars anchor at zero, which is the whole reason to use them: Footfall's
+ * 2.03M reads as two-thirds of its 3.05M rather than as a gentle slope.
+ *
+ * Grammar borrowed wholesale from PortfolioBrief's DeltaColumns — rounded
+ * caps, earlier periods at 0.38, the most recent at full strength — and the
+ * label geometry is TrajectoryMark's, so a bar card and a line card differ in
+ * nothing but the mark. */
+export function BarTrendMark({
+  series,
+  hue,
+  fmtVal,
+  H = 104,
+  peakHue = '#7e938d',
+  axisHue = '#9aaba5',
+}: {
+  series: [string, number][]
+  hue: string
+  fmtVal: (n: number) => string
+  H?: number
+  peakHue?: string
+  axisHue?: string
+}) {
+  /* the same reserves TrajectoryMark uses, so both marks sit on one baseline */
+  const padT = 22
+  const padB = 16
+  const area = H - padT - padB
+  const vals = series.map(([, v]) => v)
+  const max = Math.max(...vals, 1)
+  const lastIdx = vals.length - 1
+  const centre = (i: number) => `${((i + 0.5) / vals.length) * 100}%`
+  const barTop = (v: number) => padT + (1 - v / max) * area
+
+  return (
+    <div className="relative w-full" style={{ height: H }} aria-hidden>
+      <div className="absolute inset-x-0 flex items-end gap-[6px]" style={{ top: padT, height: area }}>
+        {vals.map((v, i) => (
+          <div
+            key={series[i][0]}
+            className="flex-1"
+            style={{
+              height: `${Math.max(2, (v / max) * 100)}%`,
+              background: hue,
+              opacity: i === lastIdx ? 1 : 0.38,
+              borderRadius: '3px 3px 0 0',
+            }}
+          />
+        ))}
+      </div>
+      {/* both endpoints direct-labelled — no axis needed at card size */}
+      {[0, lastIdx].map((i) =>
+        i === 0 && lastIdx === 0 ? null : (
+          <span
+            key={`v${i}`}
+            className={`num absolute whitespace-nowrap ${i === lastIdx ? 'text-[12px] font-bold' : 'text-[10.5px]'}`}
+            style={{
+              left: centre(i),
+              top: barTop(vals[i]) - 4,
+              color: i === lastIdx ? hue : peakHue,
+              transform: 'translate(-50%,-100%)',
+            }}
+          >
+            {fmtVal(vals[i])}
+          </span>
+        ),
+      )}
+      {[0, lastIdx].map((i) => (
+        <span
+          key={`y${i}`}
+          className="absolute whitespace-nowrap text-[9.5px]"
+          style={{ left: centre(i), bottom: 0, color: axisHue, transform: 'translateX(-50%)' }}
+        >
+          {series[i][0]}
+        </span>
+      ))}
+    </div>
+  )
+}
 
 /* ─────────────────── two readings — a pair, not a trajectory ───────────────────
  * Active QPHI reads 250 across all of 2025 and 28 for Q1 2026. Those two
@@ -136,7 +221,13 @@ export function DashMark({ k, p, hue }: { k: ObsKpi; p: Period; hue: string }) {
 
   if (kind === 'trend') {
     const series = completedYears(k).map(([y, v]) => [yearLabel(y), v] as [string, number])
-    return <TrajectoryMark series={series} hue={hue} fmtVal={fmtVal} H={104} gradient labelFirst />
+    /* the ONE rule a reader has to learn: a rate is a level that persists and
+       takes a line; a count accrues over a period and takes bars */
+    return isPercentRow(k) ? (
+      <TrajectoryMark series={series} hue={hue} fmtVal={fmtVal} H={104} gradient labelFirst zeroSuppress />
+    ) : (
+      <BarTrendMark series={series} hue={hue} fmtVal={fmtVal} H={104} />
+    )
   }
 
   if (kind === 'twoReadings') {

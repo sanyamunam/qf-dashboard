@@ -22,6 +22,7 @@ export function TrajectoryMark({
   axisHue = '#9aaba5',
   gradient,
   labelFirst,
+  zeroSuppress,
 }: {
   series: [string, number][]
   hue: string
@@ -34,6 +35,9 @@ export function TrajectoryMark({
   gradient?: boolean
   /** label the FIRST value too, so the range reads without an axis */
   labelFirst?: boolean
+  /** let the axis start at the data rather than zero — only legitimate for a
+   *  RATE, where the movement is the story and both ends are labelled */
+  zeroSuppress?: boolean
 }) {
   const W = 300
   const pad = { t: labelFirst ? 22 : 18, b: 16, l: labelFirst ? 30 : 6, r: 52 }
@@ -41,7 +45,9 @@ export function TrajectoryMark({
   const gid = `traj-${hue.replace(/[^a-z0-9]/gi, '')}-${series.length}-${Math.round(series[0]?.[1] ?? 0)}`
   const vals = series.map(([, v]) => v)
   const max = Math.max(...vals)
-  const min = Math.min(0, ...vals)
+  const lo = Math.min(...vals)
+  const span = Math.max(...vals) - lo
+  const min = zeroSuppress ? lo - (span || Math.abs(lo) || 1) * 0.35 : Math.min(0, ...vals)
   const x = (i: number) => pad.l + (i * (W - pad.l - pad.r)) / (series.length - 1)
   const y = (v: number) => pad.t + (1 - (v - min) / (max - min || 1)) * (H - pad.t - pad.b)
   const line = vals.map((v, i) => `${i === 0 ? 'M' : 'L'}${x(i)},${y(v)}`).join(' ')

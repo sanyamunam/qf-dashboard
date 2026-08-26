@@ -205,3 +205,56 @@ listing (it has no destination the data supports).
 12. Running on :4189, not deployed ✓
 
 Zero console errors; `tsc` and the production build clean.
+
+---
+
+# Chart type by data type (25 Aug 2026)
+
+Localhost only (:4189). Not deployed.
+
+One rule, learned once, holding everywhere — **the mark follows the kind of
+number**, decided by `isPercentRow` (the sheet's own KPI Definition), so it is
+read off the data rather than chosen card by card:
+
+| data type | mark | why |
+|---|---|---|
+| counts, totals, volumes | **bars, anchored at zero** | four graduate totals are four discrete figures; a line between them claims a value existed in between, and that the series flows |
+| rates, percentages, ratios | **line, zero-suppression allowed** | a level that persists rather than a quantity that accrues; the story in 54% → 72% is the movement, not the distance from zero |
+
+That yields **five bars and one line** among the trend cards — Footfall,
+HE Graduates, HE Enrollment, PUE Graduates, PUE Enrollment as bars; Higher Ed.
+Graduates Employed as the one line. The split is the data's, not a choice made
+for variety.
+
+**Bars fixed the understatement.** Footfall's 2.03M → 3.05M rendered as a
+gentle slope; as zero-anchored bars it is 44px → 66px, its 50% growth read
+directly off the heights.
+
+`BarTrendMark` borrows its grammar wholesale from `PortfolioBrief`'s
+`DeltaColumns` — rounded caps, earlier periods at 0.38 opacity, the most
+recent at full strength — and its label geometry from `TrajectoryMark`
+(padT 22 / padB 16, first value 10.5px muted, last value 12px bold in the
+theme hue, first and last year at 9.5px). So a bar card and a line card in the
+same row differ in the mark and nothing else. `TrajectoryMark` gained one
+opt-in prop, `zeroSuppress`, used only for rates and only alongside
+`labelFirst`, so both ends of a suppressed axis are always labelled.
+
+## Verification · headless, 1600×1050, both periods
+
+1. Counts → bars, percentages → lines, identical in both periods ✓
+2. **5 bar charts, 1 line** among the trend cards ✓
+3. Bar heights are exactly proportional to value/max — Footfall 2.03/3.05 =
+   0.665 → 44/66px; HE Graduates 788/1027 = 0.767 → 51/66px ✓ zero-anchored
+4. Footfall's 50% growth reads as a 50% taller bar ✓
+5. Most recent period at full opacity against 0.38, on every bar chart; the
+   line's last point is the heavier dot ✓
+6. First and last values direct-labelled on both mark types ✓
+7. Same 104px height, same padding, same label sizes and colours, same theme
+   hue — the Education row shows two bars beside one line and reads as one
+   system ✓
+8. The three bullet cards and Active QPHI's two-tile card unchanged ✓
+9. Marks are the platform's own: `TrajectoryMark`, `DeltaColumns`' bar
+   grammar, `SnapshotMark` ✓
+10. Running on :4189, not deployed ✓
+
+Zero console errors; `tsc` and the production build clean.

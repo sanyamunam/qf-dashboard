@@ -432,5 +432,5 @@ export function chipsToFilters(chips: Chip[], residue: string): SearchFilters {
   return f
 }
 
-export { obsAsKpi, unitOf, lift }
+export { obsAsKpi, unitOf, lift, isPercentRow }
 export type { ObsKpi }
