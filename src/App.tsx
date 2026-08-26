@@ -6,7 +6,7 @@ import { Executive } from './screens/Executive'
 import { Search } from './screens/Search'
 import { L2 } from './screens/L2'
 import { KpiDrawer } from './components/KpiDrawer'
-import { NavPill, type RouteId } from './components/Shell'
+import { AskBar, type RouteId } from './components/Shell'
 import { BotainaDock } from './components/BotainaDock'
 import { QuarterlyBrief } from './briefing/QuarterlyBrief'
 import type { Kpi } from './model/types'
@@ -185,7 +185,7 @@ export default function App() {
               />
             )}
           </AnimatePresence>
-          <NavPill active={active} onGo={(r) => go({ screen: r })} shift={botainaOpen && wide ? -panelW / 2 : 0} />
+          <AskBar shift={botainaOpen && wide ? -panelW / 2 : 0} />
           <BotainaDock
             onNavigatePoint={navigateAndPoint}
             open={botainaOpen}

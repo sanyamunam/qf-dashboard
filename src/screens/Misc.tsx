@@ -6,7 +6,7 @@
  */
 import { motion } from 'framer-motion'
 import { Handshake } from 'lucide-react'
-import { AppHeader, Spark, HeaderCluster, GlobalSearch } from '../components/Shell'
+import { AppHeader, Spark, HeaderCluster, GlobalSearch, TopNav } from '../components/Shell'
 import { PortfolioBrief } from '../components/PortfolioBrief'
 import { buildCards, ThemeCard } from '../components/ThemeCards'
 import { OEBand } from '../components/OEBand'
@@ -31,6 +31,7 @@ export function ThematicView({
         <div className="flex items-center justify-between gap-8">
           {/* clear space around the mark equals its height */}
           <img src="/al-mishkat.png" alt="Al-Mishkat" className="h-11 w-auto shrink-0" style={{ margin: '11px 0' }} />
+          <TopNav active="themes" />
           <GlobalSearch onPick={onEvidence} />
           <HeaderCluster hidePeriod />
         </div>
@@ -120,7 +121,7 @@ export function ThematicView({
 export function Bdo() {
   return (
     <div className="mx-auto min-h-dvh max-w-[1180px] px-5 pb-36 md:px-8">
-      <AppHeader />
+      <AppHeader active="bdo" />
       <div className="mx-auto mt-16 flex max-w-[440px] flex-col items-center rounded-panel bg-card p-10 text-center shadow-(--shadow-card)">
         <span className="flex h-14 w-14 items-center justify-center rounded-full" style={{ background: 'rgba(3,70,56,0.08)' }}>
           <Handshake size={26} strokeWidth={1.5} className="text-sidra" />

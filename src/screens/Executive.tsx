@@ -14,9 +14,9 @@
  * frame from ThematicView. Rationale + rejections: docs/exec-dashboard-notes.md
  */
 import { useMemo, useState } from 'react'
-import { AnimatePresence, motion } from 'framer-motion'
-import { ArrowUpRight, ChevronDown, X } from 'lucide-react'
-import { GlobalSearch, HeaderCluster, Spark } from '../components/Shell'
+import { motion } from 'framer-motion'
+import { ArrowUpRight, ChevronDown } from 'lucide-react'
+import { GlobalSearch, HeaderCluster, Spark, TopNav } from '../components/Shell'
 import { AiRead } from '../components/AiRead'
 import { KpiCard } from '../components/KpiCard'
 import { CardMark } from '../components/charts/Marks2'
@@ -197,9 +197,14 @@ type Band =
 
 export function Executive({ onEvidence }: { onEvidence: (kpi: Kpi) => void }) {
   const [period, setPeriod] = useState<Period>('q1')
-  const [statusFilter, setStatusFilter] = useState<DashStatus | null>(null)
 
-  const counts = useMemo(() => statusCounts(period), [period])
+  /**
+   * The status cards describe the PORTFOLIO — all 89 Executive indicators —
+   * while the ten cards below are the spotlight. The scope has to match the
+   * click-through: a card that says 2 and opens a listing of 12 is broken, so
+   * both count the same 89 rows the listing shows.
+   */
+  const counts = useMemo(() => statusCounts(period, execRows), [period])
   const tree = useMemo(() => buildTree(execRows), [])
   /**
    * Two kinds of thing, told apart.
@@ -232,13 +237,13 @@ export function Executive({ onEvidence }: { onEvidence: (kpi: Kpi) => void }) {
     return out
   }, [tree])
 
-  const visible = (k: ObsKpi) => statusFilter === null || statusFor(k, period) === statusFilter
-
   return (
     <div className="mx-auto min-h-dvh max-w-[1180px] px-5 pb-36 md:px-8">
       <header className="pt-6">
-        <div className="flex items-center justify-between gap-8">
+        {/* one header row: logo, navigation, search entry, account */}
+        <div className="flex items-center justify-between gap-6">
           <img src="/al-mishkat.png" alt="Al-Mishkat" className="h-11 w-auto shrink-0" style={{ margin: '11px 0' }} />
+          <TopNav active="exec" />
           <GlobalSearch onPick={onEvidence} />
           <HeaderCluster hidePeriod />
         </div>
@@ -260,26 +265,25 @@ export function Executive({ onEvidence }: { onEvidence: (kpi: Kpi) => void }) {
         <CollapsibleSummary p={period} onOpen={onEvidence} />
       </motion.div>
 
-      {/* the four states — real counts, recomputed per period, summing to ten.
-          Clicking filters the cards below, visibly and clearably. */}
+      {/* the four states over ALL 89 Executive indicators — computed per
+          period, never hard-coded. Clicking opens the listing filtered to
+          that status, where the filter shows as a removable chip. */}
       <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
         {(Object.keys(STATUS_LABEL) as DashStatus[]).map((st, i) => {
           const list = counts[st]
-          const active = statusFilter === st
+          const onDash = list.filter((k) => k.highlighted).length
           return (
             <motion.button
               key={st}
-              onClick={() => setStatusFilter(active ? null : st)}
-              aria-pressed={active}
+              onClick={() => {
+                location.hash = `search?status=${st}&dash=Executive`
+              }}
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.35, delay: 0.04 * i, ease: EASE }}
               className="flex h-full flex-col rounded-card bg-card p-3.5 text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-(--shadow-card-hover)"
-              style={{
-                boxShadow: 'var(--shadow-card)',
-                outline: active ? '2px solid var(--color-sidra)' : 'none',
-                outlineOffset: -2,
-              }}
+              style={{ boxShadow: 'var(--shadow-card)' }}
+              aria-label={`${STATUS_LABEL[st]} — ${list.length} of ${execRows.length} Executive indicators; open the listing`}
             >
               <span className="flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-ink-soft">
                 <span aria-hidden className="h-2 w-2 shrink-0 rounded-full" style={{ background: STATUS_DOT[st] }} />
@@ -289,7 +293,8 @@ export function Executive({ onEvidence }: { onEvidence: (kpi: Kpi) => void }) {
                 {String(list.length).padStart(2, '0')}
               </span>
               <span className="mt-1.5 text-[11px] leading-snug text-ink-mute" style={{ minHeight: '2.6em' }}>
-                {list.length ? list.map((k) => k.name.trim()).join(' · ') : STATUS_SENSE[st]}
+                {STATUS_SENSE[st]}
+                {onDash > 0 && ` · ${onDash} on this dashboard`}
               </span>
             </motion.button>
           )
@@ -298,33 +303,17 @@ export function Executive({ onEvidence }: { onEvidence: (kpi: Kpi) => void }) {
 
       <p className="mt-2.5 text-[11.5px] text-ink-mute">
         {counts.performing.length} + {counts.atRisk.length} + {counts.notReported.length} + {counts.monitoring.length} ={' '}
-        <span className="font-semibold text-ink-soft">{dashTen.length}</span>, judged for {PERIOD_LABEL[period]} only.{' '}
-        <span className="font-semibold text-ink-soft">Monitoring</span> means a reading with no target — no pass/fail verdict
-        is possible, and none is invented.
+        <span className="font-semibold text-ink-soft">{execRows.length}</span> Executive indicators, judged for{' '}
+        {PERIOD_LABEL[period]} only. <span className="font-semibold text-ink-soft">Monitoring</span> means a reading with no
+        target to judge it against — including nine cyclical rows whose target is 0 by design — so no pass/fail verdict is
+        possible, and none is invented.
       </p>
-
-      {/* the applied status filter — visible, clearable */}
-      <AnimatePresence>
-        {statusFilter && (
-          <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="mt-3 flex items-center gap-2.5">
-            <span className="label text-[10px] text-ink-mute">Filtered by</span>
-            <button
-              onClick={() => setStatusFilter(null)}
-              className="flex items-center gap-1.5 rounded-full bg-cream px-3 py-1 text-[12px] font-medium text-sidra"
-            >
-              {STATUS_LABEL[statusFilter]} <X size={12} strokeWidth={2.2} />
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* the category tree. A wrapper is a divider; a category is a
           destination. Both readings are available at a glance, without
           hovering anything. */}
       {bands.map((band, bi) => {
-        const cats = band.cats
-          .map((c) => ({ ...c, cards: c.cards.filter(visible) }))
-          .filter((c) => c.cards.length > 0)
+        const cats = band.cats.filter((c) => c.cards.length > 0)
         if (cats.length === 0) return null
 
         const grid = (
@@ -399,8 +388,10 @@ export function Executive({ onEvidence }: { onEvidence: (kpi: Kpi) => void }) {
         and no thematic area — 12 of the 89 Executive rows share that gap — and{' '}
         <span className="font-semibold text-ink-soft">Patents Granted – Other</span> additionally has no category (listed
         under Uncategorised). There is no Priority Initiatives category in the source sheet — Operational Excellence holds
-        Financial Health and HC Insights only. Every figure traces to a cell in Actuals &amp; Targets; percentage units are
-        normalised once, on read.
+        Financial Health and HC Insights only. 4 rows carry thematic area <span className="font-semibold text-ink-soft">All</span> —
+        flagged as either a real cross-cutting scope or a data fault. <span className="font-semibold text-ink-soft">Employee
+        Turnover</span> is marked Polarity Green (higher is better) while its Thematic twin is Red — judged as recorded, and
+        flagged. Every figure traces to a cell in Actuals &amp; Targets; percentage units are normalised once, on read.
       </footer>
     </div>
   )

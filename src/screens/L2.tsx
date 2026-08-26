@@ -8,7 +8,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Search, X, ChevronDown, ArrowLeft, ChevronRight } from 'lucide-react'
 import { AiRead } from '../components/AiRead'
-import { HeaderCluster, LogoWhite } from '../components/Shell'
+import { HeaderCluster, LogoWhite, TopNav } from '../components/Shell'
 import { themeById, themeKpis } from '../model/data'
 import { facts, fmt, wishDropPct } from '../model/facts'
 import { topMovers } from '../model/spotlight'
@@ -182,12 +182,7 @@ export function L2({
   }, [])
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      // one search on the page: ⌘K scrolls to the AI search and focuses it
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
-        e.preventDefault()
-        aiFieldRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' })
-        setTimeout(() => aiFieldRef.current?.focus({ preventScroll: true }), 350)
-      }
+      // ⌘K belongs to the global AskBar now — no local binding here
       if (e.key === 'Escape') {
         // Escape mirrors the back control unless a transient layer is open
         if (document.activeElement === aiFieldRef.current) (document.activeElement as HTMLElement).blur()
@@ -292,6 +287,7 @@ export function L2({
               One search per page: it lives in the explore section (R7 fix 1). */}
           <div className="flex items-center justify-between gap-6 pt-4">
             <LogoWhite className="h-9 w-auto shrink-0" />
+            <TopNav active="themes" light />
             <HeaderCluster hidePeriod light />
           </div>
 

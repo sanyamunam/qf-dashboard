@@ -12,7 +12,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { ArrowLeft, ChevronDown, ChevronRight, Search as SearchIcon, X } from 'lucide-react'
-import { GlobalSearch, HeaderCluster, Spark } from '../components/Shell'
+import { GlobalSearch, HeaderCluster, Spark, TopNav } from '../components/Shell'
 import { KpiCard } from '../components/KpiCard'
 import { CardMark } from '../components/charts/Marks2'
 import { themeByName } from '../model/data'
@@ -33,6 +33,7 @@ import {
   entityOf,
   themeOf,
   dashOf,
+  frameworkOf,
   groupOf,
   subOf,
   STATUS_LABEL,
@@ -140,6 +141,7 @@ export function Search({ onEvidence, onBack }: { onEvidence: (kpi: Kpi) => void;
   const tree = useMemo(() => buildTree(obsKpis), [])
   const entities = useMemo(() => [...new Set(obsKpis.map(entityOf))].sort(), [])
   const themes = useMemo(() => [...new Set(obsKpis.map(themeOf))].sort(), [])
+  const frameworks = useMemo(() => [...new Set(obsKpis.map(frameworkOf))].sort(), [])
   const on = (kind: Chip['kind'], value: string) => chips.some((c) => c.kind === kind && c.value === value)
 
   const answer = useMemo(() => {
@@ -155,7 +157,7 @@ export function Search({ onEvidence, onBack }: { onEvidence: (kpi: Kpi) => void;
 
   const relaxHint = useMemo(() => {
     if (shown.length > 0) return null
-    for (const key of ['status', 'cats', 'entities', 'themes', 'dash', 'q'] as (keyof SearchFilters)[]) {
+    for (const key of ['status', 'cats', 'entities', 'themes', 'frameworks', 'stopped', 'dash', 'q'] as (keyof SearchFilters)[]) {
       const val = filters[key]
       const has = Array.isArray(val) ? val.length > 0 : Boolean(val)
       if (has && obsKpis.some((k) => matches(k, filters, period, key))) {
@@ -166,7 +168,11 @@ export function Search({ onEvidence, onBack }: { onEvidence: (kpi: Kpi) => void;
               ? 'the category filter'
               : key === 'dash'
                 ? 'the dashboard filter'
-                : `the ${key === 'entities' ? 'entity' : key === 'themes' ? 'thematic area' : 'status'} filter`
+                : key === 'frameworks'
+                  ? 'the framework filter'
+                  : key === 'stopped'
+                    ? 'the stopped-reporting filter'
+                    : `the ${key === 'entities' ? 'entity' : key === 'themes' ? 'thematic area' : 'status'} filter`
         return `Nothing matches everything at once — removing ${label} would show results.`
       }
     }
@@ -183,8 +189,9 @@ export function Search({ onEvidence, onBack }: { onEvidence: (kpi: Kpi) => void;
   return (
     <div className="mx-auto min-h-dvh max-w-[1180px] px-5 pb-36 md:px-8">
       <header className="pt-6">
-        <div className="flex items-center justify-between gap-8">
+        <div className="flex items-center justify-between gap-6">
           <img src="/al-mishkat.png" alt="Al-Mishkat" className="h-11 w-auto shrink-0" style={{ margin: '11px 0' }} />
+          <TopNav active="exec" />
           <GlobalSearch onPick={onEvidence} />
           <HeaderCluster hidePeriod />
         </div>
@@ -350,6 +357,24 @@ export function Search({ onEvidence, onBack }: { onEvidence: (kpi: Kpi) => void;
               <h3 className="label mb-1.5 text-[10px] text-ink-mute">Thematic area</h3>
               {themes.map((t) => (
                 <FacetOpt key={t} label={t} n={countWhere('themes', (k) => themeOf(k) === t)} on={on('theme', t)} onClick={() => toggle('theme', t)} />
+              ))}
+              {/* 4 rows carry the value `All` — kept visible as data, flagged
+                  as a question for QF rather than silently absorbed */}
+              <p className="mt-1 text-[10.5px] leading-snug text-ink-mute">
+                `All` is the sheet's own value on 4 rows — flagged to QF as either a real cross-cutting scope or a data
+                fault.
+              </p>
+            </div>
+            <div>
+              <h3 className="label mb-1.5 text-[10px] text-ink-mute">Performance framework</h3>
+              {frameworks.map((f) => (
+                <FacetOpt
+                  key={f}
+                  label={f}
+                  n={countWhere('frameworks', (k) => frameworkOf(k) === f)}
+                  on={on('framework', f)}
+                  onClick={() => toggle('framework', f, `${f} framework`)}
+                />
               ))}
             </div>
           </div>

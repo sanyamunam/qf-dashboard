@@ -1,9 +1,10 @@
 /**
  * Global shell.
- * Bottom nav: a dark Sidra glass pill — it floats over white cards, so it must
- * contrast with them, not borrow their surface. Active item is a sliding cream
- * chip (layout-animated). Top bar: logo, period chip, a notifications bell fed
- * by the real findings engine (never fabricated activity), and the profile.
+ * Navigation lives in the TOP header band — one row: logo, nav, search entry,
+ * account. The bottom of the viewport belongs to the sticky AI search (AskBar),
+ * the CEO's route to anything not on the dashboard. Top bar also carries a
+ * notifications bell fed by the real findings engine (never fabricated
+ * activity), and the profile.
  */
 import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
@@ -32,57 +33,18 @@ const ITEMS: { id: RouteId; label: string; Icon: typeof LayoutDashboard }[] = [
   { id: 'bdo', label: 'BDO', Icon: Handshake },
 ]
 
-export function NavPill({
-  active,
-  onGo,
-  shift = 0,
-}: {
-  active: RouteId | null
-  onGo: (r: RouteId) => void
-  shift?: number
-}) {
-  const [hidden, setHidden] = useState(false)
-  const lastY = useRef(0)
-  const graceUntil = useRef(0)
-  useEffect(() => {
-    const onScroll = () => {
-      const y = window.scrollY
-      // programmatic scrolls right after navigation (BOTaina's handoff, scroll
-      // restore) must not read as "user scrolled down" and hide the nav
-      if (performance.now() < graceUntil.current) {
-        lastY.current = y
-        return
-      }
-      setHidden(y > lastY.current && y > 120)
-      lastY.current = y
-    }
-    const onHash = () => {
-      // long enough to cover the delayed smooth scroll of BOTaina's handoff
-      graceUntil.current = performance.now() + 3200
-      setHidden(false)
-    }
-    window.addEventListener('scroll', onScroll, { passive: true })
-    window.addEventListener('hashchange', onHash)
-    return () => {
-      window.removeEventListener('scroll', onScroll)
-      window.removeEventListener('hashchange', onHash)
-    }
-  }, [])
-
+/**
+ * Primary navigation, in the top header band — the floating bottom pill sat
+ * over card content and competed with the page, and its slot at the bottom of
+ * the viewport now belongs to the AskBar. One treatment on light pages, a
+ * `light` variant for the L2 theme bands. Navigation goes through the hash so
+ * any header can carry it without prop-threading the router.
+ */
+export function TopNav({ active, light }: { active: RouteId | null; light?: boolean }) {
   return (
-    <motion.nav
-      className="fixed bottom-4 left-1/2 z-40 flex items-center gap-1 rounded-full p-1.5 max-md:w-[calc(100%-32px)] max-md:justify-between"
-      style={{
-        // lifted brand green — clearly QF, without the near-black weight
-        background: 'linear-gradient(180deg, rgba(16,118,96,0.95) 0%, rgba(9,92,74,0.95) 100%)',
-        backdropFilter: 'blur(14px)',
-        WebkitBackdropFilter: 'blur(14px)',
-        boxShadow:
-          'inset 0 1px 0 rgba(255,255,255,0.22), 0 1px 2px rgba(2,44,36,0.18), 0 14px 36px -12px rgba(3,70,56,0.4)',
-        border: '1px solid rgba(255,255,255,0.14)',
-      }}
-      animate={{ y: hidden ? 110 : 0, x: `calc(-50% + ${shift}px)` }}
-      transition={{ duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
+    <nav
+      className={`flex items-center gap-0.5 rounded-full p-1 ${light ? '' : 'bg-card shadow-(--shadow-card)'}`}
+      style={light ? { background: 'rgba(255,255,255,0.14)', border: '1px solid rgba(255,255,255,0.24)' } : undefined}
       aria-label="Primary navigation"
     >
       {ITEMS.map(({ id, label, Icon }) => {
@@ -90,34 +52,109 @@ export function NavPill({
         return (
           <button
             key={id}
-            onClick={() => onGo(id)}
-            className="group relative flex items-center gap-2 rounded-full px-4 py-2.5 text-[13px] transition-colors duration-200"
-            style={{ color: on ? 'var(--color-sidra)' : 'rgba(255,255,255,0.85)' }}
+            onClick={() => {
+              location.hash = id
+            }}
+            className="group relative flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12.5px] transition-colors duration-200"
+            style={{
+              color: on ? (light ? 'var(--color-sidra)' : '#fff') : light ? 'rgba(255,255,255,0.85)' : 'var(--color-ink-soft)',
+            }}
             aria-current={on ? 'page' : undefined}
           >
             {on && (
               <motion.span
                 layoutId="nav-active"
                 className="absolute inset-0 rounded-full"
-                style={{
-                  background: '#ffffff',
-                  boxShadow: '0 2px 8px rgba(2,44,36,0.4)',
-                }}
+                style={
+                  light
+                    ? { background: '#ffffff', boxShadow: '0 2px 8px rgba(2,44,36,0.35)' }
+                    : { background: 'linear-gradient(180deg, #107660 0%, #095c4a 100%)', boxShadow: '0 2px 8px rgba(2,44,36,0.3)' }
+                }
                 transition={{ type: 'spring', stiffness: 420, damping: 34 }}
               />
             )}
-            <span className="relative z-10 flex items-center gap-2 transition-colors duration-200 group-hover:text-white" style={on ? { color: 'var(--color-sidra)' } : undefined}>
-              <Icon
-                size={19}
-                strokeWidth={on ? 2.1 : 1.7}
-                className="transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:-translate-y-[1px]"
-              />
-              <span className={`whitespace-nowrap max-[440px]:hidden ${on ? 'font-semibold' : 'font-medium'}`}>{label}</span>
+            <span className="relative z-10 flex items-center gap-1.5">
+              <Icon size={16} strokeWidth={on ? 2.1 : 1.7} />
+              <span className={`whitespace-nowrap max-lg:hidden ${on ? 'font-semibold' : 'font-medium'}`}>{label}</span>
             </span>
           </button>
         )
       })}
-    </motion.nav>
+    </nav>
+  )
+}
+
+/**
+ * The sticky AI search — pinned to the bottom of the viewport on every screen,
+ * the position the navigation vacated. This is the CEO's route to anything not
+ * on the dashboard, so it is the most reachable control on the page: full
+ * width within the gutters, the AI gradient ring, ⌘K from anywhere. Every
+ * screen carries pb-36, so it never covers the last row of content.
+ */
+export function AskBar({ shift = 0 }: { shift?: number }) {
+  const [q, setQ] = useState('')
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        inputRef.current?.focus()
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
+  const submit = () => {
+    const term = q.trim()
+    if (!term) return
+    /* re-assign even when already on #search so a second question re-applies */
+    const next = `search?q=${encodeURIComponent(term)}`
+    if (location.hash === `#${next}`) window.dispatchEvent(new HashChangeEvent('hashchange'))
+    else location.hash = next
+    setQ('')
+    inputRef.current?.blur()
+  }
+
+  return (
+    <motion.div
+      className="fixed bottom-4 left-1/2 z-40 w-[calc(100%-40px)] max-w-[1116px]"
+      animate={{ x: `calc(-50% + ${shift}px)` }}
+      transition={{ duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
+    >
+      <form
+        className="ai-field flex items-center gap-2.5 py-1.5 pe-2 ps-4"
+        style={{ boxShadow: '0 14px 36px -12px rgba(3,70,56,0.35), var(--shadow-card)' }}
+        onSubmit={(e) => {
+          e.preventDefault()
+          submit()
+        }}
+        role="search"
+        aria-label="Ask across all indicators"
+      >
+        <Spark size={14} />
+        <input
+          ref={inputRef}
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') (e.target as HTMLInputElement).blur()
+          }}
+          placeholder="Ask across all 240 indicators"
+          className="min-w-0 flex-1 bg-transparent py-1.5 text-[13.5px] outline-none placeholder:text-ink-mute"
+          aria-label="Ask across all 240 indicators"
+        />
+        <kbd className="rounded bg-cream px-1.5 py-0.5 text-[10px] text-ink-mute max-md:hidden">⌘K</kbd>
+        <button
+          type="submit"
+          className="rounded-full px-4 py-1.5 text-[12.5px] font-semibold text-white transition-transform duration-200 hover:-translate-y-[1px]"
+          style={{ background: 'linear-gradient(180deg, #107660 0%, #095c4a 100%)' }}
+        >
+          Ask
+        </button>
+      </form>
+    </motion.div>
   )
 }
 
@@ -208,18 +245,9 @@ export function GlobalSearch({ onPick, light }: { onPick: (k: Kpi) => void; ligh
     const onDoc = (e: MouseEvent) => {
       if (!ref.current?.contains(e.target as Node)) setOpen(false)
     }
-    const onKey = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
-        e.preventDefault()
-        inputRef.current?.focus()
-        setOpen(true)
-      }
-    }
     document.addEventListener('mousedown', onDoc)
-    window.addEventListener('keydown', onKey)
     return () => {
       document.removeEventListener('mousedown', onDoc)
-      window.removeEventListener('keydown', onKey)
     }
   }, [])
 
@@ -274,11 +302,10 @@ export function GlobalSearch({ onPick, light }: { onPick: (k: Kpi) => void; ligh
             }
             if (e.key === 'Escape') setOpen(false)
           }}
-          placeholder="Ask across all 240 indicators"
+          placeholder="Find an indicator"
           className={`w-full bg-transparent text-[13px] outline-none ${light ? 'text-white placeholder:text-white/60' : 'placeholder:text-ink-mute'}`}
           aria-label="Search all indicators"
         />
-        <kbd className={`rounded px-1.5 py-0.5 text-[10px] ${light ? 'bg-white/15 text-white/70' : 'bg-cream text-ink-mute'}`}>⌘K</kbd>
       </div>
       <AnimatePresence>
         {open && q.trim() && (
@@ -363,7 +390,7 @@ export function Lamp({ light }: { light?: boolean }) {
         <path d="M12 14.6 c-1.8-1.5-1.4-3.6 0-5 c1.4 1.4 1.8 3.5 0 5 Z" fill={lit ? '#e5a823' : light ? 'rgba(255,255,255,0.4)' : '#c8c9c7'} />
         <line x1="8.5" y1="18" x2="15.5" y2="18" stroke={light ? '#ffffff' : '#034638'} strokeWidth="1.8" />
       </svg>
-      <span className={`text-[11.5px] max-lg:hidden ${light ? 'text-white/80' : 'text-ink-mute'}`}>
+      <span className={`whitespace-nowrap text-[11.5px] max-xl:hidden ${light ? 'text-white/80' : 'text-ink-mute'}`}>
         {lit ? 'Quarterly Brief · Q1 2026' : "You're up to date"}
       </span>
     </button>
@@ -400,7 +427,7 @@ export function HeaderCluster({ hidePeriod, light }: { hidePeriod?: boolean; lig
         >
           EO
         </span>
-        <span className={`text-[12.5px] font-medium max-md:hidden ${light ? 'text-white' : 'text-ink'}`}>Executive Office</span>
+        <span className={`whitespace-nowrap text-[12.5px] font-medium max-xl:hidden ${light ? 'text-white' : 'text-ink'}`}>Executive Office</span>
         <ChevronDown size={14} strokeWidth={1.7} className={`max-md:hidden ${light ? 'text-white/60' : 'text-ink-mute'}`} />
       </button>
     </div>
@@ -414,10 +441,11 @@ export function LogoWhite({ className = 'h-9 w-auto' }: { className?: string }) 
   )
 }
 
-export function AppHeader() {
+export function AppHeader({ active = 'themes' }: { active?: RouteId }) {
   return (
-    <header className="flex items-center justify-between py-5">
+    <header className="flex items-center justify-between gap-6 py-5">
       <img src="/al-mishkat.png" alt="Al-Mishkat" className="h-11 w-auto" />
+      <TopNav active={active} />
       <HeaderCluster />
     </header>
   )

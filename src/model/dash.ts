@@ -79,9 +79,19 @@ export function statusFor(k: ObsKpi, p: Period): DashStatus {
   if (a === null) return 'notReported'
   const t = targetFor(k, p)
   if (t === null) return 'monitoring'
+  /* a zero target on a higher-is-better indicator is an off-year, not a
+     ceiling — nine cyclical rows would otherwise read as permanently
+     "performing" against a target nobody set. Watched, not judged. */
+  if (!isLowerBetter(k) && t === 0) return 'monitoring'
   const meets = isLowerBetter(k) ? a <= t : a >= t
   return meets ? 'performing' : 'atRisk'
 }
+
+/** Reported before, silent now: no reading this period, but at least one
+ *  completed year on record. Distinct from never-reported — the question
+ *  "what has stopped reporting" is about the ones that went quiet. */
+export const stoppedReporting = (k: ObsKpi, p: Period): boolean =>
+  actualFor(k, p) === null && A_YEARS.some((y) => histOf(k, y) !== null)
 
 /* ─────────────────────────── the dashboard ten ─────────────────────────── */
 
@@ -368,11 +378,16 @@ export interface SearchFilters {
   cats: string[]
   entities: string[]
   themes: string[]
+  frameworks: string[]
+  /** "what has stopped reporting" — silent now, but with history on record */
+  stopped: boolean
 }
 
 export const entityOf = (k: ObsKpi) => k.proposedEntity ?? k.entity ?? 'Unassigned'
 export const themeOf = (k: ObsKpi) => k.theme ?? 'Unassigned'
 export const dashOf = (k: ObsKpi) => ((k.dashboard ?? '').startsWith('Exec') ? 'Executive' : 'Thematic')
+/** 12 Executive rows carry no framework — an explicit facet value, not a blank. */
+export const frameworkOf = (k: ObsKpi) => k.framework ?? 'Unassigned'
 
 export function matches(k: ObsKpi, f: SearchFilters, p: Period, skip?: keyof SearchFilters): boolean {
   const term = f.q.trim().toLowerCase()
@@ -385,11 +400,13 @@ export function matches(k: ObsKpi, f: SearchFilters, p: Period, skip?: keyof Sea
   if (skip !== 'cats' && f.cats.length && !f.cats.some((c) => inCategory(k, c))) return false
   if (skip !== 'entities' && f.entities.length && !f.entities.includes(entityOf(k))) return false
   if (skip !== 'themes' && f.themes.length && !f.themes.includes(themeOf(k))) return false
+  if (skip !== 'frameworks' && f.frameworks.length && !f.frameworks.includes(frameworkOf(k))) return false
+  if (skip !== 'stopped' && f.stopped && !stoppedReporting(k, p)) return false
   return true
 }
 
 export interface Chip {
-  kind: 'dash' | 'status' | 'cat' | 'entity' | 'theme'
+  kind: 'dash' | 'status' | 'cat' | 'entity' | 'theme' | 'framework' | 'stopped'
   value: string
   label: string
   /** derived from typed text — replaced when a new query is submitted */
@@ -417,9 +434,16 @@ export function interpret(rawQ: string): { chips: Chip[]; residue: string } {
     return m
   }
 
+  /* "stopped reporting" is not the same as "not reported" — it asks for the
+     rows that went QUIET, excluding the ones that never reported at all */
+  if (take(/\bstopp?ed reporting\b|\bwent (?:quiet|silent|dark)\b|\bno longer report(?:s|ing)?\b/))
+    chips.push({ kind: 'stopped', value: 'stopped', label: 'Stopped reporting' })
   for (const [re, s] of STATUS_PHRASES) if (take(re)) chips.push({ kind: 'status', value: s, label: STATUS_LABEL[s] })
   if (take(/\bexecutive\b/)) chips.push({ kind: 'dash', value: 'Executive', label: 'Executive dashboard' })
   if (take(/\bthematic\b/)) chips.push({ kind: 'dash', value: 'Thematic', label: 'Thematic dashboard' })
+  if (take(/\bstrategic\b/)) chips.push({ kind: 'framework', value: 'Strategic', label: 'Strategic framework' })
+  if (take(/\bimpact\b/)) chips.push({ kind: 'framework', value: 'Impact', label: 'Impact framework' })
+  if (take(/\boperational\b/)) chips.push({ kind: 'framework', value: 'Operational', label: 'Operational framework' })
 
   const tree = buildTree(obsKpis)
   const catNames = [...new Set(tree.flatMap((t) => [t.parent, ...t.subs.map((s) => s.name)]))].filter((c) => c !== UNCAT)
@@ -435,18 +459,23 @@ export function interpret(rawQ: string): { chips: Chip[]; residue: string } {
     if (take(re)) chips.push({ kind: v.kind, value: v.value, label: v.value })
   }
 
-  q = q.replace(/\b(which|what|kpis?|indicators?|show|me|all|are|is|has|have|the|a|an|in|of|for|with)\b/g, ' ')
+  /* question marks and other punctuation are part of asking, not of any
+     indicator's name — left in, "at risk?" would search for a literal "?" */
+  q = q.replace(/[?!.,;:'"“”‘’]/g, ' ')
+  q = q.replace(/\b(which|what|anything|kpis?|indicators?|show|me|all|are|is|has|have|the|a|an|in|of|for|with)\b/g, ' ')
   return { chips, residue: q.replace(/\s+/g, ' ').trim() }
 }
 
 export function chipsToFilters(chips: Chip[], residue: string): SearchFilters {
-  const f: SearchFilters = { q: residue, dash: [], status: [], cats: [], entities: [], themes: [] }
+  const f: SearchFilters = { q: residue, dash: [], status: [], cats: [], entities: [], themes: [], frameworks: [], stopped: false }
   for (const c of chips) {
     if (c.kind === 'dash') f.dash.push(c.value)
     else if (c.kind === 'status') f.status.push(c.value as DashStatus)
     else if (c.kind === 'cat') f.cats.push(c.value)
     else if (c.kind === 'entity') f.entities.push(c.value)
     else if (c.kind === 'theme') f.themes.push(c.value)
+    else if (c.kind === 'framework') f.frameworks.push(c.value)
+    else if (c.kind === 'stopped') f.stopped = true
   }
   return f
 }
