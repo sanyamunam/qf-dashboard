@@ -128,6 +128,7 @@ export function KpiCard({
         ? `${fmt(k.actuals['2026Q1'].value)}${k.unit ?? ''}`
         : (k.actuals['2026Q1'].raw ?? '—')
   const Arrow = pol.dir === 'up' ? ArrowUpRight : pol.dir === 'down' ? ArrowDownRight : Minus
+  const markBody = mark !== undefined ? mark : <SnapshotMark group={group} hue={hue} title={title} scale="card" emptyNote={meta} />
 
   return (
     <button
@@ -178,9 +179,10 @@ export function KpiCard({
         </div>
       )}
 
-      <div className="mt-2.5">
-        {mark ?? <SnapshotMark group={group} hue={hue} title={title} scale="card" emptyNote={meta} />}
-      </div>
+      {/* a caller that supplies `mark` owns the slot completely — including
+          deciding there is nothing to draw. `??` would have quietly restored
+          the shared SnapshotMark under an L1 state that renders to nothing. */}
+      {markBody && <div className="mt-2.5">{markBody}</div>}
 
       <p className={`mt-2 flex items-start gap-1.5 border-t border-cream pt-2 text-[11.5px] italic leading-snug text-ink-soft`}>
         <span className="mt-0.5 shrink-0">

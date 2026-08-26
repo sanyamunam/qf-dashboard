@@ -17,6 +17,9 @@ import { SnapshotMark } from './charts/SnapshotMark'
 import { AiRead } from './AiRead'
 import { BotainaFigure } from './Botaina'
 import { EntityIcon } from './EntityIcon'
+import { L1MarkView, L2MarkView } from './charts/Marks2'
+import { selectL1, selectL2 } from '../model/chartSelect'
+import { obsRow } from '../model/obs'
 import { kpis as allKpis } from '../model/data'
 
 /**
@@ -136,6 +139,9 @@ export function KpiDetailBody({ kpi, group: given }: { kpi: Kpi; group?: Kpi[] |
         ? allKpis.filter((k) => k.chartGroup === kpi.chartGroup && k.entity === kpi.entity)
         : [kpi]
   const hasAnyReading = group.some((k) => Object.values(k.actuals).some((a) => a.value !== null))
+  /* `obs-<row>` is the id obsAsKpi stamps, and the only safe discriminator —
+     the two models number their rows independently */
+  const obsSource = kpi.id.startsWith('obs-') ? obsRow(kpi.row) : null
 
   return (
     <>
@@ -156,19 +162,35 @@ export function KpiDetailBody({ kpi, group: given }: { kpi: Kpi; group?: Kpi[] |
       {/* 3 · the anchor: the same mark the card showed, larger */}
       <section style={{ marginTop: SECTION }}>
         <SectionHead note="Q1 2026 against the full-year target">Where it stands now</SectionHead>
-        <SnapshotMark
-          group={group}
-          hue="#034638"
-          title={kpi.chartGroup ?? undefined}
-          scale="overlay"
-          emptyNote="No comparable Q1 position — this indicator has no reading, or no target, to stand against this quarter."
-        />
+        {obsSource ? (
+          /* an OBS row's card drew selectL1 — the overlay's anchor has to be
+             that same mark, or the reader lands on a different chart from the
+             one they clicked */
+          /* the SAME mark, drawn larger — the svgs carry a fixed height
+             attribute, so the overlay scales them here rather than forking a
+             second set of components */
+          <div className="mx-auto max-w-[420px] [&>svg]:h-[168px]">
+            <L1MarkView mark={selectL1(obsSource, 'q1')} />
+          </div>
+        ) : (
+          <SnapshotMark
+            group={group}
+            hue="#034638"
+            title={kpi.chartGroup ?? undefined}
+            scale="overlay"
+            emptyNote="No comparable Q1 position — this indicator has no reading, or no target, to stand against this quarter."
+          />
+        )}
       </section>
 
-      {/* 4 · the shape of the story, once the headline has landed */}
+      {/* 4 · the shape of the story, once the headline has landed. This is the
+          L2 the listing card no longer carries — L1 on the surface, L2 one
+          click in. */}
       <section style={{ marginTop: SECTION }}>
         <SectionHead note="actuals and targets, 2022–2028">History and outlook</SectionHead>
-        {hasAnyReading ? (
+        {obsSource ? (
+          <L2MarkView mark={selectL2(obsSource, 'q1')} />
+        ) : hasAnyReading ? (
           <>
             <EChart option={overlayTrendOption(group, '#034638')} height={group.length > 1 ? 250 : 220} />
             <p className="mt-1.5 text-[11.5px] leading-relaxed text-ink-mute">

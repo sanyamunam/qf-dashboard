@@ -156,7 +156,15 @@ export function CentredGaugeMark({ m }: { m: Extract<L1Mark, { kind: 'centredGau
 
 /* ─────────────────────── D / A / idle — the no-chart states ───────────────── */
 
-export function BareFigureMark({ m, note }: { m: Extract<L1Mark, { kind: 'bareFigure' }>; note?: string }) {
+/**
+ * `compact` is for a card that ALREADY prints the headline figure and its
+ * basis above the mark. Repeating them made a no-target card say `545` twice
+ * and an unreported one say "no reading this period" twice. Compact keeps only
+ * what the card has not already said — and where that is nothing, draws
+ * nothing, which is the honest outcome for a state with no chart in it.
+ */
+export function BareFigureMark({ m, note, compact }: { m: Extract<L1Mark, { kind: 'bareFigure' }>; note?: string; compact?: boolean }) {
+  if (compact) return null
   return (
     <div>
       <div className="text-[30px] font-bold leading-none" style={{ color: '#1e2422' }}>
@@ -169,7 +177,22 @@ export function BareFigureMark({ m, note }: { m: Extract<L1Mark, { kind: 'bareFi
   )
 }
 
-export function NotReportedMark({ m, cadence }: { m: Extract<L1Mark, { kind: 'notReported' }>; cadence?: string }) {
+export function NotReportedMark({
+  m,
+  cadence,
+  compact,
+}: {
+  m: Extract<L1Mark, { kind: 'notReported' }>
+  cadence?: string
+  compact?: boolean
+}) {
+  /* the last real reading IS new information — the card's headline is a dash */
+  if (compact)
+    return m.lastValue === null ? null : (
+      <p className="text-[12px]" style={{ color: '#75787b' }}>
+        Last reported <span className="num font-semibold">{val(m.lastValue, m.unit)}</span> · FY {m.lastYear}
+      </p>
+    )
   return (
     <div>
       {/* never an em-dash in a numeric slot — that reads as a value */}
@@ -184,7 +207,8 @@ export function NotReportedMark({ m, cadence }: { m: Extract<L1Mark, { kind: 'no
   )
 }
 
-export function IdleMark() {
+export function IdleMark({ compact }: { compact?: boolean }) {
+  if (compact) return null
   return (
     <div>
       <div className="text-[22px] font-semibold" style={{ color: GREY }}>
@@ -448,7 +472,18 @@ export function BaselineMark({ m }: { m: Extract<L2Mark, { kind: 'baseline' }> }
 
 /* ───────────────────────────── the dispatchers ───────────────────────────── */
 
-export function L1MarkView({ mark, note, cadence }: { mark: L1Mark; note?: string; cadence?: string }) {
+export function L1MarkView({
+  mark,
+  note,
+  cadence,
+  compact,
+}: {
+  mark: L1Mark
+  note?: string
+  cadence?: string
+  /** the caller already prints the figure and its basis — see the marks above */
+  compact?: boolean
+}) {
   switch (mark.kind) {
     case 'bullet':
       return <BulletMark m={mark} />
@@ -457,11 +492,11 @@ export function L1MarkView({ mark, note, cadence }: { mark: L1Mark; note?: strin
     case 'centredGauge':
       return <CentredGaugeMark m={mark} />
     case 'bareFigure':
-      return <BareFigureMark m={mark} note={note} />
+      return <BareFigureMark m={mark} note={note} compact={compact} />
     case 'notReported':
-      return <NotReportedMark m={mark} cadence={cadence} />
+      return <NotReportedMark m={mark} cadence={cadence} compact={compact} />
     case 'idle':
-      return <IdleMark />
+      return <IdleMark compact={compact} />
   }
 }
 
@@ -483,10 +518,32 @@ export function L2MarkView({ mark }: { mark: L2Mark }) {
 /* ─────────────────────────── the surface entry points ────────────────────── */
 
 /**
- * What a CARD draws. The scoring marks win where a target exists; where there
- * is nothing to score against, the trend carries the story instead — which is
- * the reference's own reading of the D case. Either way the choice is the
- * selector's, never the card's.
+ * L1 ONLY — every listing card outside the Executive Dashboard.
+ *
+ * A listing is for FINDING an indicator, not studying one. 240 cards each
+ * carrying a four-year trend with a target path was the single biggest source
+ * of overload on the search page, and it also broke the rule the platform
+ * already holds elsewhere: the card answers "where does this stand now", the
+ * overlay answers "what is the story". So this never falls through to L2 —
+ * a value with no target shows its figure and context line, an unreported
+ * period shows the not-reported state, an off-cycle row shows idle. The mark
+ * is still the shared selector's choice, never the component's.
+ */
+export function CardMarkL1({ k, p }: { k: ObsKpi; p: Period }): React.ReactElement | null {
+  const l1 = selectL1(k, p)
+  /* returning the ELEMENT for a state that renders to nothing would still hand
+     KpiCard a truthy child and leave an empty slot with its margin — so decide
+     here, where the mark kind is known */
+  if (l1.kind === 'idle' || l1.kind === 'bareFigure') return null
+  if (l1.kind === 'notReported' && l1.lastValue === null) return null
+  return <L1MarkView mark={l1} compact />
+}
+
+/**
+ * What an EXECUTIVE DASHBOARD card draws — the deliberate exception. The
+ * scoring marks win where a target exists; where there is nothing to score
+ * against, the trend carries the story instead. Ten cards is not the overload
+ * problem, and those charts are working.
  */
 export function CardMark({ k, p }: { k: ObsKpi; p: Period }) {
   const l1 = selectL1(k, p)
