@@ -14,6 +14,7 @@ import { motion } from 'framer-motion'
 import { ArrowLeft, ChevronDown, ChevronRight, Search as SearchIcon, X } from 'lucide-react'
 import { GlobalSearch, HeaderCluster, Spark } from '../components/Shell'
 import { KpiCard } from '../components/KpiCard'
+import { DashMark } from '../components/charts/DashMarks'
 import { themeByName } from '../model/data'
 import {
   obsKpis,
@@ -27,6 +28,8 @@ import {
   cardKpi,
   obsAsKpi,
   lineFor,
+  figureFor,
+  deltaFor,
   entityOf,
   themeOf,
   dashOf,
@@ -371,13 +374,9 @@ export function Search({ onEvidence, onBack }: { onEvidence: (kpi: Kpi) => void;
                   onOpen={() => onEvidence(obsAsKpi(k.row))}
                   status={<RowMeta k={k} p={period} />}
                   line={lineFor(k, period)}
-                  meta={
-                    (period === 'q1' ? k.q1 : k.actuals['2025']) === null
-                      ? period === 'q1'
-                        ? 'Not reported for Q1 2026.'
-                        : 'Not reported for 2025.'
-                      : `No ${period === 'q1' ? '2026' : '2025'} target on record to chart this reading against.`
-                  }
+                  mark={<DashMark k={k} p={period} hue={hueFor(k.theme)} />}
+                  figure={figureFor(k, period)}
+                  delta={deltaFor(k, period)}
                 />
               ))}
             </motion.div>

@@ -11,6 +11,7 @@ import {
   obsKpis,
   unitOf,
   isLowerBetter,
+  isPercentRow,
   histOf,
   targOf,
   q1Of,
@@ -165,31 +166,147 @@ export function cardKpi(k: ObsKpi, p: Period): Kpi {
   }
 }
 
+/* ──────────────── what a card can honestly draw, per period ────────────────
+ * A KPI that cannot be judged against a target is still a trajectory. The
+ * decision is made once, here, so the mark, the delta and the AI line agree.
+ *
+ * Only COMPLETED annual years are ever plotted. Footfall closed 2025 at
+ * 3,051,433 and reads 486,119 for Q1 2026 alone; on one axis that is an 84%
+ * collapse when it is a quarter beside a year. The partial period is the
+ * card's headline figure and nothing else. */
+
+/** Completed annual readings, oldest first, capped at the most recent four —
+ *  enough to read a direction, few enough to label directly. The overlay
+ *  carries the full series. */
+export function completedYears(k: ObsKpi, cap = 4): [string, number][] {
+  const pts = A_YEARS.map((y) => [y, histOf(k, y)] as [string, number | null]).filter(
+    (p): p is [string, number] => p[1] !== null,
+  )
+  return pts.slice(-cap)
+}
+
+/** The current partial reading — a quarter, never a year. */
+export const partialReading = (k: ObsKpi): number | null => q1Of(k)
+
+export type MarkKind = 'judged' | 'trend' | 'twoReadings' | 'firstReading' | 'nothing'
+
+/**
+ * `judged` only where the period has both a reading and a target. Otherwise
+ * the card answers "which way is this moving" — which needs three points to
+ * be a direction at all. Two readings are a pair, not a trajectory; one is a
+ * baseline.
+ */
+export function markKindFor(k: ObsKpi, p: Period): MarkKind {
+  if (actualFor(k, p) !== null && targetFor(k, p) !== null) return 'judged'
+  const years = completedYears(k)
+  if (years.length >= 3) return 'trend'
+  const total = years.length + (partialReading(k) !== null ? 1 : 0)
+  if (total >= 2) return 'twoReadings'
+  if (total === 1) return 'firstReading'
+  return 'nothing'
+}
+
+/* ───────────────────── the delta, comparing like with like ─────────────────
+ * A RATE measured over a quarter is comparable to the same rate over a year —
+ * Budget Variance at 18% this quarter against 10% for all of 2025 is a real
+ * widening. A COUNT is not: a quarter's footfall against a full year's is
+ * arithmetic nonsense, and it was drawing a red decline arrow on a KPI that
+ * has grown every year on record. */
+export interface CardDelta {
+  dir: 'up' | 'down' | 'flat'
+  tone: string
+  basis: string
+}
+
+const GOOD = '#3c6a5f'
+const BAD = '#8a1538'
+const FLAT = '#7e938d'
+
+export function deltaFor(k: ObsKpi, p: Period): CardDelta {
+  const a = actualFor(k, p)
+  if (a === null) return { dir: 'flat', tone: FLAT, basis: 'no reading this period' }
+
+  const years = completedYears(k)
+  let prev: [string, number] | null = null
+  if (p === '2025') {
+    // 2025 against 2024 — two completed years
+    prev = years.length >= 2 ? years[years.length - 2] : null
+  } else if (isPercentRow(k)) {
+    // a rate holds its meaning across period lengths
+    prev = years.length >= 1 ? years[years.length - 1] : null
+  }
+
+  if (!prev) return { dir: 'flat', tone: FLAT, basis: p === 'q1' ? 'quarter to date' : 'first reading' }
+
+  const delta = a - prev[1]
+  const basis = `vs ${prev[0]}`
+  if (Math.abs(delta) < Math.abs(prev[1] || 1) * 0.02) return { dir: 'flat', tone: FLAT, basis }
+  const favourable = isLowerBetter(k) ? delta < 0 : delta > 0
+  return { dir: delta > 0 ? 'up' : 'down', tone: favourable ? GOOD : BAD, basis }
+}
+
+/** The headline figure for the period — never borrowed from the other one. */
+export function figureFor(k: ObsKpi, p: Period): string {
+  const a = actualFor(k, p)
+  return a === null ? '—' : `${fmt(a)}${unitOf(k)}`
+}
+
 /* ─────────────────── the card's line, per KPI and period ─────────────────── */
 
 const n = (k: ObsKpi, v: number) => `${fmt(v)}${unitOf(k)}`
 
+/**
+ * The card's sentence — written to say what the MARK CANNOT.
+ *
+ * The chart already carries the level, the direction and the endpoints. So a
+ * judged card gets the historical band or the fact that its target moved; a
+ * trend card gets the governance reason no verdict exists; a two-reading card
+ * gets why those two numbers must not be read as a fall. Nothing here repeats
+ * a number the mark has already labelled.
+ */
 export function lineFor(k: ObsKpi, p: Period): string {
-  const a = actualFor(k, p)
-  const t = targetFor(k, p)
-  const label = p === 'q1' ? 'the first quarter' : '2025'
-  if (a === null)
-    return p === 'q1'
-      ? 'No Q1 2026 reading — this indicator reports on the full year; the 2025 view carries its complete figure.'
-      : 'No 2025 reading on record — this indicator first reported in Q1 2026.'
-  if (t === null) {
-    const prev = p === 'q1' ? histOf(k, '2025') : histOf(k, '2024')
-    const move =
-      prev !== null && prev !== 0
-        ? ` — ${a >= prev ? 'up' : 'down'} from ${n(k, prev)} ${p === 'q1' ? 'across 2025' : 'in 2024'}`
-        : ''
-    return `${n(k, a)} in ${label}${move}. No ${p === 'q1' ? '2026' : '2025'} target is set, so this is watched, not judged.`
+  const kind = markKindFor(k, p)
+  const years = completedYears(k)
+  const anyTarget = [...A_YEARS, '2026', '2027', '2028']
+    .map((y) => [y, targOf(k, y)] as [string, number | null])
+    .filter((x): x is [string, number] => x[1] !== null && x[1] > 0)
+
+  if (kind === 'judged') {
+    const t = targetFor(k, p) as number
+    /* a target that moved is the one thing a value-against-target mark can
+       never show — and "on target" means something different once you know */
+    const moved = anyTarget.filter(([, v]) => v !== t)
+    if (moved.length) {
+      const lastMoved = moved[moved.length - 1]
+      return `The commitment was ${n(k, lastMoved[1])} through ${lastMoved[0]} before it was reset to ${n(k, t)}; performance is read against the current one.`
+    }
+    if (years.length >= 2) {
+      const vals = years.map(([, v]) => v)
+      const lo = Math.min(...vals)
+      const hi = Math.max(...vals)
+      return `Closed years have run ${n(k, lo)} to ${n(k, hi)} — the plan allows ${n(k, t)}.`
+    }
+    return `The first reading this indicator carries, against a commitment set for ${p === 'q1' ? '2026' : '2025'}.`
   }
-  const meets = isLowerBetter(k) ? a <= t : a >= t
-  const dir = isLowerBetter(k) ? ', where lower is better' : ''
-  return meets
-    ? `${n(k, a)} in ${label}, meeting the ${n(k, t)} target${dir}.`
-    : `${n(k, a)} in ${label} against a target of ${n(k, t)}${dir} — off target.`
+
+  if (kind === 'trend') {
+    const future = anyTarget.find(([y]) => Number(y) >= 2026)
+    if (future)
+      return `A ${n(k, future[1])} commitment stands for ${future[0]}, and it is measured when the year closes — not in a quarter.`
+    return 'No target has ever been set for this indicator, so its direction is tracked but never scored.'
+  }
+
+  if (kind === 'twoReadings')
+    return 'A full year beside a single quarter — different lengths of time, and too few readings to call a direction.'
+
+  if (kind === 'firstReading') {
+    const future = anyTarget.find(([y]) => Number(y) >= 2026)
+    return future
+      ? `A baseline: the first reading on record, with a ${n(k, future[1])} commitment standing for ${future[0]}.`
+      : 'A baseline: the first reading on record, with no prior period to compare it against.'
+  }
+
+  return 'Nothing has been reported for this indicator in any period on record.'
 }
 
 /* ─────────────────────── the AI summary, per period ─────────────────────── */

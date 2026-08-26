@@ -19,6 +19,7 @@ import { ArrowUpRight, ChevronDown, X } from 'lucide-react'
 import { GlobalSearch, HeaderCluster, Spark } from '../components/Shell'
 import { AiRead } from '../components/AiRead'
 import { KpiCard } from '../components/KpiCard'
+import { DashMark } from '../components/charts/DashMarks'
 import { themeByName, fmt } from '../model/data'
 import {
   dashTen,
@@ -31,6 +32,8 @@ import {
   cardKpi,
   obsAsKpi,
   lineFor,
+  figureFor,
+  deltaFor,
   summaryFor,
   groupOf,
   subOf,
@@ -177,8 +180,20 @@ function CollapsibleSummary({ p, onOpen }: { p: Period; onOpen: (k: Kpi) => void
   )
 }
 
-/** Both category levels route to the search listing, filtered. */
+/** Every CATEGORY routes to the search listing, filtered to it. Wrappers do
+ *  not — they have no listing of their own. */
 const catHref = (label: string) => `#search?cat=${encodeURIComponent(label)}`
+
+interface Cat {
+  name: string
+  total: number
+  cards: ObsKpi[]
+}
+type Band =
+  /** a grouping wrapper and the categories it bundles */
+  | { kind: 'wrapper'; label: string; total: number; cats: Cat[] }
+  /** standalone categories, with no wrapper above them */
+  | { kind: 'plain'; cats: Cat[] }
 
 export function Executive({ onEvidence }: { onEvidence: (kpi: Kpi) => void }) {
   const [period, setPeriod] = useState<Period>('q1')
@@ -186,13 +201,36 @@ export function Executive({ onEvidence }: { onEvidence: (kpi: Kpi) => void }) {
 
   const counts = useMemo(() => statusCounts(period), [period])
   const tree = useMemo(() => buildTree(execRows), [])
-  const sections = useMemo(
-    () =>
-      tree
-        .map((node) => ({ node, cards: dashTen.filter((k) => groupOf(k) === node.parent) }))
-        .filter((s) => s.cards.length > 0),
-    [tree],
-  )
+  /**
+   * Two kinds of thing, told apart.
+   *
+   * `Education` and `Operational Excellence` are GROUPING WRAPPERS — they
+   * bundle categories and have no listing of their own, so they render as
+   * quiet dividers with no arrow, no hover and no focus. Everything else is a
+   * real CATEGORY with a destination, and every category is styled the same
+   * whether it sits inside a wrapper or stands on its own. Nesting changes
+   * position, not appearance. Consecutive standalone categories share one
+   * band so a single-card category never claims a full row to itself.
+   */
+  const bands = useMemo(() => {
+    const out: Band[] = []
+    for (const node of tree) {
+      const inGroup = dashTen.filter((k) => groupOf(k) === node.parent)
+      if (inGroup.length === 0) continue
+      if (node.subs.length > 0) {
+        const cats = node.subs
+          .map((sub) => ({ name: sub.name, total: sub.total, cards: inGroup.filter((k) => subOf(k) === sub.name) }))
+          .filter((c) => c.cards.length > 0)
+        out.push({ kind: 'wrapper', label: node.parent, total: node.total, cats })
+      } else {
+        const cat: Cat = { name: node.parent, total: node.total, cards: inGroup }
+        const last = out[out.length - 1]
+        if (last && last.kind === 'plain') last.cats.push(cat)
+        else out.push({ kind: 'plain', cats: [cat] })
+      }
+    }
+    return out
+  }, [tree])
 
   const visible = (k: ObsKpi) => statusFilter === null || statusFor(k, period) === statusFilter
 
@@ -280,68 +318,77 @@ export function Executive({ onEvidence }: { onEvidence: (kpi: Kpi) => void }) {
         )}
       </AnimatePresence>
 
-      {/* the category tree — parents as section headers, sub-categories as
-          card labels, both routing to the search listing. The two levels are
-          separated by the type scale. */}
-      {sections.map(({ node, cards }) => {
-        const shown = cards.filter(visible)
-        return (
-          <section key={node.parent} className="mt-10" aria-label={node.parent}>
-            <div className="flex items-center gap-3">
-              <a
-                href={catHref(node.parent)}
-                className="group inline-flex items-center gap-1.5 text-[20px] font-semibold leading-none tracking-tight text-ink transition-colors hover:text-sidra"
-              >
-                {node.parent}
-                <ArrowUpRight size={16} strokeWidth={1.9} className="shrink-0 text-ink-mute transition-transform group-hover:translate-x-[1px] group-hover:-translate-y-[1px]" />
-              </a>
-              <span aria-hidden className="h-px flex-1 bg-ink-mute/20" />
-              <span className="label text-[10px] text-ink-mute">
-                {cards.length} of {node.total} indicators
-              </span>
-            </div>
+      {/* the category tree. A wrapper is a divider; a category is a
+          destination. Both readings are available at a glance, without
+          hovering anything. */}
+      {bands.map((band, bi) => {
+        const cats = band.cats
+          .map((c) => ({ ...c, cards: c.cards.filter(visible) }))
+          .filter((c) => c.cards.length > 0)
+        if (cats.length === 0) return null
 
-            {shown.length === 0 ? (
-              <p className="mt-3 text-[13px] text-ink-mute">
-                Nothing here under the {STATUS_LABEL[statusFilter as DashStatus]} filter — clear it above to see this group.
-              </p>
-            ) : (
-              <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                {shown.map((k) => (
-                  <div key={k.row} className="flex min-w-0 flex-col">
-                    {/* the sub-category label — a full type step below its
-                        parent, and it routes too. A standalone section's
-                        header already names the category. */}
-                    {node.subs.length > 0 && (
-                      <a
-                        href={catHref(subOf(k))}
-                        className="group label mb-2 inline-flex w-fit items-center gap-1 text-[10px] text-ink-mute transition-colors hover:text-sidra"
-                      >
-                        {subOf(k)}
-                        <span className="num">· {node.subs.find((s) => s.name === subOf(k))?.total}</span>
-                        <ArrowUpRight size={11} strokeWidth={1.9} className="shrink-0 transition-transform group-hover:translate-x-[1px] group-hover:-translate-y-[1px]" />
-                      </a>
-                    )}
+        const grid = (
+          <div className="grid grid-cols-1 gap-x-4 gap-y-7 sm:grid-cols-2 xl:grid-cols-3">
+            {cats.map((cat) => (
+              <div key={cat.name} className="flex min-w-0 flex-col">
+                {/* ONE category treatment, nested or standalone */}
+                <a
+                  href={catHref(cat.name)}
+                  className="group mb-2.5 inline-flex w-fit items-baseline gap-1.5 transition-colors"
+                >
+                  <span className="text-[14.5px] font-semibold leading-tight text-ink transition-colors group-hover:text-sidra">
+                    {cat.name}
+                  </span>
+                  <span className="num text-[11px] text-ink-mute">{cat.total}</span>
+                  <ArrowUpRight
+                    size={13}
+                    strokeWidth={1.9}
+                    className="shrink-0 self-center text-ink-mute transition-transform group-hover:translate-x-[1px] group-hover:-translate-y-[1px]"
+                  />
+                </a>
+                <div className="flex flex-1 flex-col gap-4">
+                  {cat.cards.map((k) => (
                     <KpiCard
+                      key={k.row}
                       group={[cardKpi(k, period)]}
                       hue={hueFor(k.theme)}
                       size="lg"
                       onOpen={() => onEvidence(obsAsKpi(k.row))}
                       status={<CardMeta k={k} p={period} />}
                       line={lineFor(k, period)}
-                      meta={
-                        actualFor(k, period) === null
-                          ? period === 'q1'
-                            ? 'Not reported for Q1 2026 — this indicator reports on the full year. Switch to 2025 for its complete figure.'
-                            : 'Not reported for 2025 — this indicator first reported in Q1 2026.'
-                          : `No ${period === 'q1' ? '2026' : '2025'} target on record to chart this reading against — watched, not judged.`
-                      }
+                      mark={<DashMark k={k} p={period} hue={hueFor(k.theme)} />}
+                      figure={figureFor(k, period)}
+                      delta={deltaFor(k, period)}
                       className="flex-1"
                     />
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            )}
+            ))}
+          </div>
+        )
+
+        if (band.kind === 'plain')
+          return (
+            <div key={`plain-${bi}`} className="mt-9">
+              {grid}
+            </div>
+          )
+
+        return (
+          <section key={band.label} className="mt-11" aria-label={band.label}>
+            {/* a grouping wrapper: the platform's own section-divider grammar
+                (Thematic View's "Enabling function"). Not a link, not
+                focusable, no hover, no cursor change — it goes nowhere. */}
+            <div className="flex items-center gap-3">
+              <span className="label text-[10px] text-ink-mute">{band.label}</span>
+              <span aria-hidden className="h-px flex-1 bg-ink-mute/20" />
+              <span className="label text-[10px] text-ink-mute">
+                <span className="num">{band.total}</span> indicators
+              </span>
+            </div>
+            {/* the rule carries the belonging — its categories sit inside it */}
+            <div className="mt-5 border-s border-ink-mute/20 ps-5">{grid}</div>
           </section>
         )
       })}

@@ -20,6 +20,8 @@ export function TrajectoryMark({
   H = 96,
   peakHue = '#7e938d',
   axisHue = '#9aaba5',
+  gradient,
+  labelFirst,
 }: {
   series: [string, number][]
   hue: string
@@ -28,9 +30,15 @@ export function TrajectoryMark({
   /** label colours — overridable so the mark can sit on a dark ground */
   peakHue?: string
   axisHue?: string
+  /** soft vertical fade under the line instead of a flat wash */
+  gradient?: boolean
+  /** label the FIRST value too, so the range reads without an axis */
+  labelFirst?: boolean
 }) {
   const W = 300
-  const pad = { t: 18, b: 16, l: 6, r: 52 }
+  const pad = { t: labelFirst ? 22 : 18, b: 16, l: labelFirst ? 30 : 6, r: 52 }
+  /* one gradient per instance — two marks on a page must not share an id */
+  const gid = `traj-${hue.replace(/[^a-z0-9]/gi, '')}-${series.length}-${Math.round(series[0]?.[1] ?? 0)}`
   const vals = series.map(([, v]) => v)
   const max = Math.max(...vals)
   const min = Math.min(0, ...vals)
@@ -45,7 +53,15 @@ export function TrajectoryMark({
   return (
     <div className="relative w-full" style={{ height: H }} aria-hidden>
       <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} preserveAspectRatio="none" style={{ display: 'block' }}>
-        <path d={area} fill={hue} opacity="0.13" />
+        {gradient && (
+          <defs>
+            <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={hue} stopOpacity="0.28" />
+              <stop offset="100%" stopColor={hue} stopOpacity="0.02" />
+            </linearGradient>
+          </defs>
+        )}
+        <path d={area} fill={gradient ? `url(#${gid})` : hue} opacity={gradient ? 1 : 0.13} />
         <path
           d={line}
           stroke={hue}
@@ -55,7 +71,7 @@ export function TrajectoryMark({
           vectorEffect="non-scaling-stroke"
         />
       </svg>
-      {peakIdx !== vals.length - 1 && (
+      {peakIdx !== vals.length - 1 && !(labelFirst && peakIdx === 0) && (
         <>
           <span
             className="absolute rounded-full"
@@ -71,6 +87,20 @@ export function TrajectoryMark({
             }}
           >
             {fmtVal(max)}
+          </span>
+        </>
+      )}
+      {labelFirst && (
+        <>
+          <span
+            className="absolute rounded-full"
+            style={{ left: lx(x(0)), top: ly(y(vals[0])), width: 5, height: 5, background: hue, opacity: 0.5, transform: 'translate(-50%,-50%)' }}
+          />
+          <span
+            className="num absolute whitespace-nowrap text-[10.5px]"
+            style={{ left: lx(x(0)), top: ly(y(vals[0]) - 7), color: peakHue, transform: 'translate(-50%,-100%)' }}
+          >
+            {fmtVal(vals[0])}
           </span>
         </>
       )}

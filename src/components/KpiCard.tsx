@@ -84,6 +84,9 @@ export function KpiCard({
   meta,
   status,
   line,
+  mark,
+  figure: figureOverride,
+  delta,
   className = '',
 }: {
   group: Kpi[]
@@ -97,10 +100,18 @@ export function KpiCard({
   status?: React.ReactNode
   /** the card's own sentence, where the caller knows better than aiLineFor */
   line?: string
+  /** a caller-supplied mark, replacing the shared SnapshotMark entirely —
+   *  used where the caller knows what the data can honestly support */
+  mark?: React.ReactNode
+  /** the headline figure, where the caller's period model owns it */
+  figure?: string
+  /** the movement read, where a naive series comparison would be dishonest
+   *  (a partial quarter against a completed year) */
+  delta?: Polarity
   className?: string
 }) {
   const k = group[0]
-  const pol = polarityOf(k)
+  const pol = delta ?? polarityOf(k)
   const loud = isLoud(group)
   const lg = size === 'lg'
   const s = judgedSeries(k)
@@ -109,7 +120,9 @@ export function KpiCard({
      genuinely doesn't, the year rides with the number so a closed year's
      figure can never be mistaken for a current one */
   const figure =
-    s.length > 0
+    figureOverride !== undefined
+      ? figureOverride
+      : s.length > 0
       ? `${fmt(last[1])}${k.unit ?? ''}${last[0] === '2026Q1' ? '' : ` (${last[0]})`}`
       : k.actuals['2026Q1'].value !== null
         ? `${fmt(k.actuals['2026Q1'].value)}${k.unit ?? ''}`
@@ -164,7 +177,7 @@ export function KpiCard({
       )}
 
       <div className="mt-2.5">
-        <SnapshotMark group={group} hue={hue} title={title} scale="card" emptyNote={meta} />
+        {mark ?? <SnapshotMark group={group} hue={hue} title={title} scale="card" emptyNote={meta} />}
       </div>
 
       <p className={`mt-2 flex items-start gap-1.5 border-t border-cream pt-2 text-[11.5px] italic leading-snug text-ink-soft`}>

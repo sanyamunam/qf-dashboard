@@ -116,3 +116,92 @@ Zero console errors; `tsc` and the production build clean.
   (Green).
 - The brief counts 29 Q1 Executive actuals; the sheet holds 26 numeric ones
   (three are text notes).
+
+---
+
+# Trend charts for unjudgeable KPIs, and the category hierarchy (25 Aug 2026)
+
+Localhost only (:4189). Not deployed.
+
+## Part 1 — a KPI that cannot be scored is still a trajectory
+
+The grey "no target on record" box is gone. Which mark a card draws is decided
+once, in `markKindFor` (model/dash.ts), so the mark, the delta and the AI line
+can never disagree:
+
+| kind | when | mark |
+|---|---|---|
+| `judged` | a reading AND a target for the period | `SnapshotMark` (unchanged) |
+| `trend` | 3+ completed annual readings | `TrajectoryMark` — the same area chart the theme cards use |
+| `twoReadings` | 2 readings total | two separate reading tiles, **no shared axis** |
+| `firstReading` | 1 reading ever | the value on a baseline rule |
+
+**Rejected:** a two-point line (implies a trajectory that isn't there); a
+brand-new chart component (the platform already had `TrajectoryMark`);
+plotting the partial quarter as a hollow point on the annual axis — even
+hollow, 486,119 beside 3,051,433 draws a cliff, and the quarter is already the
+card's headline figure.
+
+`TrajectoryMark` gained two opt-in props — `gradient` (soft vertical fade
+under the line) and `labelFirst` (so both endpoints are direct-labelled).
+Existing callers on the Thematic View are untouched.
+
+**Only completed annual years are ever plotted**, most recent last, capped at
+four. `TwoReadingsMark` deliberately gives each reading its own tile and its
+own length of time ("twelve months" / "three months") rather than a common
+baseline — at one scale 250 against 28 reads as an 89% collapse when it is
+three months beside twelve.
+
+**The delta now compares like with like** (`deltaFor`). A RATE holds its
+meaning across period lengths, so Budget Variance at 18% this quarter against
+10% for all of 2025 is a real widening. A COUNT does not, so a partial quarter
+gets no arrow at all and reads "quarter to date" — which removes the false red
+decline arrow that `Footfall – EC total` was showing on a KPI that has grown
+every year on record.
+
+**The AI line now says what the mark cannot.** A judged card gets the
+historical band or the fact its target moved ("The commitment was 40% through
+2024 before it was reset to 25%"); a trend card gets the governance reason no
+verdict exists; a two-reading card gets why those numbers must not be read as
+a fall. No line repeats a number the chart has already labelled.
+
+## Part 2 — wrappers versus categories
+
+`Education` and `Operational Excellence` are grouping wrappers with no listing
+of their own. They now render in the platform's own section-divider grammar
+(the Thematic View's "Enabling function" rule): a muted uppercase label, a
+rolled-up count, **a plain `<span>` — no arrow, no hover, no cursor change,
+not focusable, not inside a link**.
+
+Every category is one object with one treatment — 14.5px semibold, count,
+arrow, same hover, same route — whether it sits inside a wrapper or stands
+alone. Nesting changes position, not appearance: a wrapper's categories sit
+inside a left rule with indentation, which is what carries the belonging.
+Consecutive standalone categories share one unlabelled band so a single-card
+category never claims a full row.
+
+**Rejected:** a generalised multi-level tree (only two wrappers exist); making
+each category a full-width section (eight categories × one card each would run
+the page to four screens); keeping the wrapper clickable with a filtered
+listing (it has no destination the data supports).
+
+## Verification · headless, 1600×1050
+
+1. Grey placeholder count on the page: **0**, both periods ✓
+2. Footfall, and all five Education KPIs, draw four-point trends ✓
+3. Active QPHI → two reading tiles; Total Policy Adoptions under 2025 →
+   first-reading baseline ✓
+4. No chart shares an axis between Q1 2026 and completed years; the partial is
+   dashed, muted and labelled wherever it appears ✓
+5. Footfall reads `486,119 · quarter to date` — no decline arrow ✓
+6. Budget Variance charts 8–10% against a 0% plan; no 0.1→18 jump ✓
+7. Charts are 104px with gradient fill, both endpoints labelled, the latest
+   point heavier ✓
+8. AI lines carry the target-history, the governance fact, or the
+   incomparability — never the chart's own numbers ✓
+9. Both wrappers: plain spans, `cursor: auto`, no tabindex, not inside a link ✓
+10. Nested and standalone categories are byte-identical in styling ✓
+11. Left rule + indentation carries the parent-child relationship ✓
+12. Running on :4189, not deployed ✓
+
+Zero console errors; `tsc` and the production build clean.
