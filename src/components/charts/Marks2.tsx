@@ -608,6 +608,26 @@ export function CardMarkL1({ k, p }: { k: ObsKpi; p: Period }): React.ReactEleme
 }
 
 /**
+ * L1 + L2 — the current-value mark with the trend beneath it.
+ *
+ * Used by the thematic spotlight's V1 (see charts/Spotlight.tsx). The L1 half
+ * is the SAME compact mark V2 draws: falling back to the full L1MarkView here
+ * would add a line of text that only one version has, and the two must differ
+ * by the trend and nothing else.
+ */
+export function CardMarkL1L2({ k, p }: { k: ObsKpi; p: Period }) {
+  const l2 = selectL2(k, p)
+  const top = CardMarkL1({ k, p })
+  if (!top && l2.kind === 'none') return null
+  return (
+    <div className="flex flex-col gap-3">
+      {top}
+      {l2.kind !== 'none' && <L2MarkView mark={l2} hues={huesFor(k)} />}
+    </div>
+  )
+}
+
+/**
  * What an EXECUTIVE DASHBOARD card draws — the deliberate exception. The
  * scoring marks win where a target exists; where there is nothing to score
  * against, the trend carries the story instead. Ten cards is not the overload

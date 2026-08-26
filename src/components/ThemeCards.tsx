@@ -5,8 +5,7 @@
  * indicator was chosen. Cards of a tier share one internal grid.
  */
 import { ChevronRight } from 'lucide-react'
-import { TrajectoryMark, ProgressMark, SparseMark } from './marks'
-import { RingMark } from './charts/RingMark'
+import { SpotlightMark, type SpotlightMode } from './charts/Spotlight'
 import { facts, fmt } from '../model/facts'
 import { themeKpis, themeById } from '../model/data'
 import { spotlightFor, type ChipReason } from '../model/spotlight'
@@ -22,7 +21,10 @@ export interface CardDef {
   chip: ChipReason | null
   figure: string | null
   sentence: React.ReactNode
-  mark: React.ReactNode
+  /** the ONE spotlight indicator this card charts; null on the reserved slot */
+  kpi: import('../model/types').Kpi | null
+  /** the reserved slot draws its own placeholder rather than a selector mark */
+  mark?: React.ReactNode
   count: number
   entities: number
 }
@@ -56,7 +58,7 @@ export function buildCards(): CardDef[] {
           <span className="num">{fmt(facts.wish.first)}</span> in 2022
         </>
       ),
-      mark: <TrajectoryMark series={facts.wish.series} hue={themeById('social').fill} fmtVal={compact} />,
+      kpi: facts.wish.kpi,
       count: count('Social Progress'),
       entities: entities('Social Progress'),
     },
@@ -72,15 +74,7 @@ export function buildCards(): CardDef[] {
           schools, <span className="num">{fmt(facts.eco.certified)}</span> Green Flag certified
         </>
       ),
-      mark: (
-        <RingMark
-          value={facts.eco.certified ?? 0}
-          total={facts.eco.registered ?? 0}
-          hue={themeById('sustain').fill}
-          valueLabel="Green Flag certified"
-          totalLabel="schools registered"
-        />
-      ),
+      kpi: facts.eco.kpis.cert,
       count: count('Sustainability'),
       entities: entities('Sustainability'),
     },
@@ -96,15 +90,7 @@ export function buildCards(): CardDef[] {
           <span className="num">{facts.wise.testbeds}</span> schools run Edtech testbeds
         </>
       ),
-      mark: (
-        <ProgressMark
-          hue={themeById('edu').fill}
-          rows={[
-            { label: 'WISE Prize recipients', value: facts.wise.prizeCount ?? 0, target: facts.wise.prizeCountTarget ?? 0 },
-            { label: 'Edtech testbed schools', value: facts.wise.testbeds, target: facts.wise.testbedsTarget },
-          ]}
-        />
-      ),
+      kpi: facts.wise.prizeValueKpi,
       count: count('Progressive Education'),
       entities: entities('Progressive Education'),
     },
@@ -117,15 +103,7 @@ export function buildCards(): CardDef[] {
       sentence: (
         <>QF's newest priority is measured by two indicators. One policy recommendation made, none adopted.</>
       ),
-      mark: (
-        <SparseMark
-          hue={themeById('ai').fill}
-          items={[
-            { label: 'recommendations', actual: facts.ai.recommendations ?? 0, target: facts.ai.recTarget ?? 0 },
-            { label: 'adoptions', actual: facts.ai.adoptions ?? 0, target: facts.ai.adoptTarget ?? 0 },
-          ]}
-        />
-      ),
+      kpi: facts.ai.adoptKpi ?? null,
       count: count('Artificial Intelligence'),
       entities: entities('Artificial Intelligence'),
     },
@@ -145,6 +123,7 @@ export function buildCards(): CardDef[] {
           stays empty until the data arrives.
         </>
       ),
+      kpi: null,
       // fixed height at any width — a width-scaling SVG here would make the
       // reserved card disagree with its row about how tall a card is
       mark: (
@@ -170,7 +149,7 @@ const CHIP_STYLE: Record<ChipReason, string> = {
   BASELINE: 'rgba(3,70,56,0.08)',
 }
 
-export function ThemeCard({ def, onOpen }: { def: CardDef; onOpen: (themeId: string) => void }) {
+export function ThemeCard({ def, onOpen, mode }: { def: CardDef; onOpen: (themeId: string) => void; mode: SpotlightMode }) {
   const theme = themeById(def.themeId)
   const dark = def.dark
   const textHue = dark
@@ -245,8 +224,11 @@ export function ThemeCard({ def, onOpen }: { def: CardDef; onOpen: (themeId: str
         </p>
       </div>
 
-      {/* group 3: the evidence mark */}
-      <div className="mt-5 self-end">{def.mark}</div>
+      {/* group 3: the evidence mark — the KPI's name, then whatever the shared
+          selector returns for its data shape */}
+      <div className="mt-5 self-end">
+        {def.kpi ? <SpotlightMark kpi={def.kpi} mode={mode} dark={dark} /> : def.mark}
+      </div>
 
       {/* group 4: the card's action — a real control, not a text link (R4 fix 3) */}
       {def.reserved ? (

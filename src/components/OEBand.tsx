@@ -9,25 +9,27 @@
  * the band busy and the pairing invisible.
  */
 import { ChevronRight } from 'lucide-react'
-import { TrajectoryMark } from './marks'
+import { SpotlightMark, type SpotlightMode } from './charts/Spotlight'
 import { facts, fmt } from '../model/facts'
 import { themeKpis } from '../model/data'
+import type { Kpi } from '../model/types'
 
 const NAVY_ACCENT = '#8fa3d4'
 const PEAK = 'rgba(255,255,255,0.45)'
 const AXIS = 'rgba(255,255,255,0.40)'
 
-/** One headline indicator: figure, what it is, and its own four-year line. */
+/** One headline indicator: figure, what it is, and its own mark from the
+ *  shared selector — the two hand-drawn lines predated the chart system. */
 function Stat({
   figure,
   label,
-  series,
-  fmtVal,
+  kpi,
+  mode,
 }: {
   figure: string
   label: React.ReactNode
-  series: [string, number][]
-  fmtVal: (n: number) => string
+  kpi: Kpi
+  mode: SpotlightMode
 }) {
   return (
     <div className="min-w-[168px] flex-1">
@@ -40,13 +42,13 @@ function Stat({
           read as different from. The figures are the point; the lines are the
           supporting detail, so they are what goes. */}
       <div className="mt-3 hidden @lg:block">
-        <TrajectoryMark series={series} hue={NAVY_ACCENT} fmtVal={fmtVal} H={66} peakHue={PEAK} axisHue={AXIS} />
+        <SpotlightMark kpi={kpi} mode={mode} dark />
       </div>
     </div>
   )
 }
 
-export function OEBand({ onOpen }: { onOpen: (themeId: string) => void }) {
+export function OEBand({ onOpen, mode }: { onOpen: (themeId: string) => void; mode: SpotlightMode }) {
   const kpis = themeKpis('Organizational Excellence')
   const entities = new Set(kpis.map((k) => k.entity)).size
 
@@ -89,8 +91,8 @@ export function OEBand({ onOpen }: { onOpen: (themeId: string) => void }) {
               at end-2025
             </>
           }
-          series={turnover}
-          fmtVal={(n) => `${n}%`}
+          kpi={facts.oe.turnover.kpi}
+          mode={mode}
         />
         <Stat
           figure={fmt(training[training.length - 1]?.[1])}
@@ -101,8 +103,8 @@ export function OEBand({ onOpen }: { onOpen: (themeId: string) => void }) {
               per employee
             </>
           }
-          series={training}
-          fmtVal={(n) => `${n}`}
+          kpi={facts.oe.training.kpi}
+          mode={mode}
         />
 
         {/* the door */}
