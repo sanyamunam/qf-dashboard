@@ -4,11 +4,9 @@
  * BDO — designed empty state. (Home is parked: nav item disabled, no route —
  * see TODO in Shell.tsx.)
  */
-import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Handshake } from 'lucide-react'
 import { AppHeader, Spark, HeaderCluster, TopNav } from '../components/Shell'
-import { SPOTLIGHT_MODE_LABEL, type SpotlightMode } from '../components/charts/Spotlight'
 import { PortfolioBrief } from '../components/PortfolioBrief'
 import { buildCards, ThemeCard } from '../components/ThemeCards'
 import { OEBand } from '../components/OEBand'
@@ -18,42 +16,6 @@ import type { Kpi } from '../model/types'
 
 const cards = buildCards()
 
-/* ────────────────────────── THE EVALUATION TOGGLE ──────────────────────────
- *
- * TEMPORARY. One control, switching every spotlight chart on the page at once
- * so V1 and V2 can be judged against each other on real data. Once the call is
- * made: delete `ModeToggle`, the `mode` state and this block, drop the `mode`
- * prop from ThemeCard/OEBand/SpotlightMark, and hard-wire the winning mark in
- * charts/Spotlight.tsx. Nothing else on the page depends on it — both versions
- * render the same KPI, figure, caption, title and CTA, and differ only in
- * whether the trend is present.
- */
-function ModeToggle({ mode, onChange }: { mode: SpotlightMode; onChange: (m: SpotlightMode) => void }) {
-  return (
-    <div className="flex flex-wrap items-center gap-2.5">
-      <span className="label text-[10px] text-ink-mute">Spotlight chart · evaluating</span>
-      <div className="flex items-center gap-1 rounded-input bg-cream/80 p-1" role="radiogroup" aria-label="Spotlight chart version">
-        {(['v1', 'v2'] as SpotlightMode[]).map((m) => {
-          const on = mode === m
-          return (
-            <button
-              key={m}
-              role="radio"
-              aria-checked={on}
-              onClick={() => onChange(m)}
-              className="rounded-chip px-3 py-1.5 text-[12.5px] font-medium transition-colors duration-200"
-              style={on ? { background: '#fff', color: 'var(--color-sidra)', boxShadow: 'var(--shadow-card)' } : { color: 'var(--color-ink-soft)' }}
-            >
-              {SPOTLIGHT_MODE_LABEL[m]}
-            </button>
-          )
-        })}
-      </div>
-      <span className="text-[11.5px] text-ink-mute">switches all six at once</span>
-    </div>
-  )
-}
-
 export function ThematicView({
   onOpenTheme,
   onEvidence,
@@ -61,7 +23,6 @@ export function ThematicView({
   onOpenTheme: (themeId: string) => void
   onEvidence: (kpi: Kpi) => void
 }) {
-  const [mode, setMode] = useState<SpotlightMode>('v1')
   return (
     <div className="mx-auto min-h-dvh max-w-[1180px] px-5 pb-36 md:px-8">
       {/* header zone: logo at rest with its clear space, then title + orientation,
@@ -100,17 +61,13 @@ export function ThematicView({
         <PortfolioBrief onEvidence={onEvidence} />
       </motion.div>
 
-      <div className="mt-10">
-        <ModeToggle mode={mode} onChange={setMode} />
-      </div>
-
       {/* The five thematic areas: 2 over 3, on one six-column grid so both rows
           are the same height (auto-rows-fr) — the top pair is WIDER, never
           taller. Five cards fill both rows exactly; no cell is left over.
           Container-queried so it reflows when BOTaina's panel takes space:
           stacked, then 2-over-2-over-1, then the full 2-over-3. */}
       <motion.div
-        className="mt-5 grid auto-rows-fr grid-cols-6 gap-4"
+        className="mt-14 grid auto-rows-fr grid-cols-6 gap-4"
         initial="off"
         animate="on"
         variants={{ on: { transition: { staggerChildren: 0.05 } } }}
@@ -127,7 +84,7 @@ export function ThematicView({
             }`}
             variants={{ off: { opacity: 0, y: 16 }, on: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.32, 0.72, 0, 1] } } }}
           >
-            <ThemeCard def={c} onOpen={onOpenTheme} mode={mode} />
+            <ThemeCard def={c} onOpen={onOpenTheme} />
           </motion.div>
         ))}
       </motion.div>
@@ -149,7 +106,7 @@ export function ThematicView({
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.4, duration: 0.5, ease: [0.32, 0.72, 0, 1] }}
       >
-        <OEBand onOpen={onOpenTheme} mode={mode} />
+        <OEBand onOpen={onOpenTheme} />
       </motion.div>
 
       <footer className="mt-9 text-center text-[11px] text-ink-mute/80">
