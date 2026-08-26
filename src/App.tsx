@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, LayoutGroup } from 'framer-motion'
 import { Loader } from './components/Loader'
-import { Bdo } from './screens/Misc'
-import { Thematic } from './screens/Thematic'
+import { ThematicView, Bdo } from './screens/Misc'
 import { Executive } from './screens/Executive'
 import { Search } from './screens/Search'
 import { L2 } from './screens/L2'
@@ -156,7 +155,9 @@ export default function App() {
               transition: 'padding-right 300ms cubic-bezier(0.32, 0.72, 0, 1)',
             }}
           >
-            {route.screen === 'themes' && <Thematic onEvidence={openEvidence} />}
+            {route.screen === 'themes' && (
+              <ThematicView onOpenTheme={(id) => go({ screen: 'l2', themeId: id })} onEvidence={openEvidence} />
+            )}
             {route.screen === 'exec' && <Executive onEvidence={openEvidence} />}
             {route.screen === 'bdo' && <Bdo />}
             {route.screen === 'search' && <Search onEvidence={openEvidence} onBack={() => go({ screen: 'exec' })} />}
