@@ -622,6 +622,30 @@ export function CardMark({ k, p }: { k: ObsKpi; p: Period }) {
 }
 
 /**
+ * L1 + L2 — the current-value mark with the trend beneath it.
+ *
+ * Only the Thematic dashboard's evaluation toggle uses this (see
+ * `Treatment` in screens/Thematic.tsx). It is the same L1 mark and the same
+ * L2 trend every other surface draws, stacked; nothing about the data,
+ * figures or captions differs between the two modes, only whether the trend
+ * is present.
+ */
+export function CardMarkL1L2({ k, p }: { k: ObsKpi; p: Period }) {
+  const l2 = selectL2(k, p)
+  const top = CardMarkL1({ k, p })
+  if (!top && l2.kind === 'none') return null
+  /* the L1 half is the SAME compact mark the other mode draws — falling back
+     to the full L1MarkView here would add a line of text that only one mode
+     has, and the two modes must differ by the trend and nothing else */
+  return (
+    <div className="flex flex-col gap-3">
+      {top}
+      {l2.kind !== 'none' && <L2MarkView mark={l2} hues={huesFor(k)} />}
+    </div>
+  )
+}
+
+/**
  * What an OVERLAY draws: the same mark the card showed, then the trend beneath
  * it. Depth added, never a different chart substituted.
  */

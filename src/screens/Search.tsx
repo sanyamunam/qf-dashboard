@@ -203,7 +203,7 @@ export function Search({ onEvidence, onBack }: { onEvidence: (kpi: Kpi) => void;
     if (shown.length === 0) return null
     const risk = shown.filter((k) => statusFor(k, period) === 'atRisk').length
     const mon = shown.filter((k) => statusFor(k, period) === 'monitoring').length
-    const nr = shown.filter((k) => statusFor(k, period) === 'notReported').length
+    const nr = shown.filter((k) => statusFor(k, period) === 'nothingYet').length
     const parts = [risk > 0 ? `${risk} at risk` : null, mon > 0 ? `${mon} without a target` : null, nr > 0 ? `${nr} not reported` : null].filter(Boolean)
     return `I found ${shown.length} indicator${shown.length === 1 ? '' : 's'}${
       chips.length ? ` for ${chips.map((c) => c.label).join(', ')}` : ''
