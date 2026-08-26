@@ -14,6 +14,7 @@ consumers.
 """
 import json
 import math
+import re
 from pathlib import Path
 
 import openpyxl
@@ -22,23 +23,56 @@ import openpyxl
 # the Downloads copy still carries the older nesting. OneDrive's lock throws
 # PermissionError on in-place reads, so the file is copied to temp first.
 import shutil
+import subprocess
 import tempfile
 
-ONEDRIVE = Path(r"C:\Users\user\OneDrive - applab.qa\QF Observatory\KPI Mapping - OBS merged 1 (1).xlsx")
-FALLBACK = Path(r"C:\Users\user\Downloads\KPI Mapping - OBS merged 1 (1).xlsx")
-# a project-local snapshot of the updated sheet, taken 25 Aug 2026 — the
-# durable fallback when OneDrive dehydrates the live file mid-session
-SNAPSHOT = Path(__file__).resolve().parent.parent / "data" / "KPI Mapping - OBS merged (snapshot 2026-08-25).xlsx"
-try:
-    SRC = Path(tempfile.gettempdir()) / "obs-kpi-mapping.xlsx"
-    shutil.copyfile(ONEDRIVE, SRC)
-except OSError:
+# 26 Aug 2026: the client re-issued the workbook as '- Updated'. It is the
+# one the chart-system brief was written against - verified independently on
+# five counts the brief cites (targets 30/43/42/47 by year, 22 rows carrying
+# both actual and target across 2022-25, 174 with all three future targets,
+# 9 green-polarity zero-target rows, 15 Polarity: Red). The previous file
+# matched none of them.
+ONEDRIVE = Path(r"C:\Users\user\OneDrive - applab.qa\QF Observatory\KPI Mapping - OBS merged - Updated.xlsx")
+# a project-local snapshot of the SAME updated sheet, so a locked or
+# dehydrated OneDrive file never silently changes what gets parsed
+SNAPSHOT = Path(__file__).resolve().parent.parent / "data" / "KPI Mapping - OBS merged (snapshot 2026-08-26 updated).xlsx"
+
+
+def _resolve_source() -> Path:
+    """The updated workbook, or a faithful copy of it - never anything else.
+
+    This used to fall back to an OLDER workbook when OneDrive refused a read,
+    and that is precisely how a stale parse reached the build: the variance
+    rows came through empty and nobody was told. Excel holds a lock that
+    `shutil` cannot pass but PowerShell can, so that is tried next; if every
+    route fails the parser STOPS rather than parse the wrong sheet.
+    """
+    tmp = Path(tempfile.gettempdir()) / "obs-kpi-mapping.xlsx"
+    try:
+        shutil.copyfile(ONEDRIVE, tmp)
+        return tmp
+    except OSError:
+        pass
+    try:
+        subprocess.run(
+            ["powershell", "-NoProfile", "-Command", f'Copy-Item -LiteralPath "{ONEDRIVE}" -Destination "{tmp}" -Force'],
+            check=True,
+            capture_output=True,
+        )
+        print("note: OneDrive file is locked - copied via PowerShell")
+        return tmp
+    except Exception:
+        pass
     if SNAPSHOT.exists():
-        print("note: OneDrive copy unreadable - using the project snapshot of the updated sheet")
-        SRC = SNAPSHOT
-    else:
-        print("WARNING: falling back to the Downloads copy, which nests Policy Hub Insights the OLD way")
-        SRC = FALLBACK
+        print(f"note: live workbook unreadable - using {SNAPSHOT.name}")
+        return SNAPSHOT
+    raise SystemExit(
+        "STOP: cannot read the updated workbook and no snapshot exists.\n"
+        "      Refusing to parse an older sheet - close Excel and re-run."
+    )
+
+
+SRC = _resolve_source()
 OUT = Path(__file__).resolve().parent.parent / "src" / "data" / "obs.json"
 
 YEARS_A = ["2022", "2023", "2024", "2025"]
@@ -46,8 +80,20 @@ YEARS_T = ["2022", "2023", "2024", "2025", "2026", "2027", "2028"]
 
 
 def num(v):
+    """A number, whether the cell stored it as one or as text.
+
+    The updated workbook types whole swathes of the variance and rate rows as
+    TEXT - '-28', '50', '10', '8.45'. Reading only real numerics silently
+    emptied every one of them, which is why the variance KPIs came through with
+    no history at all. Anything that parses as a number IS one; 'TBU' and 'NR'
+    still are not, and fall through to `note` as unset.
+    """
     if isinstance(v, (int, float)) and not isinstance(v, bool) and not (isinstance(v, float) and math.isnan(v)):
         return v
+    if isinstance(v, str):
+        t = v.strip().replace(",", "").replace("%", "").replace("\u2212", "-")
+        if re.fullmatch(r"-?\d+(?:\.\d+)?", t):
+            return float(t)
     return None
 
 
