@@ -8,7 +8,7 @@
  * Certification over Registrations — three KPIs on one card. One card, one
  * KPI, and the mark is `selectL1`/`selectL2`'s, never this component's.
  */
-import { CardMarkL1, L2MarkView } from './Marks2'
+import { CardMarkL1, L2MarkView, CARD_YEARS } from './Marks2'
 import { selectL2 } from '../../model/chartSelect'
 import { trendHues } from './trendPalette'
 import { themeByName } from '../../model/data'
@@ -70,7 +70,7 @@ export function SpotlightMark({ kpi, dark }: { kpi: Kpi | null | undefined; dark
   if (l2.kind !== 'none')
     /* the enabling-function band gives each chart ~215px; the theme cards give
        it the full card width */
-    return <L2MarkView mark={l2} hues={trendHues(themeByName(row.theme ?? '').id)} dark={dark} narrow={dark} />
+    return <L2MarkView mark={l2} hues={trendHues(themeByName(row.theme ?? '').id)} dark={dark} narrow={dark} maxReported={CARD_YEARS} />
   return <CardMarkL1 k={row} p="q1" dark={dark} />
 }
 

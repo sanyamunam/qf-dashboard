@@ -35,6 +35,7 @@ export function TrendChart({
   kind,
   dark,
   narrow,
+  maxReported,
   height = 208,
 }: {
   points: TrendPoint[]
@@ -44,6 +45,15 @@ export function TrendChart({
   dark?: boolean
   /** a column too narrow to carry a label per bar — see `label` below */
   narrow?: boolean
+  /**
+   * How many REPORTED years a card may show. A card is a summary and the
+   * overlay is the record, so the oldest years are dropped here and kept
+   * there: WISH Beneficiaries peaked at 30,000 in 2022 and reads 900 now, and
+   * on one linear axis that 2022 column squashed every recent bar to a
+   * sliver. Committed future years are never trimmed — they are the whole
+   * point of the right-hand half.
+   */
+  maxReported?: number
   height?: number
 }) {
   /* On the navy band the THEME hue is navy too — Organizational Excellence is
@@ -53,8 +63,13 @@ export function TrendChart({
   const target = dark ? TREND_TARGET_DARK : TREND_TARGET
   const rule = dark ? TREND_RULE_DARK : TREND_RULE
   const axis = dark ? TREND_AXIS_INK_DARK : TREND_AXIS_INK
-  const hasTarget = points.some((p) => p.target !== null)
-  const actuals = points.map((p) => p.actual)
+  const reported = points.filter((p) => !p.future)
+  const dropped = maxReported && reported.length > maxReported ? reported.length - maxReported : 0
+  const shown = dropped ? [...reported.slice(dropped), ...points.filter((p) => p.future)] : points
+  const droppedYears = dropped ? reported.slice(0, dropped).map((p) => p.year) : []
+
+  const hasTarget = shown.some((p) => p.target !== null)
+  const actuals = shown.map((p) => p.actual)
   const lastIdx = actuals.reduce((acc, v, i) => (v !== null ? i : acc), -1)
   /**
    * At full card width every bar carries its value. The enabling-function band
@@ -97,7 +112,7 @@ export function TrendChart({
                yields. `z` still puts it in front. */
             name: 'Target',
             type: 'bar',
-            data: points.map((p) => p.target),
+            data: shown.map((p) => p.target),
             barMaxWidth: 24,
             itemStyle: { color: 'transparent', borderColor: target, borderWidth: 1.4, borderType: 'dashed', borderRadius: [3, 3, 0, 0] },
             label: label(target, { off: narrow }),
@@ -107,7 +122,7 @@ export function TrendChart({
           {
             name: 'Actual',
             type: 'bar',
-            data: points.map((p, i) => (p.actual === null ? null : { value: p.actual, itemStyle: actualStyle(i) })),
+            data: shown.map((p, i) => (p.actual === null ? null : { value: p.actual, itemStyle: actualStyle(i) })),
             barMaxWidth: 24,
             barGap: '18%',
             barCategoryGap: '32%',
@@ -119,7 +134,7 @@ export function TrendChart({
           {
             name: 'Target',
             type: 'line',
-            data: points.map((p) => p.target),
+            data: shown.map((p) => p.target),
             lineStyle: { type: 'dashed', width: 2, color: target },
             itemStyle: { color: dark ? '#1f2a44' : '#fff', borderColor: target, borderWidth: 1.6 },
             symbol: 'circle',
@@ -133,7 +148,7 @@ export function TrendChart({
           {
             name: 'Actual',
             type: 'line',
-            data: points.map((p, i) => (p.actual === null ? null : { value: p.actual, itemStyle: actualStyle(i) })),
+            data: shown.map((p, i) => (p.actual === null ? null : { value: p.actual, itemStyle: actualStyle(i) })),
             lineStyle: { width: 2.5, color: series0.now },
             itemStyle: { color: series0.now },
             symbol: 'circle',
@@ -183,7 +198,7 @@ export function TrendChart({
     },
     xAxis: {
       type: 'category',
-      data: points.map((p) => p.year),
+      data: shown.map((p) => p.year),
       axisLine: { lineStyle: { color: rule } },
       axisTick: { show: false },
       /* every year named — two labels and five unlabelled bars left a reader
@@ -207,5 +222,16 @@ export function TrendChart({
     },
     series,
   }
-  return <EChart option={option} height={height} />
+  return (
+    <>
+      <EChart option={option} height={height} />
+      {/* a trimmed series says so — a chart that silently starts at 2023 would
+          misstate how long this indicator has been running */}
+      {dropped > 0 && (
+        <p className="mt-1 text-[9.5px] leading-tight" style={{ color: axis }}>
+          {droppedYears.join(', ')} {dropped === 1 ? 'is' : 'are'} in the indicator's detail view
+        </p>
+      )}
+    </>
+  )
 }

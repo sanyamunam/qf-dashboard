@@ -433,14 +433,14 @@ const currentTarget = (points: TrendPoint[]): number | null =>
  * reference's rules still hold — target never back-filled, status colour never
  * in a series, Q1 never on this axis.
  */
-export function BarTrend({ m, hues = TREND_NEUTRAL, dark, narrow }: { m: Extract<L2Mark, { kind: 'bars' }>; hues?: TrendHues; dark?: boolean; narrow?: boolean }) {
-  return <TrendChart points={m.points} unit={m.unit} hues={hues} kind="bars" dark={dark} narrow={narrow} />
+export function BarTrend({ m, hues = TREND_NEUTRAL, dark, narrow, maxReported }: { m: Extract<L2Mark, { kind: 'bars' }>; hues?: TrendHues; dark?: boolean; narrow?: boolean; maxReported?: number }) {
+  return <TrendChart points={m.points} unit={m.unit} hues={hues} kind="bars" dark={dark} narrow={narrow} maxReported={maxReported} />
 }
 
 /** X · percentages — a level that persists, so two lines: the actual solid,
  *  the commitment dashed with hollow points, breaking where none was set. */
-export function LineTrend({ m, hues = TREND_NEUTRAL, dark, narrow }: { m: Extract<L2Mark, { kind: 'line' }>; hues?: TrendHues; dark?: boolean; narrow?: boolean }) {
-  return <TrendChart points={m.points} unit={m.unit} hues={hues} kind="line" dark={dark} narrow={narrow} />
+export function LineTrend({ m, hues = TREND_NEUTRAL, dark, narrow, maxReported }: { m: Extract<L2Mark, { kind: 'line' }>; hues?: TrendHues; dark?: boolean; narrow?: boolean; maxReported?: number }) {
+  return <TrendChart points={m.points} unit={m.unit} hues={hues} kind="line" dark={dark} narrow={narrow} maxReported={maxReported} />
 }
 
 /** Y · two readings — never a line, and never a shared value axis. */
@@ -512,12 +512,12 @@ export function L1MarkView({
   }
 }
 
-export function L2MarkView({ mark, hues = TREND_NEUTRAL, dark, narrow }: { mark: L2Mark; hues?: TrendHues; dark?: boolean; narrow?: boolean }) {
+export function L2MarkView({ mark, hues = TREND_NEUTRAL, dark, narrow, maxReported }: { mark: L2Mark; hues?: TrendHues; dark?: boolean; narrow?: boolean; maxReported?: number }) {
   switch (mark.kind) {
     case 'bars':
-      return <BarTrend m={mark} hues={hues} dark={dark} narrow={narrow} />
+      return <BarTrend m={mark} hues={hues} dark={dark} narrow={narrow} maxReported={maxReported} />
     case 'line':
-      return <LineTrend m={mark} hues={hues} dark={dark} narrow={narrow} />
+      return <LineTrend m={mark} hues={hues} dark={dark} narrow={narrow} maxReported={maxReported} />
     case 'twoValue':
       return <TwoValueMark m={mark} hues={hues} dark={dark} />
     case 'baseline':
@@ -536,6 +536,10 @@ export function L2MarkView({ mark, hues = TREND_NEUTRAL, dark, narrow }: { mark:
  * theme to the fallback id, which maps to the neutral ink.
  */
 const huesFor = (k: ObsKpi) => trendHues(themeByName(k.theme ?? '').id)
+
+/** How many reported years a CARD shows. The overlay shows every one — see
+ *  `maxReported` in TrendChart for why a card trims at all. */
+export const CARD_YEARS = 3
 
 /**
  * L1 ONLY — every listing card outside the Executive Dashboard.
@@ -567,7 +571,7 @@ export function CardMarkL1L2({ k, p, dark }: { k: ObsKpi; p: Period; dark?: bool
   return (
     <div className="flex flex-col gap-3">
       {top}
-      {l2.kind !== 'none' && <L2MarkView mark={l2} hues={huesFor(k)} dark={dark} />}
+      {l2.kind !== 'none' && <L2MarkView mark={l2} hues={huesFor(k)} dark={dark} maxReported={CARD_YEARS} />}
     </div>
   )
 }
@@ -582,7 +586,7 @@ export function CardMark({ k, p }: { k: ObsKpi; p: Period }) {
   const l1 = selectL1(k, p)
   if (l1.kind === 'bullet' || l1.kind === 'gauge' || l1.kind === 'centredGauge') return <L1MarkView mark={l1} />
   const l2 = selectL2(k, p)
-  if (l2.kind !== 'none') return <L2MarkView mark={l2} hues={huesFor(k)} />
+  if (l2.kind !== 'none') return <L2MarkView mark={l2} hues={huesFor(k)} maxReported={CARD_YEARS} />
   return <L1MarkView mark={l1} />
 }
 
@@ -598,6 +602,7 @@ export function OverlayMarks({ k, p }: { k: ObsKpi; p: Period }) {
     <div className="flex flex-col gap-5">
       <L1MarkView mark={l1} />
       {/* the card's mark is the trend when nothing scores it — don't draw it twice */}
+      {/* the overlay is the record: every reported year, untrimmed */}
       {(scoring || !(l2.kind !== 'none')) && l2.kind !== 'none' && <L2MarkView mark={l2} hues={huesFor(k)} />}
     </div>
   )
