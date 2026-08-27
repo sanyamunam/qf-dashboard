@@ -251,45 +251,58 @@ export function IdleMark({ compact }: { compact?: boolean }) {
 /* ───────────────────────────── L2 · trend marks ──────────────────────────── */
 
 const TREND_W = 320
-const TREND_H = 132
 /**
- * A fixed two-row label band above the plot, and the plot below it.
+ * ONE row of labels, and it holds the actual.
  *
- * Labelling every bar and every point means up to fourteen numbers on one
- * card, and floating each one over its own mark is how `1,027` ended up
- * sitting on top of its bar. Reserving two rows at a constant height solves it
- * by construction rather than by nudging: the target row is always at
- * TARGET_Y, the actual row always at ACTUAL_Y, the plot never rises above
- * PLOT_TOP, so no label can reach a mark or another label. It also keeps the
- * baseline grid identical across a row of cards regardless of how many labels
- * each one carries.
+ * Two rows stacked a target over an actual with nothing saying which was
+ * which — `500` sitting above `23k` read as nonsense until you worked out that
+ * 500 was that year's target. The target is a MARK now, a tick across the bar
+ * at its height, exactly as the L1 bullet does it; its value is named once, in
+ * the key, for the most recent period that has one. Seven target labels across
+ * a card-width chart is what created the second row in the first place.
+ *
+ * The band is still a fixed height, so no label can reach a mark or another
+ * label and every card in a row keeps one baseline grid.
  */
-const TARGET_Y = 9
-const ACTUAL_Y = 23
-const PLOT_TOP = 32
-const BASE_Y = 112
-const YEAR_Y = 128
+const TREND_H = 156
+const ACTUAL_Y = 13
+const PLOT_TOP = 26
+const BASE_Y = 128
+const YEAR_Y = 143
+/** a value of any size still has to render as a BAR, not a hairline */
+const MIN_BAR = 6
+/** breathing room either side of the reported/committed divider */
+const DIVIDER_GAP = 12
 
 function trendScale(points: TrendPoint[]) {
   const vals = points.flatMap((p) => [p.actual, p.target]).filter((v): v is number => v !== null)
   const max = Math.max(...vals, 1)
   const min = Math.min(0, ...vals)
   const y = (v: number) => BASE_Y - ((v - min) / (max - min || 1)) * (BASE_Y - PLOT_TOP)
-  const step = TREND_W / points.length
-  const x = (i: number) => step * i + step / 2
-  return { x, y, step }
+
+  /**
+   * Reported years get the width; the committed path takes what is left.
+   *
+   * An even split gave three future outlines the same room as four years of
+   * actuals and left a visible void on the right of the card. The reported
+   * series is the story, so it takes the larger share and the divider gets a
+   * real gap rather than sitting in the middle of one.
+   */
+  const firstFuture = points.findIndex((p) => p.future)
+  const nPast = firstFuture < 0 ? points.length : firstFuture
+  const nFuture = points.length - nPast
+  const pastW = nFuture === 0 ? TREND_W : (TREND_W - DIVIDER_GAP) * 0.68
+  const futureW = TREND_W - DIVIDER_GAP - pastW
+  const pastStep = pastW / Math.max(1, nPast)
+  const futureStep = nFuture ? futureW / nFuture : 0
+  const x = (i: number) =>
+    i < nPast ? pastStep * i + pastStep / 2 : pastW + DIVIDER_GAP + futureStep * (i - nPast) + futureStep / 2
+  const step = (i: number) => (i < nPast ? pastStep : futureStep)
+  const dividerX = pastW + DIVIDER_GAP / 2
+  return { x, y, step, dividerX, nPast, nFuture }
 }
 
-/**
- * Every reading labelled, in its own column. The most recent actual carries
- * the weight; earlier years sit lighter and a shade smaller, so four numbers
- * do not read as four equal claims. A target is the reference, never the
- * reading — smaller again, and quieter.
- *
- * A year with no target simply has no target label. Targets exist for only
- * 30/43/42/47 of 240 rows across 2022–25; drawing one where none was set
- * would fabricate a commitment.
- */
+/** Every reading labelled once, on one line. The latest carries the weight. */
 function TrendLabels({
   points,
   x,
@@ -306,14 +319,6 @@ function TrendLabels({
 }) {
   return (
     <>
-      {points.map((p, i) =>
-        p.target !== null ? (
-          <text key={`t${p.year}`} x={x(i)} y={TARGET_Y} textAnchor="middle" fontSize="8.5" fill={skin.target}>
-            {compact(p.target)}
-            {unit}
-          </text>
-        ) : null,
-      )}
       {points.map((p, i) =>
         p.actual !== null ? (
           <text
@@ -335,12 +340,12 @@ function TrendLabels({
 }
 
 /**
- * Two words, inline — only where the chart actually carries both series. A
- * boxed legend on a card this size costs more room than the chart it explains.
+ * Two words inline, and the current commitment named once — the only target
+ * figure on the chart, so it cannot collide with anything.
  */
-function TrendKey({ shape, skin }: { shape: 'bar' | 'line'; skin: TrendSkin }) {
+function TrendKey({ shape, skin, target, unit }: { shape: 'bar' | 'line'; skin: TrendSkin; target: number | null; unit: string }) {
   return (
-    <div className="mt-1.5 flex items-center gap-3 text-[9.5px]" style={{ color: skin.axis }}>
+    <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[9.5px]" style={{ color: skin.axis }}>
       <span className="flex items-center gap-1.5">
         <svg width="14" height="8" aria-hidden>
           {shape === 'bar' ? (
@@ -356,20 +361,39 @@ function TrendKey({ shape, skin }: { shape: 'bar' | 'line'; skin: TrendSkin }) {
           <line x1="0" y1="4" x2="14" y2="4" stroke={skin.target} strokeWidth="2" strokeDasharray={shape === 'bar' ? undefined : '4 2.5'} />
           {shape === 'line' && <circle cx="7" cy="4" r="2.6" fill="none" stroke={skin.target} strokeWidth="1.5" />}
         </svg>
-        target
+        {target === null ? 'target' : `target ${compact(target)}${unit}`}
       </span>
     </div>
   )
 }
 
-/** The axis at its ends only — with every bar labelled by value, a full row of
- *  years is a second layer of text saying less. The rest live in the tooltip. */
-function EndYears({ points, x, skin }: { points: TrendPoint[]; x: (i: number) => number; skin: TrendSkin }) {
+/** Every year on the axis. Two labels and five unlabelled bars left a reader
+ *  unable to say which bar was which year. */
+function AxisYears({
+  points,
+  x,
+  skin,
+  latest,
+}: {
+  points: TrendPoint[]
+  x: (i: number) => number
+  skin: TrendSkin
+  latest: number
+}) {
   return (
     <>
-      {[0, points.length - 1].map((i) => (
-        <text key={points[i].year} x={x(i)} y={YEAR_Y} textAnchor="middle" fontSize="9.5" fill={skin.axis}>
-          {points[i].year}
+      {points.map((p, i) => (
+        <text
+          key={`y${p.year}`}
+          x={x(i)}
+          y={YEAR_Y}
+          textAnchor="middle"
+          fontSize="8.5"
+          fontWeight={i === latest ? 700 : 400}
+          fill={skin.axis}
+          opacity={p.future ? 0.75 : 1}
+        >
+          {p.year}
         </text>
       ))}
     </>
@@ -387,6 +411,10 @@ const trendTitle = (points: TrendPoint[], unit: string) =>
     )
     .join(' · ')
 
+/** The commitment a chart's key should name: the newest one it carries. */
+const currentTarget = (points: TrendPoint[]): number | null =>
+  [...points].reverse().find((p) => p.target !== null)?.target ?? null
+
 /**
  * X · counts — the bar is the actual, and where a target exists a tick sits
  * across the bar at the target's height.
@@ -399,38 +427,43 @@ const trendTitle = (points: TrendPoint[], unit: string) =>
  */
 export function BarTrend({ m, hues = TREND_NEUTRAL, dark }: { m: Extract<L2Mark, { kind: 'bars' }>; hues?: TrendHues; dark?: boolean }) {
   const skin = skinFor(hues, dark)
-  const { x, y, step } = trendScale(m.points)
-  const bw = Math.min(30, step * 0.62)
+  const { x, y, step, dividerX } = trendScale(m.points)
   const lastActual = m.points.filter((p) => p.actual !== null).slice(-1)[0]
   const latest = m.points.indexOf(lastActual)
-  const divider = m.points.findIndex((p) => p.future)
-  /** the tick overhangs the bar slightly so it reads as a marker, not a cap */
-  const tw = bw / 2 + 3
+  /** a value of any size still reads as a bar, not a hairline (fault 3) */
+  const h = (v: number) => Math.max(MIN_BAR, BASE_Y - y(v))
+  const bw = (i: number) => Math.min(30, step(i) * 0.62)
+  const tw = (i: number) => bw(i) / 2 + 3
 
   return (
     <>
-      <svg viewBox={`0 0 ${TREND_W} ${TREND_H}`} height={TREND_H} width="100%" style={{ overflow: 'visible' }} role="img">
+      {/* No fixed height: with one, `preserveAspectRatio` letterboxed the chart
+            inside a wide card and it sat centred at two-thirds width with slack
+            either side. Letting the width drive the height makes it span the
+            card at any column width. */}
+        <svg viewBox={`0 0 ${TREND_W} ${TREND_H}`} width="100%" style={{ display: 'block' }} role="img">
         <title>{trendTitle(m.points, m.unit)}</title>
         {m.points.map((p, i) =>
           p.actual !== null ? (
             <rect
               key={p.year}
-              x={x(i) - bw / 2}
-              y={y(p.actual)}
-              width={bw}
-              height={Math.max(2, BASE_Y - y(p.actual))}
+              x={x(i) - bw(i) / 2}
+              y={BASE_Y - h(p.actual)}
+              width={bw(i)}
+              height={h(p.actual)}
               rx="4"
               fill={p === lastActual ? skin.hues.now : skin.hues.past}
             />
           ) : p.target !== null ? (
-            /* a committed year with nothing delivered yet: the outline shows
-               the size of the commitment without claiming a reading */
+            /* a committed year with nothing delivered yet: the outline sits AT
+               the target's height, so it reads as the size of the commitment
+               rather than as an empty slot */
             <rect
               key={p.year}
-              x={x(i) - bw / 2}
-              y={y(p.target)}
-              width={bw}
-              height={Math.max(2, BASE_Y - y(p.target))}
+              x={x(i) - bw(i) / 2}
+              y={BASE_Y - h(p.target)}
+              width={bw(i)}
+              height={h(p.target)}
               rx="4"
               fill="none"
               stroke={skin.target}
@@ -439,16 +472,15 @@ export function BarTrend({ m, hues = TREND_NEUTRAL, dark }: { m: Extract<L2Mark,
             />
           ) : null,
         )}
-        {/* one tick per year that HAS a target — discrete markers, never a path
-            joining them, which would draw a commitment across years that set
-            none */}
+        {/* the target as a MARK, one tick per year that set one — never a path
+            joining them, which would draw a commitment across years with none */}
         {m.points.map((p, i) =>
           p.target !== null && p.actual !== null ? (
             <line
               key={`tk${p.year}`}
-              x1={x(i) - tw}
+              x1={x(i) - tw(i)}
               y1={y(p.target)}
-              x2={x(i) + tw}
+              x2={x(i) + tw(i)}
               y2={y(p.target)}
               stroke={skin.target}
               strokeWidth="2.5"
@@ -456,32 +488,27 @@ export function BarTrend({ m, hues = TREND_NEUTRAL, dark }: { m: Extract<L2Mark,
             />
           ) : null,
         )}
-        {divider > 0 && (
-          <line x1={x(divider) - step / 2} y1={PLOT_TOP} x2={x(divider) - step / 2} y2={BASE_Y} stroke={skin.rule} strokeDasharray="3 3" />
-        )}
+        <line x1={dividerX} y1={PLOT_TOP} x2={dividerX} y2={BASE_Y} stroke={skin.rule} strokeDasharray="3 3" />
         <line x1="0" y1={BASE_Y} x2={TREND_W} y2={BASE_Y} stroke={skin.rule} />
         <TrendLabels points={m.points} x={x} unit={m.unit} latest={latest} skin={skin} />
-        <EndYears points={m.points} x={x} skin={skin} />
+        <AxisYears points={m.points} x={x} skin={skin} latest={latest} />
       </svg>
-      {m.hasTarget && <TrendKey shape="bar" skin={skin} />}
+      {m.hasTarget && <TrendKey shape="bar" skin={skin} target={currentTarget(m.points)} unit={m.unit} />}
     </>
   )
 }
 
 /**
  * X · percentages — a level that persists, so a line. Solid actual with filled
- * points; the commitment is a second dashed line with hollow points, in the
- * neutral target treatment, over EVERY year that set one — historical as well
- * as future. It breaks wherever the sheet set none rather than spanning the
- * gap: only 30/43/42/47 of 240 rows carry a historical target, so a target
- * series is usually partial and drawing through it would invent commitments.
+ * points; the commitment is a second dashed line with hollow points over every
+ * year that set one, breaking where the sheet set none rather than spanning
+ * the gap.
  */
 export function LineTrend({ m, hues = TREND_NEUTRAL, dark }: { m: Extract<L2Mark, { kind: 'line' }>; hues?: TrendHues; dark?: boolean }) {
   const skin = skinFor(hues, dark)
-  const { x, y, step } = trendScale(m.points)
+  const { x, y, dividerX } = trendScale(m.points)
   const acts = m.points.map((p, i) => ({ ...p, i })).filter((p) => p.actual !== null)
   const last = acts.slice(-1)[0]
-  const divider = m.points.findIndex((p) => p.future)
   const segs: string[][] = []
   let cur: string[] = []
   m.points.forEach((p, i) => {
@@ -496,29 +523,30 @@ export function LineTrend({ m, hues = TREND_NEUTRAL, dark }: { m: Extract<L2Mark
 
   return (
     <>
-      <svg viewBox={`0 0 ${TREND_W} ${TREND_H}`} height={TREND_H} width="100%" style={{ overflow: 'visible' }} role="img">
+      {/* No fixed height: with one, `preserveAspectRatio` letterboxed the chart
+            inside a wide card and it sat centred at two-thirds width with slack
+            either side. Letting the width drive the height makes it span the
+            card at any column width. */}
+        <svg viewBox={`0 0 ${TREND_W} ${TREND_H}`} width="100%" style={{ display: 'block' }} role="img">
         <title>{trendTitle(m.points, m.unit)}</title>
-        {segs.map((s, i) => (
-          <polyline key={i} points={s.join(' ')} fill="none" stroke={skin.target} strokeWidth="2" strokeDasharray="5 3" />
+        {segs.map((sg, i) => (
+          <polyline key={i} points={sg.join(' ')} fill="none" stroke={skin.target} strokeWidth="2" strokeDasharray="5 3" />
         ))}
         <polyline points={acts.map((p) => `${x(p.i)},${y(p.actual as number)}`).join(' ')} fill="none" stroke={skin.hues.now} strokeWidth="2.5" />
         {acts.map((p) => (
           <circle key={p.year} cx={x(p.i)} cy={y(p.actual as number)} r={p === last ? 5.5 : 3.5} fill={p === last ? skin.hues.now : skin.hues.past} />
         ))}
-        {/* hollow points on every committed year, not only the future ones */}
         {m.points.map((p, i) =>
           p.target !== null ? (
             <circle key={`t${p.year}`} cx={x(i)} cy={y(p.target)} r="4" fill={dark ? '#1f2a44' : '#fff'} stroke={skin.target} strokeWidth="1.6" />
           ) : null,
         )}
-        {divider > 0 && (
-          <line x1={x(divider) - step / 2} y1={PLOT_TOP} x2={x(divider) - step / 2} y2={BASE_Y} stroke={skin.rule} strokeDasharray="3 3" />
-        )}
+        <line x1={dividerX} y1={PLOT_TOP} x2={dividerX} y2={BASE_Y} stroke={skin.rule} strokeDasharray="3 3" />
         <line x1="0" y1={BASE_Y} x2={TREND_W} y2={BASE_Y} stroke={skin.rule} />
         <TrendLabels points={m.points} x={x} unit={m.unit} latest={last ? last.i : -1} skin={skin} />
-        <EndYears points={m.points} x={x} skin={skin} />
+        <AxisYears points={m.points} x={x} skin={skin} latest={last ? last.i : -1} />
       </svg>
-      {m.hasTarget && <TrendKey shape="line" skin={skin} />}
+      {m.hasTarget && <TrendKey shape="line" skin={skin} target={currentTarget(m.points)} unit={m.unit} />}
     </>
   )
 }
