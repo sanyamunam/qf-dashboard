@@ -77,22 +77,77 @@ export const STATUS_SENSE: Record<DashStatus, string> = {
   monitoring: 'a reading, but no target to judge it against',
 }
 
+/* ───────────────────────── the pace assumption ─────────────────────────
+ *
+ * QF HAS NOT SET QUARTERLY MILESTONES, so even accrual is the PLATFORM'S
+ * assumption and is stated on screen beside every count that rests on it.
+ *
+ * Without it, three months into the year every cumulative indicator is graded
+ * against its full-year number and 99 of the 151 Thematic rows read as at
+ * risk — two thirds of the portfolio, almost none of it because anything is
+ * wrong. The Executive side never exposed this because most of its rows carry
+ * no Q1 reading at all; on the Thematic side nearly every one does.
+ *
+ * This governs STATUS only. The L1 bullet bar still shows the real annual
+ * target — WISH Beneficiaries reads "900 of 5,000", per the chart reference —
+ * because the commitment is the commitment whatever month it is.
+ */
+export const PACE = {
+  /** how much of the year Q1 represents */
+  elapsed: 0.25,
+  elapsedLabel: 'three of twelve months',
+  /** slack on the pace bar before an indicator is called at risk, 0–1 */
+  tolerance: 0,
+} as const
+
+/** How a reading accrues, which decides what its target means at Q1. */
+export type Accrual = 'cumulative' | 'pointInTime'
+
+/**
+ * A POINT-IN-TIME indicator is a level that exists at an instant — a
+ * satisfaction score of 70% is 70% whether you read it in March or December,
+ * so it is compared against the target directly. A CUMULATIVE one accrues:
+ * 200 internships over a year is roughly 50 by the end of Q1.
+ *
+ * Derived from the unit and the wording and EXPOSED so QF can correct it — it
+ * is inference, not a column in the sheet. Note `engagement score` and not
+ * bare `engagement`: "National Engagements" is a count of events, and reading
+ * it as a level made eight rows look at risk when they were on pace.
+ */
+const POINT_IN_TIME =
+  /percentage|%|ratio|rate|score|index|average|per employee|satisfaction|time to hire|turnover|utili[sz]ation/i
+
+export const accrualOf = (k: ObsKpi): Accrual =>
+  POINT_IN_TIME.test(`${k.definition ?? ''} ${k.name}`) ? 'pointInTime' : 'cumulative'
+
+/** What the target asks for BY NOW, rather than by December. */
+export function expectedBy(k: ObsKpi, p: Period): number | null {
+  const t = targetFor(k, p)
+  if (t === null) return null
+  /* a completed year is a completed year: at p==='2025' elapsed is 1 and the
+     rule reduces to a straight comparison */
+  const elapsed = p === 'q1' ? PACE.elapsed : 1
+  return accrualOf(k) === 'pointInTime' ? t : t * elapsed
+}
+
 /**
  * Polarity governs direction: Budget Variance is `Red` (lower is better), so
- * 18% against a target of 0 is AT RISK, never performing. Monitoring keeps
- * the model honest — a reading with no target gets no pass/fail verdict.
+ * 18% against a ceiling of 0 is at risk, never performing.
+ *
+ * `actualFor` has already turned an annual reporter's Q1 zero into an absence
+ * (see `q1Of` in obs.ts), so % Employee Turnover reads Not reported rather
+ * than being graded as a collapse to zero.
  */
 export function statusFor(k: ObsKpi, p: Period): DashStatus {
   const a = actualFor(k, p)
   if (a === null) return 'notReported'
   const t = targetFor(k, p)
-  if (t === null) return 'monitoring'
   /* a zero target on a higher-is-better indicator is an off-year, not a
-     ceiling — nine cyclical rows would otherwise read as permanently
-     "performing" against a target nobody set. Watched, not judged. */
-  if (!isLowerBetter(k) && t === 0) return 'monitoring'
-  const meets = isLowerBetter(k) ? a <= t : a >= t
-  return meets ? 'performing' : 'atRisk'
+     ceiling — the reference's nine idle rows. Watched, not judged. */
+  if (t === null || (!isLowerBetter(k) && t === 0)) return 'monitoring'
+  const bar = expectedBy(k, p) as number
+  const slack = isLowerBetter(k) ? bar * (1 + PACE.tolerance) : bar * (1 - PACE.tolerance)
+  return (isLowerBetter(k) ? a <= slack : a >= slack) ? 'performing' : 'atRisk'
 }
 
 /** Reported before, silent now: no reading this period, but at least one
@@ -104,6 +159,9 @@ export const stoppedReporting = (k: ObsKpi, p: Period): boolean =>
 /* ─────────────────────────── the dashboard ten ─────────────────────────── */
 
 export const execRows: ObsKpi[] = obsKpis.filter((k) => (k.dashboard ?? '').startsWith('Exec'))
+
+/** The other 151. The two sets are never blended in a count or a summary. */
+export const thematicRows: ObsKpi[] = obsKpis.filter((k) => !(k.dashboard ?? '').startsWith('Exec'))
 
 /** Read from the sheet's blue fill via the parser — never a hard-coded list. */
 export const dashTen: ObsKpi[] = execRows.filter((k) => k.highlighted)
@@ -369,19 +427,30 @@ const missOf = (k: ObsKpi, p: Period): number => {
   return Math.abs(a - t) / Math.max(Math.abs(t), 1)
 }
 
-export function summaryFor(p: Period): DashSummary {
-  const c = statusCounts(p)
+/**
+ * The summary, for whichever portfolio is on screen. Both lines are computed
+ * from the same `statusFor` that drives the cards below, so the summary can
+ * never contradict them, and the two named KPIs come from those buckets rather
+ * than being chosen by hand.
+ */
+export function summaryFor(p: Period, within: ObsKpi[] = dashTen): DashSummary {
+  const c = statusCounts(p, within)
+  const n = within.length
   const atRisk = [...c.atRisk].sort((a, b) => missOf(b, p) - missOf(a, p))[0] ?? null
-  const performing = c.performing[0] ?? null
+  /* the clearest good news, not merely the first row in sheet order */
+  const performing = [...c.performing].sort((a, b) => missOf(b, p) - missOf(a, p))[0] ?? null
   const label = p === 'q1' ? 'this quarter' : 'in 2025'
   const plural = (x: number, s: string, pl: string) => `${x} ${x === 1 ? s : pl}`
-  const collapsed = `${c.performing.length} of ${dashTen.length} performing, ${c.atRisk.length} at risk ${label} — ${
+
+  const collapsed = `${c.performing.length} of ${n} on target, ${c.atRisk.length} at risk ${label} — ${
     atRisk ? `${atRisk.name.trim()} is the one to look at` : 'nothing needs intervention'
   }; ${plural(c.monitoring.length, 'has', 'have')} no target and ${plural(c.notReported.length, 'has', 'have')} not reported.`
+
+  const cumulative = within.filter((k) => accrualOf(k) === 'cumulative').length
   const prose =
     p === 'q1'
-      ? 'Only five of the ten report quarterly, so this is the mid-flight view. Spending variance has widened to 18% against a plan of zero while Qatarization holds its 25% target, and two of the six policy adoptions targeted for 2026 have landed. The five Education indicators report on the full year — the 2025 view carries their complete figures.'
-      : 'The complete-year view. Qatarization closed 2025 a point over its target and budget variance closed at 10% against a plan of zero. Seven of the ten carry no 2025 target, so they are watched rather than judged; Total Policy Adoptions had not yet begun reporting.'
+      ? `Three months in, so ${cumulative} of these ${n} are judged against ${Math.round(PACE.elapsed * 100)}% of their annual number rather than the whole of it — even accrual is the platform's assumption, not a milestone QF has set. The ${c.notReported.length} not reported are indicators that report at year end, so their Q1 cell is an absence rather than a zero. The ${c.monitoring.length} under Monitoring carry no target, so no verdict is available and none is invented.`
+      : `The complete-year view: every figure is a closed twelve months against a full-year target, so no pace assumption applies. ${c.performing.length} met or beat their number and ${c.atRisk.length} did not; ${c.monitoring.length} carry no 2025 target and are watched rather than judged, and ${c.notReported.length} have nothing on record for the year.`
   return { collapsed, prose, performing, atRisk }
 }
 

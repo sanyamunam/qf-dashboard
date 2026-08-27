@@ -5,11 +5,10 @@
  * indicator was chosen. Cards of a tier share one internal grid.
  */
 import { ChevronRight } from 'lucide-react'
-import { TrajectoryMark, ProgressMark, SparseMark } from './marks'
-import { RingMark } from './charts/RingMark'
+import { SpotlightIdentity, SpotlightMark } from './charts/Spotlight'
 import { facts, fmt } from '../model/facts'
 import { themeKpis, themeById } from '../model/data'
-import { spotlightFor, type ChipReason } from '../model/spotlight'
+import type { Kpi } from '../model/types'
 
 export interface CardDef {
   themeId: string
@@ -19,10 +18,12 @@ export interface CardDef {
   dark?: boolean
   reserved?: boolean
   subtitle?: string
-  chip: ChipReason | null
+  /** the ONE indicator this card charts — its headline figure names it */
+  kpi: Kpi | null
   figure: string | null
   sentence: React.ReactNode
-  mark: React.ReactNode
+  /** the reserved slot draws its own placeholder; everything else uses the selector */
+  mark?: React.ReactNode
   count: number
   entities: number
 }
@@ -48,7 +49,7 @@ export function buildCards(): CardDef[] {
       themeId: 'social',
       themeName: 'Social Progress',
       span: 3,
-      chip: spotlightFor('Social Progress').chip,
+      kpi: facts.wish.kpi,
       figure: fmt(facts.wish.q1),
       sentence: (
         <>
@@ -56,7 +57,6 @@ export function buildCards(): CardDef[] {
           <span className="num">{fmt(facts.wish.first)}</span> in 2022
         </>
       ),
-      mark: <TrajectoryMark series={facts.wish.series} hue={themeById('social').fill} fmtVal={compact} />,
       count: count('Social Progress'),
       entities: entities('Social Progress'),
     },
@@ -64,23 +64,9 @@ export function buildCards(): CardDef[] {
       themeId: 'sustain',
       themeName: 'Sustainability',
       span: 3,
-      chip: 'BASELINE',
+      kpi: facts.eco.kpi,
       figure: fmt(facts.eco.beneficiaries),
-      sentence: (
-        <>
-          students and teachers in Eco-Schools across <span className="num">{fmt(facts.eco.registered)}</span>{' '}
-          schools, <span className="num">{fmt(facts.eco.certified)}</span> Green Flag certified
-        </>
-      ),
-      mark: (
-        <RingMark
-          value={facts.eco.certified ?? 0}
-          total={facts.eco.registered ?? 0}
-          hue={themeById('sustain').fill}
-          valueLabel="Green Flag certified"
-          totalLabel="schools registered"
-        />
-      ),
+      sentence: <>students and teachers reached by Earthna's Eco-Schools programme this quarter</>,
       count: count('Sustainability'),
       entities: entities('Sustainability'),
     },
@@ -88,23 +74,9 @@ export function buildCards(): CardDef[] {
       themeId: 'edu',
       themeName: 'Progressive Education',
       span: 2,
-      chip: 'BASELINE',
+      kpi: facts.wise.prizeValueKpi,
       figure: `QAR ${fmt((facts.wise.prizeValue ?? 0) / 1e6)}m`,
-      sentence: (
-        <>
-          awarded to <span className="num">{fmt(facts.wise.prizeCount)}</span> WISE Prize recipients;{' '}
-          <span className="num">{facts.wise.testbeds}</span> schools run Edtech testbeds
-        </>
-      ),
-      mark: (
-        <ProgressMark
-          hue={themeById('edu').fill}
-          rows={[
-            { label: 'WISE Prize recipients', value: facts.wise.prizeCount ?? 0, target: facts.wise.prizeCountTarget ?? 0 },
-            { label: 'Edtech testbed schools', value: facts.wise.testbeds, target: facts.wise.testbedsTarget },
-          ]}
-        />
-      ),
+      sentence: <>in WISE Prize funding awarded this quarter — exactly the full-year commitment</>,
       count: count('Progressive Education'),
       entities: entities('Progressive Education'),
     },
@@ -112,20 +84,9 @@ export function buildCards(): CardDef[] {
       themeId: 'ai',
       themeName: 'Artificial Intelligence',
       span: 2,
-      chip: 'LARGEST GAP',
-      figure: null,
-      sentence: (
-        <>QF's newest priority is measured by two indicators. One policy recommendation made, none adopted.</>
-      ),
-      mark: (
-        <SparseMark
-          hue={themeById('ai').fill}
-          items={[
-            { label: 'recommendations', actual: facts.ai.recommendations ?? 0, target: facts.ai.recTarget ?? 0 },
-            { label: 'adoptions', actual: facts.ai.adoptions ?? 0, target: facts.ai.adoptTarget ?? 0 },
-          ]}
-        />
-      ),
+      kpi: facts.ai.kpi ?? null,
+      figure: fmt(facts.ai.recommendations),
+      sentence: <>policy recommendation made against a commitment of three for 2026</>,
       count: count('Artificial Intelligence'),
       entities: entities('Artificial Intelligence'),
     },
@@ -137,7 +98,7 @@ export function buildCards(): CardDef[] {
       span: 2,
       reserved: true,
       subtitle: 'reserved',
-      chip: null,
+      kpi: null,
       figure: null,
       sentence: (
         <>
@@ -162,12 +123,6 @@ export function buildCards(): CardDef[] {
       entities: 0,
     },
   ]
-}
-
-const CHIP_STYLE: Record<ChipReason, string> = {
-  'BIGGEST MOVER': 'rgba(85,107,180,0.12)',
-  'LARGEST GAP': 'rgba(138,21,56,0.09)',
-  BASELINE: 'rgba(3,70,56,0.08)',
 }
 
 export function ThemeCard({ def, onOpen }: { def: CardDef; onOpen: (themeId: string) => void }) {
@@ -220,18 +175,14 @@ export function ThemeCard({ def, onOpen }: { def: CardDef; onOpen: (themeId: str
           : `${def.count} indicators · ${def.entities} ${def.entities === 1 ? 'entity' : 'entities'}${def.subtitle ? ` · ${def.subtitle}` : ''}`}
       </div>
 
-      {/* group 2: the spotlight — chip, figure, sentence tight together */}
-      <div className="mt-5 flex items-center gap-2">
-        {def.chip && (
-          <span
-            className="rounded-chip px-2 py-0.5 text-[10px] font-semibold tracking-[0.08em]"
-            style={{ background: CHIP_STYLE[def.chip], color: textHue }}
-          >
-            ◆ {def.chip}
-          </span>
-        )}
+      {/* group 2: the spotlight — the KPI named, then its figure and caption.
+          The BIGGEST MOVER / BASELINE / LARGEST GAP chips are gone: the
+          indicator's own status is the qualifier, and it is a fact rather than
+          an editorial pick. */}
+      <div className="mt-5">
+        {def.kpi && <SpotlightIdentity kpi={def.kpi} dark={dark} />}
       </div>
-      <div className="mt-1.5">
+      <div className="mt-3">
         {def.figure && (
           <div className={`num text-[30px] font-bold leading-none ${dark ? 'text-white' : 'text-sidra'}`}>
             {def.figure}
@@ -245,8 +196,11 @@ export function ThemeCard({ def, onOpen }: { def: CardDef; onOpen: (themeId: str
         </p>
       </div>
 
-      {/* group 3: the evidence mark */}
-      <div className="mt-5 self-end">{def.mark}</div>
+      {/* group 3: the evidence mark — whatever the shared selector returns for
+          this KPI's data shape, and only for THIS KPI */}
+      <div className="mt-5 self-end">
+        {def.kpi ? <SpotlightMark kpi={def.kpi} dark={dark} /> : def.mark}
+      </div>
 
       {/* group 4: the card's action — a real control, not a text link (R4 fix 3) */}
       {def.reserved ? (

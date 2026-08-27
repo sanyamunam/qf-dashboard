@@ -77,3 +77,17 @@ export const TREND_AXIS_INK = '#989a9c'
 /** Kept for surfaces with no theme in hand (the Quarterly Brief's margin marks). */
 export const TREND_ACTUAL = TREND_NEUTRAL.now
 export const TREND_ACTUAL_PAST = TREND_NEUTRAL.past
+
+/* ─────────────────────────── on a dark surface ───────────────────────────
+ *
+ * The Organizational Excellence band is navy, and every value above is tuned
+ * for a white card — the ink actual (#122822) and the navy trend hue (#2b3242)
+ * are both invisible on it. So the same grammar inverts: the reading is near
+ * white, earlier periods are a translucent white, the target stays neutral and
+ * dashed. Still no status colour, still one hue family, still the latest
+ * period carrying the weight.
+ */
+export const TREND_DARK: TrendHues = { now: '#eef2f9', past: 'rgba(255,255,255,0.34)' }
+export const TREND_TARGET_DARK = 'rgba(255,255,255,0.62)'
+export const TREND_RULE_DARK = 'rgba(255,255,255,0.22)'
+export const TREND_AXIS_INK_DARK = 'rgba(255,255,255,0.55)'

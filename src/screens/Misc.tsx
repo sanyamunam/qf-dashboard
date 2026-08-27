@@ -7,7 +7,8 @@
 import { motion } from 'framer-motion'
 import { Handshake } from 'lucide-react'
 import { AppHeader, Spark, HeaderCluster, TopNav } from '../components/Shell'
-import { PortfolioBrief } from '../components/PortfolioBrief'
+import { CollapsibleSummary, StatusCards } from '../components/DashParts'
+import { thematicRows } from '../model/dash'
 import { buildCards, ThemeCard } from '../components/ThemeCards'
 import { OEBand } from '../components/OEBand'
 import { Standing } from '../components/Standing'
@@ -58,8 +59,12 @@ export function ThematicView({
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.45, ease: [0.32, 0.72, 0, 1] }}
       >
-        <PortfolioBrief onEvidence={onEvidence} />
+        <CollapsibleSummary p="q1" within={thematicRows} onOpen={onEvidence} />
       </motion.div>
+
+      {/* the four states over the 151 Thematic rows — the same component the
+          Executive View uses, so the two can never drift apart */}
+      <StatusCards p="q1" within={thematicRows} dash="Thematic" noun="Thematic indicators" />
 
       {/* The five thematic areas: 2 over 3, on one six-column grid so both rows
           are the same height (auto-rows-fr) — the top pair is WIDER, never
@@ -67,7 +72,7 @@ export function ThematicView({
           Container-queried so it reflows when BOTaina's panel takes space:
           stacked, then 2-over-2-over-1, then the full 2-over-3. */}
       <motion.div
-        className="mt-14 grid auto-rows-fr grid-cols-6 gap-4"
+        className="mt-12 grid auto-rows-fr grid-cols-6 gap-4"
         initial="off"
         animate="on"
         variants={{ on: { transition: { staggerChildren: 0.05 } } }}

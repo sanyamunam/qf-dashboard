@@ -9,29 +9,31 @@
  * the band busy and the pairing invisible.
  */
 import { ChevronRight } from 'lucide-react'
-import { TrajectoryMark } from './marks'
+import { SpotlightIdentity, SpotlightMark } from './charts/Spotlight'
 import { facts, fmt } from '../model/facts'
 import { themeKpis } from '../model/data'
+import type { Kpi } from '../model/types'
 
 const NAVY_ACCENT = '#8fa3d4'
 const PEAK = 'rgba(255,255,255,0.45)'
 const AXIS = 'rgba(255,255,255,0.40)'
 
-/** One headline indicator: figure, what it is, and its own four-year line. */
+/** One headline indicator: named, then its figure, then its own mark from the
+ *  shared selector. Its Q1 cell is a zero from an annual reporter, so the L1 is
+ *  the not-reported state and the trend renders from the four closed years. */
 function Stat({
   figure,
   label,
-  series,
-  fmtVal,
+  kpi,
 }: {
   figure: string
   label: React.ReactNode
-  series: [string, number][]
-  fmtVal: (n: number) => string
+  kpi: Kpi
 }) {
   return (
     <div className="min-w-[168px] flex-1">
-      <div className="flex items-baseline gap-2">
+      <SpotlightIdentity kpi={kpi} dark />
+      <div className="mt-2.5 flex items-baseline gap-2">
         <span className="num text-[32px] font-bold leading-none text-white">{figure}</span>
         <span className="text-[12px] leading-[1.35] text-white/60">{label}</span>
       </div>
@@ -40,7 +42,7 @@ function Stat({
           read as different from. The figures are the point; the lines are the
           supporting detail, so they are what goes. */}
       <div className="mt-3 hidden @lg:block">
-        <TrajectoryMark series={series} hue={NAVY_ACCENT} fmtVal={fmtVal} H={66} peakHue={PEAK} axisHue={AXIS} />
+        <SpotlightMark kpi={kpi} dark />
       </div>
     </div>
   )
@@ -89,8 +91,7 @@ export function OEBand({ onOpen }: { onOpen: (themeId: string) => void }) {
               at end-2025
             </>
           }
-          series={turnover}
-          fmtVal={(n) => `${n}%`}
+          kpi={facts.oe.turnover.kpi}
         />
         <Stat
           figure={fmt(training[training.length - 1]?.[1])}
@@ -101,8 +102,7 @@ export function OEBand({ onOpen }: { onOpen: (themeId: string) => void }) {
               per employee
             </>
           }
-          series={training}
-          fmtVal={(n) => `${n}`}
+          kpi={facts.oe.training.kpi}
         />
 
         {/* the door */}

@@ -53,7 +53,26 @@ export const lift = (k: ObsKpi, v: number | null | undefined): number | null =>
 export const histOf = (k: ObsKpi, y: string): number | null => lift(k, k.actuals[y] ?? null)
 /** `TBU` was parsed to a note — a missing target is null here, never zero. */
 export const targOf = (k: ObsKpi, y: string): number | null => lift(k, k.targets[y] ?? null)
-export const q1Of = (k: ObsKpi): number | null => lift(k, k.q1)
+export const A_YEARS = ['2022', '2023', '2024', '2025']
+
+/**
+ * An ANNUAL reporter's Q1 cell holds a 0 that is an absence, not a reading.
+ *
+ * The tell is in the data: a zero this quarter on a row that HAS 2022–25
+ * history is the year-end reporting pattern — % Employee Turnover reads
+ * 8.45 · 8.3 · 9.0 · 7.0 and then 0, which is plainly "not yet", not a
+ * collapse to zero. 27 of the 151 Thematic rows share it. The parser already
+ * strips exactly these zeros out of `movementSeries` for the same reason; this
+ * applies the same judgement to the current reading, so the status, the L1
+ * mark and the trend cannot disagree about whether a period was reported.
+ *
+ * A zero with NO history is left alone — that is a real "nothing delivered
+ * yet" from an indicator in its first year, and hiding it would be worse.
+ */
+export const annualZeroIsAbsent = (k: ObsKpi): boolean =>
+  k.q1 === 0 && A_YEARS.some((y) => typeof k.actuals[y] === 'number')
+
+export const q1Of = (k: ObsKpi): number | null => (annualZeroIsAbsent(k) ? null : lift(k, k.q1))
 
 /** `Red` = lower is better (Budget Variance). The column is authoritative for
  *  the dashboard ten; three rows elsewhere are inverted and flagged. */
@@ -62,7 +81,6 @@ export const isLowerBetter = (k: ObsKpi): boolean => k.polarity === 'Red'
 /* ─────────────── the platform's Kpi shape, for drawer and search ─────────────── */
 
 const reading = (v: number | null): CellReading => ({ value: v, raw: null, flag: null })
-export const A_YEARS = ['2022', '2023', '2024', '2025']
 
 /** Full history — what the KPI overlay (drawer) reads. */
 export function obsAsKpi(r: number): Kpi {

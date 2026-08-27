@@ -9,7 +9,7 @@
  * shape). Classification verified against it — not-reported 63, centred gauge
  * 4, bare figure 9, idle 9, no-history 124, all exact.
  */
-import { obsKpis, type ObsKpi } from './obs'
+import { obsKpis, annualZeroIsAbsent, type ObsKpi } from './obs'
 
 /* ─────────────────────────── what kind of number ─────────────────────────── */
 
@@ -50,8 +50,11 @@ export type Period = '2025' | 'q1'
 export const ANNUAL_YEARS = ['2022', '2023', '2024', '2025'] as const
 export const FUTURE_YEARS = ['2026', '2027', '2028'] as const
 
+/** An annual reporter's Q1 zero is an absence, not a reading — `q1Of` in
+ *  obs.ts explains the tell. Read the same way here, or the mark and the
+ *  status disagree about whether the period was reported at all. */
 export const actualFor = (k: ObsKpi, p: Period): number | null =>
-  normalise(k, p === 'q1' ? k.q1 : k.actuals['2025'])
+  normalise(k, p === 'q1' ? (annualZeroIsAbsent(k) ? null : k.q1) : k.actuals['2025'])
 export const targetFor = (k: ObsKpi, p: Period): number | null =>
   normalise(k, k.targets[p === 'q1' ? '2026' : '2025'])
 
@@ -77,6 +80,14 @@ export type L1Mark =
   | { kind: 'gauge'; value: number; target: number; unit: string; met: boolean }
   /** C · variance — zero at the top, deviation either side */
   | { kind: 'centredGauge'; value: number; tolerance: number; span: number; unit: string; zeroLabel: string }
+
+/** A cumulative target accrues; a rate is a level that exists at an instant.
+ *  Mirrors `accrualOf`/`expectedBy` in dash.ts — the two must not drift. */
+const ACCRUES = (k: ObsKpi) =>
+  !/percentage|%|ratio|rate|score|index|average|per employee|satisfaction|time to hire|turnover|utili[sz]ation/i.test(
+    `${k.definition ?? ''} ${k.name}`,
+  )
+const paceBar = (k: ObsKpi, t: number, p: Period) => (p === 'q1' && ACCRUES(k) ? t * 0.25 : t)
 
 const niceSpan = (n: number): number => [10, 25, 50, 100, 250, 500].find((s) => s >= n) ?? 1000
 
@@ -109,7 +120,12 @@ export function selectL1(k: ObsKpi, p: Period): L1Mark {
 
   if (t === null) return { kind: 'bareFigure', value: a, unit }
 
-  const met = isLowerBetter(k) ? a <= t : a >= t
+  /* Judged against the pace the target implies BY NOW, exactly as `statusFor`
+     does — Ecoschool Beneficiaries at 78,391 of an 80,000 year is ahead in Q1,
+     and a card cannot read "Performing well" over an amber bar. The target
+     MARKER stays at the annual number: the commitment is the commitment. */
+  const bar = paceBar(k, t, p)
+  const met = isLowerBetter(k) ? a <= bar : a >= bar
   return isPercent(k) ? { kind: 'gauge', value: a, target: t, unit, met } : { kind: 'bullet', value: a, target: t, unit, met }
 }
 

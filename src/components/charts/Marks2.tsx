@@ -10,7 +10,31 @@
  * no column supports.
  */
 import { fmt, themeByName } from '../../model/data'
-import { trendHues, TREND_NEUTRAL, TREND_TARGET, TREND_RULE, TREND_AXIS_INK, type TrendHues } from './trendPalette'
+import {
+  trendHues,
+  TREND_NEUTRAL,
+  TREND_TARGET,
+  TREND_RULE,
+  TREND_AXIS_INK,
+  TREND_DARK,
+  TREND_TARGET_DARK,
+  TREND_RULE_DARK,
+  TREND_AXIS_INK_DARK,
+  type TrendHues,
+} from './trendPalette'
+
+/** Every colour a trend uses, so a dark surface swaps one object rather than
+ *  threading four props through five components. */
+interface TrendSkin {
+  hues: TrendHues
+  target: string
+  rule: string
+  axis: string
+}
+const skinFor = (hues: TrendHues, dark?: boolean): TrendSkin =>
+  dark
+    ? { hues: TREND_DARK, target: TREND_TARGET_DARK, rule: TREND_RULE_DARK, axis: TREND_AXIS_INK_DARK }
+    : { hues, target: TREND_TARGET, rule: TREND_RULE, axis: TREND_AXIS_INK }
 import { selectL1, selectL2, type L1Mark, type L2Mark, type TrendPoint, type Period } from '../../model/chartSelect'
 import type { ObsKpi } from '../../model/obs'
 
@@ -182,15 +206,17 @@ export function NotReportedMark({
   m,
   cadence,
   compact,
+  dark,
 }: {
   m: Extract<L1Mark, { kind: 'notReported' }>
   cadence?: string
   compact?: boolean
+  dark?: boolean
 }) {
   /* the last real reading IS new information — the card's headline is a dash */
   if (compact)
     return m.lastValue === null ? null : (
-      <p className="text-[12px]" style={{ color: '#75787b' }}>
+      <p className="text-[12px]" style={{ color: dark ? 'rgba(255,255,255,0.62)' : '#75787b' }}>
         Last reported <span className="num font-semibold">{val(m.lastValue, m.unit)}</span> · FY {m.lastYear}
       </p>
     )
@@ -269,20 +295,20 @@ function TrendLabels({
   x,
   unit,
   latest,
-  hues,
+  skin,
 }: {
   points: TrendPoint[]
   x: (i: number) => number
   unit: string
   /** index of the most recent reported actual */
   latest: number
-  hues: TrendHues
+  skin: TrendSkin
 }) {
   return (
     <>
       {points.map((p, i) =>
         p.target !== null ? (
-          <text key={`t${p.year}`} x={x(i)} y={TARGET_Y} textAnchor="middle" fontSize="8.5" fill={TREND_TARGET}>
+          <text key={`t${p.year}`} x={x(i)} y={TARGET_Y} textAnchor="middle" fontSize="8.5" fill={skin.target}>
             {compact(p.target)}
             {unit}
           </text>
@@ -297,7 +323,7 @@ function TrendLabels({
             textAnchor="middle"
             fontSize={i === latest ? 11.5 : 9.5}
             fontWeight={i === latest ? 700 : 500}
-            fill={i === latest ? hues.now : TREND_AXIS_INK}
+            fill={i === latest ? skin.hues.now : skin.axis}
           >
             {compact(p.actual)}
             {unit}
@@ -312,23 +338,23 @@ function TrendLabels({
  * Two words, inline — only where the chart actually carries both series. A
  * boxed legend on a card this size costs more room than the chart it explains.
  */
-function TrendKey({ shape, hues }: { shape: 'bar' | 'line'; hues: TrendHues }) {
+function TrendKey({ shape, skin }: { shape: 'bar' | 'line'; skin: TrendSkin }) {
   return (
-    <div className="mt-1.5 flex items-center gap-3 text-[9.5px]" style={{ color: TREND_AXIS_INK }}>
+    <div className="mt-1.5 flex items-center gap-3 text-[9.5px]" style={{ color: skin.axis }}>
       <span className="flex items-center gap-1.5">
         <svg width="14" height="8" aria-hidden>
           {shape === 'bar' ? (
-            <rect x="4" y="0" width="6" height="8" rx="1.5" fill={hues.now} />
+            <rect x="4" y="0" width="6" height="8" rx="1.5" fill={skin.hues.now} />
           ) : (
-            <line x1="0" y1="4" x2="14" y2="4" stroke={hues.now} strokeWidth="2.5" />
+            <line x1="0" y1="4" x2="14" y2="4" stroke={skin.hues.now} strokeWidth="2.5" />
           )}
         </svg>
         actual
       </span>
       <span className="flex items-center gap-1.5">
         <svg width="14" height="8" aria-hidden>
-          <line x1="0" y1="4" x2="14" y2="4" stroke={TREND_TARGET} strokeWidth="2" strokeDasharray={shape === 'bar' ? undefined : '4 2.5'} />
-          {shape === 'line' && <circle cx="7" cy="4" r="2.6" fill="#fff" stroke={TREND_TARGET} strokeWidth="1.5" />}
+          <line x1="0" y1="4" x2="14" y2="4" stroke={skin.target} strokeWidth="2" strokeDasharray={shape === 'bar' ? undefined : '4 2.5'} />
+          {shape === 'line' && <circle cx="7" cy="4" r="2.6" fill="none" stroke={skin.target} strokeWidth="1.5" />}
         </svg>
         target
       </span>
@@ -338,11 +364,11 @@ function TrendKey({ shape, hues }: { shape: 'bar' | 'line'; hues: TrendHues }) {
 
 /** The axis at its ends only — with every bar labelled by value, a full row of
  *  years is a second layer of text saying less. The rest live in the tooltip. */
-function EndYears({ points, x }: { points: TrendPoint[]; x: (i: number) => number }) {
+function EndYears({ points, x, skin }: { points: TrendPoint[]; x: (i: number) => number; skin: TrendSkin }) {
   return (
     <>
       {[0, points.length - 1].map((i) => (
-        <text key={points[i].year} x={x(i)} y={YEAR_Y} textAnchor="middle" fontSize="9.5" fill={TREND_AXIS_INK}>
+        <text key={points[i].year} x={x(i)} y={YEAR_Y} textAnchor="middle" fontSize="9.5" fill={skin.axis}>
           {points[i].year}
         </text>
       ))}
@@ -371,7 +397,8 @@ const trendTitle = (points: TrendPoint[], unit: string) =>
  * there is no new grammar to learn — bar below the tick is short, bar past it
  * has passed. A year with no target simply has no tick.
  */
-export function BarTrend({ m, hues = TREND_NEUTRAL }: { m: Extract<L2Mark, { kind: 'bars' }>; hues?: TrendHues }) {
+export function BarTrend({ m, hues = TREND_NEUTRAL, dark }: { m: Extract<L2Mark, { kind: 'bars' }>; hues?: TrendHues; dark?: boolean }) {
+  const skin = skinFor(hues, dark)
   const { x, y, step } = trendScale(m.points)
   const bw = Math.min(30, step * 0.62)
   const lastActual = m.points.filter((p) => p.actual !== null).slice(-1)[0]
@@ -393,7 +420,7 @@ export function BarTrend({ m, hues = TREND_NEUTRAL }: { m: Extract<L2Mark, { kin
               width={bw}
               height={Math.max(2, BASE_Y - y(p.actual))}
               rx="4"
-              fill={p === lastActual ? hues.now : hues.past}
+              fill={p === lastActual ? skin.hues.now : skin.hues.past}
             />
           ) : p.target !== null ? (
             /* a committed year with nothing delivered yet: the outline shows
@@ -406,7 +433,7 @@ export function BarTrend({ m, hues = TREND_NEUTRAL }: { m: Extract<L2Mark, { kin
               height={Math.max(2, BASE_Y - y(p.target))}
               rx="4"
               fill="none"
-              stroke={TREND_TARGET}
+              stroke={skin.target}
               strokeWidth="1.4"
               strokeDasharray="4 3"
             />
@@ -423,20 +450,20 @@ export function BarTrend({ m, hues = TREND_NEUTRAL }: { m: Extract<L2Mark, { kin
               y1={y(p.target)}
               x2={x(i) + tw}
               y2={y(p.target)}
-              stroke={TREND_TARGET}
+              stroke={skin.target}
               strokeWidth="2.5"
               strokeLinecap="round"
             />
           ) : null,
         )}
         {divider > 0 && (
-          <line x1={x(divider) - step / 2} y1={PLOT_TOP} x2={x(divider) - step / 2} y2={BASE_Y} stroke={TREND_RULE} strokeDasharray="3 3" />
+          <line x1={x(divider) - step / 2} y1={PLOT_TOP} x2={x(divider) - step / 2} y2={BASE_Y} stroke={skin.rule} strokeDasharray="3 3" />
         )}
-        <line x1="0" y1={BASE_Y} x2={TREND_W} y2={BASE_Y} stroke={TREND_RULE} />
-        <TrendLabels points={m.points} x={x} unit={m.unit} latest={latest} hues={hues} />
-        <EndYears points={m.points} x={x} />
+        <line x1="0" y1={BASE_Y} x2={TREND_W} y2={BASE_Y} stroke={skin.rule} />
+        <TrendLabels points={m.points} x={x} unit={m.unit} latest={latest} skin={skin} />
+        <EndYears points={m.points} x={x} skin={skin} />
       </svg>
-      {m.hasTarget && <TrendKey shape="bar" hues={hues} />}
+      {m.hasTarget && <TrendKey shape="bar" skin={skin} />}
     </>
   )
 }
@@ -449,7 +476,8 @@ export function BarTrend({ m, hues = TREND_NEUTRAL }: { m: Extract<L2Mark, { kin
  * gap: only 30/43/42/47 of 240 rows carry a historical target, so a target
  * series is usually partial and drawing through it would invent commitments.
  */
-export function LineTrend({ m, hues = TREND_NEUTRAL }: { m: Extract<L2Mark, { kind: 'line' }>; hues?: TrendHues }) {
+export function LineTrend({ m, hues = TREND_NEUTRAL, dark }: { m: Extract<L2Mark, { kind: 'line' }>; hues?: TrendHues; dark?: boolean }) {
+  const skin = skinFor(hues, dark)
   const { x, y, step } = trendScale(m.points)
   const acts = m.points.map((p, i) => ({ ...p, i })).filter((p) => p.actual !== null)
   const last = acts.slice(-1)[0]
@@ -471,32 +499,33 @@ export function LineTrend({ m, hues = TREND_NEUTRAL }: { m: Extract<L2Mark, { ki
       <svg viewBox={`0 0 ${TREND_W} ${TREND_H}`} height={TREND_H} width="100%" style={{ overflow: 'visible' }} role="img">
         <title>{trendTitle(m.points, m.unit)}</title>
         {segs.map((s, i) => (
-          <polyline key={i} points={s.join(' ')} fill="none" stroke={TREND_TARGET} strokeWidth="2" strokeDasharray="5 3" />
+          <polyline key={i} points={s.join(' ')} fill="none" stroke={skin.target} strokeWidth="2" strokeDasharray="5 3" />
         ))}
-        <polyline points={acts.map((p) => `${x(p.i)},${y(p.actual as number)}`).join(' ')} fill="none" stroke={hues.now} strokeWidth="2.5" />
+        <polyline points={acts.map((p) => `${x(p.i)},${y(p.actual as number)}`).join(' ')} fill="none" stroke={skin.hues.now} strokeWidth="2.5" />
         {acts.map((p) => (
-          <circle key={p.year} cx={x(p.i)} cy={y(p.actual as number)} r={p === last ? 5.5 : 3.5} fill={p === last ? hues.now : hues.past} />
+          <circle key={p.year} cx={x(p.i)} cy={y(p.actual as number)} r={p === last ? 5.5 : 3.5} fill={p === last ? skin.hues.now : skin.hues.past} />
         ))}
         {/* hollow points on every committed year, not only the future ones */}
         {m.points.map((p, i) =>
           p.target !== null ? (
-            <circle key={`t${p.year}`} cx={x(i)} cy={y(p.target)} r="4" fill="#fff" stroke={TREND_TARGET} strokeWidth="1.6" />
+            <circle key={`t${p.year}`} cx={x(i)} cy={y(p.target)} r="4" fill={dark ? '#1f2a44' : '#fff'} stroke={skin.target} strokeWidth="1.6" />
           ) : null,
         )}
         {divider > 0 && (
-          <line x1={x(divider) - step / 2} y1={PLOT_TOP} x2={x(divider) - step / 2} y2={BASE_Y} stroke={TREND_RULE} strokeDasharray="3 3" />
+          <line x1={x(divider) - step / 2} y1={PLOT_TOP} x2={x(divider) - step / 2} y2={BASE_Y} stroke={skin.rule} strokeDasharray="3 3" />
         )}
-        <line x1="0" y1={BASE_Y} x2={TREND_W} y2={BASE_Y} stroke={TREND_RULE} />
-        <TrendLabels points={m.points} x={x} unit={m.unit} latest={last ? last.i : -1} hues={hues} />
-        <EndYears points={m.points} x={x} />
+        <line x1="0" y1={BASE_Y} x2={TREND_W} y2={BASE_Y} stroke={skin.rule} />
+        <TrendLabels points={m.points} x={x} unit={m.unit} latest={last ? last.i : -1} skin={skin} />
+        <EndYears points={m.points} x={x} skin={skin} />
       </svg>
-      {m.hasTarget && <TrendKey shape="line" hues={hues} />}
+      {m.hasTarget && <TrendKey shape="line" skin={skin} />}
     </>
   )
 }
 
 /** Y · two readings — never a line, and never a shared value axis. */
-export function TwoValueMark({ m, hues = TREND_NEUTRAL }: { m: Extract<L2Mark, { kind: 'twoValue' }>; hues?: TrendHues }) {
+export function TwoValueMark({ m, hues = TREND_NEUTRAL, dark }: { m: Extract<L2Mark, { kind: 'twoValue' }>; hues?: TrendHues; dark?: boolean }) {
+  const skin = skinFor(hues, dark)
   const cell = (c: { label: string; value: number; span: string; partial?: boolean }) => (
     <div
       key={c.label}
@@ -507,7 +536,7 @@ export function TwoValueMark({ m, hues = TREND_NEUTRAL }: { m: Extract<L2Mark, {
       {/* neutral ink, like every other L2 reading — in brand green these two
           figures read as a verdict on an indicator with too few readings to
           call a direction at all */}
-      <div className="text-[24px] font-bold leading-none" style={{ color: c.partial ? '#53565a' : hues.now, marginTop: 4 }}>
+      <div className="text-[24px] font-bold leading-none" style={{ color: c.partial ? '#53565a' : skin.hues.now, marginTop: 4 }}>
         {val(c.value, m.unit)}
       </div>
       <div className="mt-1.5 text-[10px]" style={{ color: GREY }}>{c.span}</div>
@@ -537,12 +566,15 @@ export function L1MarkView({
   note,
   cadence,
   compact,
+  dark,
 }: {
   mark: L1Mark
   note?: string
   cadence?: string
   /** the caller already prints the figure and its basis — see the marks above */
   compact?: boolean
+  /** on the navy enabling-function band */
+  dark?: boolean
 }) {
   switch (mark.kind) {
     case 'bullet':
@@ -554,20 +586,20 @@ export function L1MarkView({
     case 'bareFigure':
       return <BareFigureMark m={mark} note={note} compact={compact} />
     case 'notReported':
-      return <NotReportedMark m={mark} cadence={cadence} compact={compact} />
+      return <NotReportedMark m={mark} cadence={cadence} compact={compact} dark={dark} />
     case 'idle':
       return <IdleMark compact={compact} />
   }
 }
 
-export function L2MarkView({ mark, hues = TREND_NEUTRAL }: { mark: L2Mark; hues?: TrendHues }) {
+export function L2MarkView({ mark, hues = TREND_NEUTRAL, dark }: { mark: L2Mark; hues?: TrendHues; dark?: boolean }) {
   switch (mark.kind) {
     case 'bars':
-      return <BarTrend m={mark} hues={hues} />
+      return <BarTrend m={mark} hues={hues} dark={dark} />
     case 'line':
-      return <LineTrend m={mark} hues={hues} />
+      return <LineTrend m={mark} hues={hues} dark={dark} />
     case 'twoValue':
-      return <TwoValueMark m={mark} hues={hues} />
+      return <TwoValueMark m={mark} hues={hues} dark={dark} />
     case 'baseline':
       return <BaselineMark m={mark} />
     case 'none':
@@ -597,14 +629,27 @@ const huesFor = (k: ObsKpi) => trendHues(themeByName(k.theme ?? '').id)
  * period shows the not-reported state, an off-cycle row shows idle. The mark
  * is still the shared selector's choice, never the component's.
  */
-export function CardMarkL1({ k, p }: { k: ObsKpi; p: Period }): React.ReactElement | null {
+export function CardMarkL1({ k, p, dark }: { k: ObsKpi; p: Period; dark?: boolean }): React.ReactElement | null {
   const l1 = selectL1(k, p)
   /* returning the ELEMENT for a state that renders to nothing would still hand
      KpiCard a truthy child and leave an empty slot with its margin — so decide
      here, where the mark kind is known */
   if (l1.kind === 'idle' || l1.kind === 'bareFigure') return null
   if (l1.kind === 'notReported' && l1.lastValue === null) return null
-  return <L1MarkView mark={l1} compact />
+  return <L1MarkView mark={l1} compact dark={dark} />
+}
+
+/** L1 + L2 — the current-value mark with the trend beneath it. */
+export function CardMarkL1L2({ k, p, dark }: { k: ObsKpi; p: Period; dark?: boolean }) {
+  const l2 = selectL2(k, p)
+  const top = CardMarkL1({ k, p, dark })
+  if (!top && l2.kind === 'none') return null
+  return (
+    <div className="flex flex-col gap-3">
+      {top}
+      {l2.kind !== 'none' && <L2MarkView mark={l2} hues={huesFor(k)} dark={dark} />}
+    </div>
+  )
 }
 
 /**

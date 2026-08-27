@@ -33,6 +33,7 @@ export const facts = {
     target26: wish.targets['2026'].value,
   },
   eco: {
+    kpi: ecoBenef,
     beneficiaries: q1(ecoBenef),
     registered: q1(ecoReg),
     certified: q1(ecoCert),
@@ -50,6 +51,7 @@ export const facts = {
     testbedsKpi: testbedGov,
   },
   ai: {
+    kpi: aiRec,
     recommendations: q1(aiRec),
     recTarget: aiRec?.targets['2026'].value ?? null,
     adoptions: q1(aiAdopt),
