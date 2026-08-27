@@ -51,10 +51,21 @@ export function buildCards(): CardDef[] {
       span: 3,
       kpi: facts.wish.kpi,
       figure: fmt(facts.wish.q1),
+      /**
+       * "down from 11,939 in 2022" was wrong three ways: it set a THREE-MONTH
+       * figure against a TWELVE-MONTH one, which this platform forbids
+       * everywhere else; it anchored on 2022 when the peak was 23,150 in 2023;
+       * and against the nearest honest comparison — 1,170 in the whole of
+       * 2025 — 900 in one quarter is ahead of that pace, not "down". Each
+       * figure now carries the period it belongs to and no direction is
+       * claimed across periods of different length.
+       */
       sentence: (
         <>
-          people reached by WISH programmes this quarter, down from{' '}
-          <span className="num">{fmt(facts.wish.first)}</span> in 2022
+          participants this quarter across WISH community events;{' '}
+          <span className="num">{facts.wish.lastClosedYear?.[0]}</span> closed at{' '}
+          <span className="num">{fmt(facts.wish.lastClosedYear?.[1] ?? null)}</span>, and{' '}
+          <span className="num">{fmt(facts.wish.target26)}</span> is committed for 2026
         </>
       ),
       count: count('Social Progress'),
@@ -66,10 +77,13 @@ export function buildCards(): CardDef[] {
       span: 3,
       kpi: facts.sustain.kpi,
       figure: fmt(facts.sustain.q1),
+      /* "meeting the 6 committed" read as steady progress; it is the full
+         YEAR's number reached in the first quarter, which is a target-setting
+         question rather than plain good news, and the period says so */
       sentence: (
         <>
-          QF entities collaborating through Earthna's Multiversity — meeting the{' '}
-          <span className="num">{fmt(facts.sustain.target26)}</span> committed for 2026
+          QF entities collaborating through Earthna's Multiversity this quarter — already at the{' '}
+          <span className="num">{fmt(facts.sustain.target26)}</span> committed for the full year
         </>
       ),
       count: count('Sustainability'),

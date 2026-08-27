@@ -31,6 +31,9 @@ export const facts = {
     q1: q1(wish),
     peak: Math.max(...wish.movementSeries.map(([, v]) => v)),
     first: wish.movementSeries[0]?.[1],
+    /* the last CLOSED year — the only figure a quarter can be set beside
+       without comparing three months against twelve */
+    lastClosedYear: wish.movementSeries.filter(([y]) => y !== '2026Q1').slice(-1)[0] ?? null,
     target26: wish.targets['2026'].value,
   },
   /* the Sustainability spotlight moved to Multiversity: it is the only Earthna
