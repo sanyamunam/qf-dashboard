@@ -10,6 +10,7 @@
  * no column supports.
  */
 import { fmt, themeByName } from '../../model/data'
+import { TrendChart } from './TrendChart'
 import {
   trendHues,
   TREND_NEUTRAL,
@@ -425,130 +426,21 @@ const currentTarget = (points: TrendPoint[]): number | null =>
  * there is no new grammar to learn — bar below the tick is short, bar past it
  * has passed. A year with no target simply has no tick.
  */
-export function BarTrend({ m, hues = TREND_NEUTRAL, dark }: { m: Extract<L2Mark, { kind: 'bars' }>; hues?: TrendHues; dark?: boolean }) {
-  const skin = skinFor(hues, dark)
-  const { x, y, step, dividerX } = trendScale(m.points)
-  const lastActual = m.points.filter((p) => p.actual !== null).slice(-1)[0]
-  const latest = m.points.indexOf(lastActual)
-  /** a value of any size still reads as a bar, not a hairline (fault 3) */
-  const h = (v: number) => Math.max(MIN_BAR, BASE_Y - y(v))
-  const bw = (i: number) => Math.min(30, step(i) * 0.62)
-  const tw = (i: number) => bw(i) / 2 + 3
-
-  return (
-    <>
-      {/* No fixed height: with one, `preserveAspectRatio` letterboxed the chart
-            inside a wide card and it sat centred at two-thirds width with slack
-            either side. Letting the width drive the height makes it span the
-            card at any column width. */}
-        <svg viewBox={`0 0 ${TREND_W} ${TREND_H}`} width="100%" style={{ display: 'block' }} role="img">
-        <title>{trendTitle(m.points, m.unit)}</title>
-        {m.points.map((p, i) =>
-          p.actual !== null ? (
-            <rect
-              key={p.year}
-              x={x(i) - bw(i) / 2}
-              y={BASE_Y - h(p.actual)}
-              width={bw(i)}
-              height={h(p.actual)}
-              rx="4"
-              fill={p === lastActual ? skin.hues.now : skin.hues.past}
-            />
-          ) : p.target !== null ? (
-            /* a committed year with nothing delivered yet: the outline sits AT
-               the target's height, so it reads as the size of the commitment
-               rather than as an empty slot */
-            <rect
-              key={p.year}
-              x={x(i) - bw(i) / 2}
-              y={BASE_Y - h(p.target)}
-              width={bw(i)}
-              height={h(p.target)}
-              rx="4"
-              fill="none"
-              stroke={skin.target}
-              strokeWidth="1.4"
-              strokeDasharray="4 3"
-            />
-          ) : null,
-        )}
-        {/* the target as a MARK, one tick per year that set one — never a path
-            joining them, which would draw a commitment across years with none */}
-        {m.points.map((p, i) =>
-          p.target !== null && p.actual !== null ? (
-            <line
-              key={`tk${p.year}`}
-              x1={x(i) - tw(i)}
-              y1={y(p.target)}
-              x2={x(i) + tw(i)}
-              y2={y(p.target)}
-              stroke={skin.target}
-              strokeWidth="2.5"
-              strokeLinecap="round"
-            />
-          ) : null,
-        )}
-        <line x1={dividerX} y1={PLOT_TOP} x2={dividerX} y2={BASE_Y} stroke={skin.rule} strokeDasharray="3 3" />
-        <line x1="0" y1={BASE_Y} x2={TREND_W} y2={BASE_Y} stroke={skin.rule} />
-        <TrendLabels points={m.points} x={x} unit={m.unit} latest={latest} skin={skin} />
-        <AxisYears points={m.points} x={x} skin={skin} latest={latest} />
-      </svg>
-      {m.hasTarget && <TrendKey shape="bar" skin={skin} target={currentTarget(m.points)} unit={m.unit} />}
-    </>
-  )
+/**
+ * X · counts — a clustered pair per year: the actual solid, the target beside
+ * it as a dashed outline. Drawn by ECharts (charts/TrendChart.tsx) rather than
+ * by hand; the SELECTOR still decides that this KPI gets bars, and the
+ * reference's rules still hold — target never back-filled, status colour never
+ * in a series, Q1 never on this axis.
+ */
+export function BarTrend({ m, hues = TREND_NEUTRAL, dark, narrow }: { m: Extract<L2Mark, { kind: 'bars' }>; hues?: TrendHues; dark?: boolean; narrow?: boolean }) {
+  return <TrendChart points={m.points} unit={m.unit} hues={hues} kind="bars" dark={dark} narrow={narrow} />
 }
 
-/**
- * X · percentages — a level that persists, so a line. Solid actual with filled
- * points; the commitment is a second dashed line with hollow points over every
- * year that set one, breaking where the sheet set none rather than spanning
- * the gap.
- */
-export function LineTrend({ m, hues = TREND_NEUTRAL, dark }: { m: Extract<L2Mark, { kind: 'line' }>; hues?: TrendHues; dark?: boolean }) {
-  const skin = skinFor(hues, dark)
-  const { x, y, dividerX } = trendScale(m.points)
-  const acts = m.points.map((p, i) => ({ ...p, i })).filter((p) => p.actual !== null)
-  const last = acts.slice(-1)[0]
-  const segs: string[][] = []
-  let cur: string[] = []
-  m.points.forEach((p, i) => {
-    if (p.target === null) {
-      if (cur.length > 1) segs.push(cur)
-      cur = []
-      return
-    }
-    cur.push(`${x(i)},${y(p.target)}`)
-  })
-  if (cur.length > 1) segs.push(cur)
-
-  return (
-    <>
-      {/* No fixed height: with one, `preserveAspectRatio` letterboxed the chart
-            inside a wide card and it sat centred at two-thirds width with slack
-            either side. Letting the width drive the height makes it span the
-            card at any column width. */}
-        <svg viewBox={`0 0 ${TREND_W} ${TREND_H}`} width="100%" style={{ display: 'block' }} role="img">
-        <title>{trendTitle(m.points, m.unit)}</title>
-        {segs.map((sg, i) => (
-          <polyline key={i} points={sg.join(' ')} fill="none" stroke={skin.target} strokeWidth="2" strokeDasharray="5 3" />
-        ))}
-        <polyline points={acts.map((p) => `${x(p.i)},${y(p.actual as number)}`).join(' ')} fill="none" stroke={skin.hues.now} strokeWidth="2.5" />
-        {acts.map((p) => (
-          <circle key={p.year} cx={x(p.i)} cy={y(p.actual as number)} r={p === last ? 5.5 : 3.5} fill={p === last ? skin.hues.now : skin.hues.past} />
-        ))}
-        {m.points.map((p, i) =>
-          p.target !== null ? (
-            <circle key={`t${p.year}`} cx={x(i)} cy={y(p.target)} r="4" fill={dark ? '#1f2a44' : '#fff'} stroke={skin.target} strokeWidth="1.6" />
-          ) : null,
-        )}
-        <line x1={dividerX} y1={PLOT_TOP} x2={dividerX} y2={BASE_Y} stroke={skin.rule} strokeDasharray="3 3" />
-        <line x1="0" y1={BASE_Y} x2={TREND_W} y2={BASE_Y} stroke={skin.rule} />
-        <TrendLabels points={m.points} x={x} unit={m.unit} latest={last ? last.i : -1} skin={skin} />
-        <AxisYears points={m.points} x={x} skin={skin} latest={last ? last.i : -1} />
-      </svg>
-      {m.hasTarget && <TrendKey shape="line" skin={skin} target={currentTarget(m.points)} unit={m.unit} />}
-    </>
-  )
+/** X · percentages — a level that persists, so two lines: the actual solid,
+ *  the commitment dashed with hollow points, breaking where none was set. */
+export function LineTrend({ m, hues = TREND_NEUTRAL, dark, narrow }: { m: Extract<L2Mark, { kind: 'line' }>; hues?: TrendHues; dark?: boolean; narrow?: boolean }) {
+  return <TrendChart points={m.points} unit={m.unit} hues={hues} kind="line" dark={dark} narrow={narrow} />
 }
 
 /** Y · two readings — never a line, and never a shared value axis. */
@@ -620,12 +512,12 @@ export function L1MarkView({
   }
 }
 
-export function L2MarkView({ mark, hues = TREND_NEUTRAL, dark }: { mark: L2Mark; hues?: TrendHues; dark?: boolean }) {
+export function L2MarkView({ mark, hues = TREND_NEUTRAL, dark, narrow }: { mark: L2Mark; hues?: TrendHues; dark?: boolean; narrow?: boolean }) {
   switch (mark.kind) {
     case 'bars':
-      return <BarTrend m={mark} hues={hues} dark={dark} />
+      return <BarTrend m={mark} hues={hues} dark={dark} narrow={narrow} />
     case 'line':
-      return <LineTrend m={mark} hues={hues} dark={dark} />
+      return <LineTrend m={mark} hues={hues} dark={dark} narrow={narrow} />
     case 'twoValue':
       return <TwoValueMark m={mark} hues={hues} dark={dark} />
     case 'baseline':

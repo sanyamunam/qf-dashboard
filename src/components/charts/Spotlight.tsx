@@ -68,7 +68,9 @@ export function SpotlightMark({ kpi, dark }: { kpi: Kpi | null | undefined; dark
     )
   const l2 = selectL2(row, 'q1')
   if (l2.kind !== 'none')
-    return <L2MarkView mark={l2} hues={trendHues(themeByName(row.theme ?? '').id)} dark={dark} />
+    /* the enabling-function band gives each chart ~215px; the theme cards give
+       it the full card width */
+    return <L2MarkView mark={l2} hues={trendHues(themeByName(row.theme ?? '').id)} dark={dark} narrow={dark} />
   return <CardMarkL1 k={row} p="q1" dark={dark} />
 }
 
