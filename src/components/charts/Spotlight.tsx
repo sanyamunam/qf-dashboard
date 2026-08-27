@@ -8,7 +8,10 @@
  * Certification over Registrations — three KPIs on one card. One card, one
  * KPI, and the mark is `selectL1`/`selectL2`'s, never this component's.
  */
-import { CardMarkL1L2 } from './Marks2'
+import { CardMarkL1, L2MarkView } from './Marks2'
+import { selectL2 } from '../../model/chartSelect'
+import { trendHues } from './trendPalette'
+import { themeByName } from '../../model/data'
 import { EntityIcon } from '../EntityIcon'
 import { obsForKpi } from '../../model/bridge'
 import { statusFor, STATUS_LABEL, STATUS_DOT } from '../../model/dash'
@@ -41,9 +44,19 @@ export function SpotlightIdentity({ kpi, dark }: { kpi: Kpi; dark?: boolean }) {
 }
 
 /**
- * The mark. `CardMarkL1L2` adds the trend beneath the current-value mark where
- * one exists; `selectL2` returns `none` for the four spotlights with no
- * 2022–25 history, so those get L1 alone without this component deciding it.
+ * ONE mark per card: the trend where there is one, the current-value mark
+ * where there isn't. Never both.
+ *
+ * Drawing L1 and L2 together said the same thing twice — Social Progress
+ * carried a bullet reading 900 of 5,000 directly above a bar trend whose last
+ * bar was the same indicator, and the card read as two charts of one number.
+ * The trend is the richer view wherever the history supports it, so it wins;
+ * `selectL2` returns `none` for the four spotlights with no 2022–25 readings,
+ * and those fall back to L1 — which is exactly the reference's W case, "these
+ * carry their L1 current-value mark only".
+ *
+ * The choice is still the selector's: this asks whether a trend exists, it
+ * does not decide what either mark looks like.
  */
 export function SpotlightMark({ kpi, dark }: { kpi: Kpi | null | undefined; dark?: boolean }) {
   const row = obsForKpi(kpi)
@@ -53,7 +66,10 @@ export function SpotlightMark({ kpi, dark }: { kpi: Kpi | null | undefined; dark
         This indicator is not among the Thematic rows of the workbook, so no chart is drawn for it.
       </div>
     )
-  return <CardMarkL1L2 k={row} p="q1" dark={dark} />
+  const l2 = selectL2(row, 'q1')
+  if (l2.kind !== 'none')
+    return <L2MarkView mark={l2} hues={trendHues(themeByName(row.theme ?? '').id)} dark={dark} />
+  return <CardMarkL1 k={row} p="q1" dark={dark} />
 }
 
 /** Identity above, mark below — the order every card uses. */
