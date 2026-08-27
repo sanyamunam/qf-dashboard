@@ -9,6 +9,7 @@ const ecoBenef = find('Ecoschool Beneficiaries', 'Earthna')!
 const ecoReg = find('Ecoschool Registrations', 'Earthna')!
 const ecoCert = find('Ecoschool Certification', 'Earthna')!
 const earthnaPubs = find('Research Publications', 'Earthna')!
+const earthnaMulti = find('Multiversity', 'Earthna')!
 const prizeValue = find('WISE Prize Funding Awarded', 'WISE')!
 const prizeCount = find('WISE Prize and Awards', 'WISE')!
 const testbedGov = find('Edtech Testbed Schools - Government', 'WISE')!
@@ -32,6 +33,10 @@ export const facts = {
     first: wish.movementSeries[0]?.[1],
     target26: wish.targets['2026'].value,
   },
+  /* the Sustainability spotlight moved to Multiversity: it is the only Earthna
+     indicator with BOTH a current reading and four closed years, so the card
+     can carry a live figure and a real trend rather than one or the other */
+  sustain: { kpi: earthnaMulti, q1: q1(earthnaMulti), target26: earthnaMulti.targets['2026'].value },
   eco: {
     kpi: ecoBenef,
     beneficiaries: q1(ecoBenef),

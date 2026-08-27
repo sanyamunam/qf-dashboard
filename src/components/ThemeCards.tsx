@@ -64,9 +64,14 @@ export function buildCards(): CardDef[] {
       themeId: 'sustain',
       themeName: 'Sustainability',
       span: 3,
-      kpi: facts.eco.kpi,
-      figure: fmt(facts.eco.beneficiaries),
-      sentence: <>students and teachers reached by Earthna's Eco-Schools programme this quarter</>,
+      kpi: facts.sustain.kpi,
+      figure: fmt(facts.sustain.q1),
+      sentence: (
+        <>
+          QF entities collaborating through Earthna's Multiversity — meeting the{' '}
+          <span className="num">{fmt(facts.sustain.target26)}</span> committed for 2026
+        </>
+      ),
       count: count('Sustainability'),
       entities: entities('Sustainability'),
     },
