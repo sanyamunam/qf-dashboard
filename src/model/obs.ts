@@ -29,7 +29,37 @@ export interface ObsKpi {
   targetNotes: Record<string, string | null>
 }
 
-export const obsKpis: ObsKpi[] = (raw as { rows: ObsKpi[] }).rows
+/**
+ * NOT from the OBS workbook. Sourced from a supplied design screenshot: WISH's
+ * "Ongoing Initiatives", 6 active this quarter, placed under Operational
+ * Excellence. It carries no prior years and no target yet — QF to supply the
+ * cells; until then it reads as Monitoring with no YoY, exactly as any other
+ * reading-without-a-target does. Kept here (rather than a bespoke card) so it
+ * renders through the same pipeline and matches every other card 1:1.
+ */
+const PRIORITY_INITIATIVES: ObsKpi = {
+  row: 9001,
+  dashboard: 'Executive',
+  entity: 'WISH',
+  proposedEntity: 'WISH',
+  category: 'Operational Excellence - Priority Initiatives',
+  group: 'Operational Excellence',
+  subgroup: 'Priority Initiatives',
+  theme: 'Organizational Excellence',
+  framework: 'Operational',
+  name: 'Ongoing Initiatives',
+  definition: 'Number of ongoing initiatives (WISH). Sourced from supplied design; awaiting a cell in the OBS workbook.',
+  polarity: 'Green',
+  highlighted: true,
+  actuals: { '2022': null, '2023': null, '2024': null, '2025': null },
+  actualNotes: { '2022': null, '2023': null, '2024': null, '2025': null },
+  q1: 6,
+  q1Note: null,
+  targets: { '2022': null, '2023': null, '2024': null, '2025': null, '2026': null, '2027': null, '2028': null },
+  targetNotes: { '2022': null, '2023': null, '2024': null, '2025': null, '2026': null, '2027': null, '2028': null },
+}
+
+export const obsKpis: ObsKpi[] = [...(raw as { rows: ObsKpi[] }).rows, PRIORITY_INITIATIVES]
 
 const byRow = new Map(obsKpis.map((k) => [k.row, k]))
 export const obsRow = (r: number): ObsKpi => {

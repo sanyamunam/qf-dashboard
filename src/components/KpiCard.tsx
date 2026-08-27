@@ -87,6 +87,9 @@ export function KpiCard({
   mark,
   figure: figureOverride,
   delta,
+  yoy,
+  yoyNote,
+  targetCompare,
   className = '',
 }: {
   group: Kpi[]
@@ -108,6 +111,16 @@ export function KpiCard({
   /** the movement read, where a naive series comparison would be dishonest
    *  (a partial quarter against a completed year) */
   delta?: Polarity
+  /** the explicit year-over-year value shown next to the arrow — the change
+   *  itself (points for a rate, percent for a count), not a year label. Null
+   *  where no honest prior exists. */
+  yoy?: { text: string; dir: 'up' | 'down' | 'flat'; tone: string } | null
+  /** shown in the comparison slot when there is a reading but no prior year —
+   *  explains the missing YoY rather than leaving the slot blank */
+  yoyNote?: string | null
+  /** actual against the period's committed target — the honest same-scale
+   *  comparison a partial quarter can make when a YoY cannot */
+  targetCompare?: { text: string; tone: string } | null
   className?: string
 }) {
   const k = group[0]
@@ -128,6 +141,11 @@ export function KpiCard({
         ? `${fmt(k.actuals['2026Q1'].value)}${k.unit ?? ''}`
         : (k.actuals['2026Q1'].raw ?? '—')
   const Arrow = pol.dir === 'up' ? ArrowUpRight : pol.dir === 'down' ? ArrowDownRight : Minus
+  /* the Executive view passes an explicit period delta; a card in that view
+     shows the YoY VALUE next to the arrow (no year), and nothing there when no
+     honest YoY exists. Other callers keep the worded basis. */
+  const inExec = delta !== undefined
+  const YoyArrow = !yoy ? Minus : yoy.dir === 'up' ? ArrowUpRight : yoy.dir === 'down' ? ArrowDownRight : Minus
   const markBody = mark !== undefined ? mark : <SnapshotMark group={group} hue={hue} title={title} scale="card" emptyNote={meta} />
 
   return (
@@ -172,10 +190,25 @@ export function KpiCard({
       ) : (
         <div className="mt-2 flex items-baseline gap-2">
           <span className={`num font-bold leading-none text-sidra ${lg ? 'text-[26px]' : 'text-[22px]'}`}>{figure}</span>
-          <span className="flex items-center gap-1 text-[11px] font-semibold" style={{ color: pol.tone }}>
-            <Arrow size={13} strokeWidth={2.4} />
-            <span className="font-medium text-ink-mute">{pol.basis}</span>
-          </span>
+          {yoy ? (
+            <span className="flex items-center gap-1 text-[11px] font-semibold" style={{ color: yoy.tone }}>
+              <YoyArrow size={13} strokeWidth={2.4} />
+              <span className="num">{yoy.text}</span>
+              <span className="font-medium text-ink-mute">YoY</span>
+            </span>
+          ) : inExec ? (
+            yoyNote ? (
+              <span className="flex items-center gap-1 text-[11px] font-medium text-ink-mute">
+                <Minus size={13} strokeWidth={2.4} />
+                {yoyNote}
+              </span>
+            ) : null
+          ) : (
+            <span className="flex items-center gap-1 text-[11px] font-semibold" style={{ color: pol.tone }}>
+              <Arrow size={13} strokeWidth={2.4} />
+              <span className="font-medium text-ink-mute">{pol.basis}</span>
+            </span>
+          )}
         </div>
       )}
 

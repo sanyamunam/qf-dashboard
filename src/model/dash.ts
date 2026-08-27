@@ -312,19 +312,86 @@ export function deltaFor(k: ObsKpi, p: Period): CardDelta {
     prev = years.length >= 1 ? years[years.length - 1] : null
   }
 
-  if (!prev) return { dir: 'flat', tone: FLAT, basis: p === 'q1' ? 'quarter to date' : 'first reading' }
+  if (!prev) return { dir: 'flat', tone: FLAT, basis: p === 'q1' ? 'Q1 2026' : 'first reading' }
 
   const delta = a - prev[1]
-  const basis = `vs ${prev[0]}`
+  const basis = `vs FY${prev[0]}`
   if (Math.abs(delta) < Math.abs(prev[1] || 1) * 0.02) return { dir: 'flat', tone: FLAT, basis }
   const favourable = isLowerBetter(k) ? delta < 0 : delta > 0
   return { dir: delta > 0 ? 'up' : 'down', tone: favourable ? GOOD : BAD, basis }
+}
+
+/** A short note for the comparison slot when a card has a current reading but
+ *  no prior year to measure against — so the absence of a YoY is explained
+ *  rather than silent. Returns null when a YoY exists, or when there is no
+ *  reading at all (the mark already says "not reported" / "year end"). */
+export function yoyNoteFor(k: ObsKpi, p: Period): string | null {
+  if (actualFor(k, p) === null) return null
+  if (yoyFor(k, p) !== null) return null
+  return 'No prior year'
+}
+
+/* ─────────────────────────── year-over-year ───────────────────────────
+ * The explicit YoY value behind the arrow. Same "compare like with like" rule
+ * as deltaFor: 2025 is measured against 2024; a rate under Q1 holds its meaning
+ * against the last closed year; a COUNT under Q1 has no honest prior to divide
+ * by, so it returns null rather than a manufactured number. A rate moves in
+ * POINTS (pp), a count in percent — the two are never conflated. */
+export interface Yoy {
+  text: string
+  dir: 'up' | 'down' | 'flat'
+  tone: string
+}
+
+export function yoyFor(k: ObsKpi, p: Period): Yoy | null {
+  const a = actualFor(k, p)
+  if (a === null) return null
+  const years = completedYears(k)
+  /* any KPI with a prior completed year gets a YoY: 2025 is measured against
+     2024, Q1 2026 against the last closed year. (A cumulative count's quarter
+     against a full year is not like-with-like — the figure up top is a quarter,
+     the prior is a year — but it is shown wherever a prior exists.) */
+  let prev: [string, number] | null = null
+  if (p === '2025') prev = years.length >= 2 ? years[years.length - 2] : null
+  else prev = years.length >= 1 ? years[years.length - 1] : null
+  if (!prev || prev[1] === 0) return null
+
+  const delta = a - prev[1]
+  const pct = isPercentRow(k)
+  const magnitude = pct ? delta : (delta / Math.abs(prev[1])) * 100
+  const flat = Math.abs(delta) < Math.abs(prev[1] || 1) * 0.02
+  const favourable = isLowerBetter(k) ? delta < 0 : delta > 0
+  return {
+    text: `${magnitude > 0 ? '+' : ''}${fmt(magnitude)}${pct ? ' pp' : '%'}`,
+    dir: flat ? 'flat' : delta > 0 ? 'up' : 'down',
+    tone: flat ? FLAT : favourable ? GOOD : BAD,
+  }
 }
 
 /** The headline figure for the period — never borrowed from the other one. */
 export function figureFor(k: ObsKpi, p: Period): string {
   const a = actualFor(k, p)
   return a === null ? '—' : `${fmt(a)}${unitOf(k)}`
+}
+
+/**
+ * The card's TARGET comparison — the honest same-scale reading a partial
+ * quarter can make when a year-over-year cannot. Q1 2026 is measured against
+ * the 2026 commitment; 2025 against the 2025 one. Colour is the same statusFor
+ * verdict the four state cards use, so the chip never disagrees with them.
+ * Where there is no numeric target (TBU, or a zero ceiling on a higher-is-
+ * better off-year) there is nothing to compare and it returns null rather than
+ * an invented ratio.
+ */
+export function targetCompareFor(k: ObsKpi, p: Period): { text: string; tone: string } | null {
+  const a = actualFor(k, p)
+  const t = targetFor(k, p)
+  if (a === null || t === null) return null
+  // a zero target on a higher-is-better indicator is an off-year, not judged
+  if (t === 0 && !isLowerBetter(k)) return null
+  const st = statusFor(k, p)
+  const tone = st === 'performing' ? GOOD : st === 'atRisk' ? BAD : FLAT
+  return { text: `vs target ${fmt(t)}${unitOf(k)}`, tone }
 }
 
 /* ─────────────────── the card's line, per KPI and period ─────────────────── */

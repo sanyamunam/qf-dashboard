@@ -37,6 +37,8 @@ import {
   lineFor,
   figureFor,
   deltaFor,
+  yoyFor,
+  yoyNoteFor,
   entityOf,
   themeOf,
   dashOf,
@@ -365,6 +367,8 @@ export function Search({ onEvidence, onBack }: { onEvidence: (kpi: Kpi) => void;
                   mark={<CardMarkL1 k={k} p={period} />}
                   figure={figureFor(k, period)}
                   delta={deltaFor(k, period)}
+                  yoy={yoyFor(k, period)}
+                  yoyNote={yoyNoteFor(k, period)}
                 />
               ))}
             </motion.div>

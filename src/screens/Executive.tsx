@@ -34,6 +34,8 @@ import {
   lineFor,
   figureFor,
   deltaFor,
+  yoyFor,
+  yoyNoteFor,
   summaryFor,
   groupOf,
   subOf,
@@ -348,9 +350,11 @@ export function Executive({ onEvidence }: { onEvidence: (kpi: Kpi) => void }) {
                       onOpen={() => onEvidence(obsAsKpi(k.row))}
                       status={<CardMeta k={k} p={period} />}
                       line={lineFor(k, period)}
-                      mark={<CardMark k={k} p={period} />}
+                      mark={subOf(k) === 'Priority Initiatives' ? null : <CardMark k={k} p={period} />}
                       figure={figureFor(k, period)}
                       delta={deltaFor(k, period)}
+                      yoy={yoyFor(k, period)}
+                      yoyNote={yoyNoteFor(k, period)}
                       className="flex-1"
                     />
                   ))}
@@ -390,8 +394,9 @@ export function Executive({ onEvidence }: { onEvidence: (kpi: Kpi) => void }) {
         Data requests for QF: <span className="font-semibold text-ink-soft">Total Policy Adoptions</span> carries no entity
         and no thematic area — 12 of the 89 Executive rows share that gap — and{' '}
         <span className="font-semibold text-ink-soft">Patents Granted – Other</span> additionally has no category (listed
-        under Uncategorised). There is no Priority Initiatives category in the source sheet — Operational Excellence holds
-        Financial Health and HC Insights only. 4 rows carry thematic area <span className="font-semibold text-ink-soft">All</span> —
+        under Uncategorised). <span className="font-semibold text-ink-soft">Priority Initiatives</span> is shown from a supplied
+        design and is not yet in the source sheet — its Ongoing Initiatives figure (6, WISH) awaits a cell in Actuals &amp;
+        Targets; Operational Excellence holds Financial Health and HC Insights only. 4 rows carry thematic area <span className="font-semibold text-ink-soft">All</span> —
         flagged as either a real cross-cutting scope or a data fault. <span className="font-semibold text-ink-soft">Employee
         Turnover</span> is marked Polarity Green (higher is better) while its Thematic twin is Red — judged as recorded, and
         flagged. Every figure traces to a cell in Actuals &amp; Targets; percentage units are normalised once, on read.
