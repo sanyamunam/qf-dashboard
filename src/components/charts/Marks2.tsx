@@ -434,13 +434,13 @@ const currentTarget = (points: TrendPoint[]): number | null =>
  * in a series, Q1 never on this axis.
  */
 export function BarTrend({ m, hues = TREND_NEUTRAL, dark, narrow, maxReported }: { m: Extract<L2Mark, { kind: 'bars' }>; hues?: TrendHues; dark?: boolean; narrow?: boolean; maxReported?: number }) {
-  return <TrendChart points={m.points} unit={m.unit} hues={hues} kind="bars" dark={dark} narrow={narrow} maxReported={maxReported} />
+  return <TrendChart points={m.points} partial={m.partial} unit={m.unit} hues={hues} kind="bars" dark={dark} narrow={narrow} maxReported={maxReported} />
 }
 
 /** X · percentages — a level that persists, so two lines: the actual solid,
  *  the commitment dashed with hollow points, breaking where none was set. */
 export function LineTrend({ m, hues = TREND_NEUTRAL, dark, narrow, maxReported }: { m: Extract<L2Mark, { kind: 'line' }>; hues?: TrendHues; dark?: boolean; narrow?: boolean; maxReported?: number }) {
-  return <TrendChart points={m.points} unit={m.unit} hues={hues} kind="line" dark={dark} narrow={narrow} maxReported={maxReported} />
+  return <TrendChart points={m.points} partial={m.partial} unit={m.unit} hues={hues} kind="line" dark={dark} narrow={narrow} maxReported={maxReported} />
 }
 
 /** Y · two readings — never a line, and never a shared value axis. */

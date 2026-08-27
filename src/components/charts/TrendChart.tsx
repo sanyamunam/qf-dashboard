@@ -19,7 +19,7 @@
 import type { EChartsOption } from 'echarts'
 import { EChart } from './EChart'
 import { fmt } from '../../model/data'
-import type { TrendPoint } from '../../model/chartSelect'
+import type { TrendPoint, PartialReading } from '../../model/chartSelect'
 import type { TrendHues } from './trendPalette'
 import { TREND_TARGET, TREND_TARGET_DARK, TREND_RULE, TREND_RULE_DARK, TREND_AXIS_INK, TREND_AXIS_INK_DARK, TREND_DARK } from './trendPalette'
 
@@ -30,6 +30,7 @@ const compact = (n: number) => {
 
 export function TrendChart({
   points,
+  partial,
   unit,
   hues,
   kind,
@@ -39,6 +40,9 @@ export function TrendChart({
   height = 208,
 }: {
   points: TrendPoint[]
+  /** the quarter to date, drawn in its own year's column and marked as a
+   *  different length of time — never a point on the annual series */
+  partial?: PartialReading | null
   unit: string
   hues: TrendHues
   kind: 'bars' | 'line'
@@ -69,6 +73,9 @@ export function TrendChart({
   const droppedYears = dropped ? reported.slice(0, dropped).map((p) => p.year) : []
 
   const hasTarget = shown.some((p) => p.target !== null)
+  /* the quarter sits in its own year's column, beside that year's commitment */
+  const partialIdx = partial ? shown.findIndex((p) => p.year === partial.year) : -1
+  const showPartial = partialIdx >= 0
   const actuals = shown.map((p) => p.actual)
   const lastIdx = actuals.reduce((acc, v, i) => (v !== null ? i : acc), -1)
   /**
@@ -79,7 +86,7 @@ export function TrendChart({
    * only the latest reading is labelled and the rest live in the tooltip: one
    * legible number beats seven that were never drawn.
    */
-  const label = (color: string, opts?: { onlyLatest?: boolean; off?: boolean }) => ({
+  const label = (color: string, opts?: { onlyLatest?: boolean; off?: boolean; hideIfSameAsActual?: boolean }) => ({
     show: !opts?.off,
     position: 'top' as const,
     fontFamily: 'Space Grotesk',
@@ -88,7 +95,12 @@ export function TrendChart({
     color,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     formatter: (d: any) =>
-      d.value === null || d.value === undefined || (opts?.onlyLatest && d.dataIndex !== lastIdx)
+      d.value === null ||
+      d.value === undefined ||
+      (opts?.onlyLatest && d.dataIndex !== lastIdx) ||
+      /* a target equal to its year's actual printed the same number twice,
+         side by side — "2,0002,000". One of them is enough. */
+      (opts?.hideIfSameAsActual && shown[d.dataIndex]?.actual === d.value)
         ? ''
         : `${compact(d.value as number)}${unit}`,
   })
@@ -115,7 +127,7 @@ export function TrendChart({
             data: shown.map((p) => p.target),
             barMaxWidth: 24,
             itemStyle: { color: 'transparent', borderColor: target, borderWidth: 1.4, borderType: 'dashed', borderRadius: [3, 3, 0, 0] },
-            label: label(target, { off: narrow }),
+            label: label(target, { off: narrow, hideIfSameAsActual: true }),
             labelLayout: { hideOverlap: true },
             z: 2,
           },
@@ -129,6 +141,27 @@ export function TrendChart({
             label: label(series0.now, { onlyLatest: narrow }),
             z: 3,
           },
+          /* a HATCHED bar, in its year's column and named for the quarter it
+             covers. Solid would read as another completed year; the decal and
+             the legend both say three months, not twelve. */
+          ...(showPartial
+            ? [
+                {
+                  name: partial!.label,
+                  type: 'bar',
+                  data: shown.map((_p, i) => (i === partialIdx ? partial!.value : null)),
+                  barMaxWidth: 24,
+                  itemStyle: {
+                    color: series0.now,
+                    opacity: 0.55,
+                    borderRadius: [3, 3, 0, 0],
+                    decal: { symbol: 'rect', symbolSize: 1, dashArrayX: [1, 0], dashArrayY: [3, 4], rotation: -Math.PI / 4, color: dark ? 'rgba(31,42,68,0.65)' : 'rgba(255,255,255,0.75)' },
+                  },
+                  label: label(series0.now),
+                  z: 4,
+                },
+              ]
+            : []),
         ]
       : [
           {
@@ -141,7 +174,7 @@ export function TrendChart({
             symbolSize: 8,
             /* a year that set no target is a gap, not a point to draw through */
             connectNulls: false,
-            label: label(target, { off: narrow }),
+            label: label(target, { off: narrow, hideIfSameAsActual: true }),
             labelLayout: { hideOverlap: true },
             z: 2,
           },
@@ -158,6 +191,22 @@ export function TrendChart({
             label: label(series0.now, { onlyLatest: narrow }),
             z: 3,
           },
+          /* a lone hollow marker, never joined to the annual line — joining it
+             would draw a trajectory across two different lengths of time */
+          ...(showPartial
+            ? [
+                {
+                  name: partial!.label,
+                  type: 'scatter',
+                  data: shown.map((_p, i) => (i === partialIdx ? partial!.value : null)),
+                  symbol: 'diamond',
+                  symbolSize: 12,
+                  itemStyle: { color: dark ? '#1f2a44' : '#fff', borderColor: series0.now, borderWidth: 2 },
+                  label: label(series0.now),
+                  z: 4,
+                },
+              ]
+            : []),
         ]
   ).filter((sr) => hasTarget || sr.name !== 'Target')
 
@@ -178,6 +227,9 @@ export function TrendChart({
         { name: 'Actual', icon: kind === 'bars' ? 'roundRect' : 'line', itemStyle: { color: series0.now } },
         ...(hasTarget
           ? [{ name: 'Target', icon: kind === 'bars' ? 'roundRect' : 'line', itemStyle: { color: 'transparent', borderColor: target, borderWidth: 1.4 }, lineStyle: { color: target, type: 'dashed' as const } }]
+          : []),
+        ...(showPartial
+          ? [{ name: partial!.label, icon: kind === 'bars' ? 'roundRect' : 'diamond', itemStyle: { color: series0.now, opacity: 0.55, borderColor: series0.now } }]
           : []),
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
       ] as any,

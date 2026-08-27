@@ -131,6 +131,22 @@ export function selectL1(k: ObsKpi, p: Period): L1Mark {
 
 /* ──────────────────────────────── L2 — trend ────────────────────────────── */
 
+/**
+ * The quarter to date, carried SEPARATELY from the annual points.
+ *
+ * Q1 is three months and the years are twelve, so it can never be another
+ * point on the same series — that is the comparison the platform refuses
+ * everywhere. It travels as its own reading, tied to the year it falls inside,
+ * so a chart can show it beside that year's commitment while marking it as a
+ * different length of time.
+ */
+export interface PartialReading {
+  /** the year it falls within — the category it belongs beside */
+  year: string
+  value: number
+  label: string
+}
+
 export interface TrendPoint {
   year: string
   actual: number | null
@@ -147,14 +163,18 @@ export type L2Mark =
   /** Y · exactly two — never a line; two points imply a trajectory that isn't there */
   | { kind: 'twoValue'; a: { label: string; value: number; span: string }; b: { label: string; value: number; span: string; partial?: boolean }; unit: string }
   /** X · three or more, counts or currency — discrete period totals accrue */
-  | { kind: 'bars'; points: TrendPoint[]; unit: string; hasTarget: boolean }
+  | { kind: 'bars'; points: TrendPoint[]; unit: string; hasTarget: boolean; partial: PartialReading | null }
   /** X · three or more, rates — a level that persists rather than accrues */
-  | { kind: 'line'; points: TrendPoint[]; unit: string; hasTarget: boolean }
+  | { kind: 'line'; points: TrendPoint[]; unit: string; hasTarget: boolean; partial: PartialReading | null }
 
 export function selectL2(k: ObsKpi, p: Period): L2Mark {
   const unit = unitOf(k)
   const annual = annualActuals(k)
-  const q1 = normalise(k, k.q1)
+  /* NOT `k.q1` raw: an annual reporter's Q1 zero is an absence, and reading it
+     here gave the enabling-function band a "Q1 2026: 0" marker on two
+     indicators that have not reported this quarter at all. `actualFor` is the
+     one reading of the current period. */
+  const q1 = actualFor(k, 'q1')
 
   if (annual.length === 0) return { kind: 'none' }
 
@@ -187,7 +207,12 @@ export function selectL2(k: ObsKpi, p: Period): L2Mark {
   /* a future year with no target is not a gap to draw through — it is simply
      not part of the committed path */
   const trimmed = points.filter((pt) => !pt.future || pt.target !== null)
-  const body = { points: trimmed, unit, hasTarget: trimmed.some((pt) => pt.target !== null) }
+  const body = {
+    points: trimmed,
+    unit,
+    hasTarget: trimmed.some((pt) => pt.target !== null),
+    partial: q1 === null ? null : { year: '2026', value: q1, label: 'Q1 2026' },
+  }
   return isPercent(k) ? { kind: 'line', ...body } : { kind: 'bars', ...body }
 }
 
