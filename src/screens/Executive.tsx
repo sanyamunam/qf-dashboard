@@ -33,6 +33,7 @@ import {
   obsAsKpi,
   lineFor,
   figureFor,
+  absenceFor,
   deltaFor,
   yoyFor,
   yoyNoteFor,
@@ -355,6 +356,7 @@ export function Executive({ onEvidence }: { onEvidence: (kpi: Kpi) => void }) {
                       delta={deltaFor(k, period)}
                       yoy={yoyFor(k, period)}
                       yoyNote={yoyNoteFor(k, period)}
+                      absence={absenceFor(k, period)}
                       className="flex-1"
                     />
                   ))}

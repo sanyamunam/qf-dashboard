@@ -36,6 +36,7 @@ import {
   obsAsKpi,
   lineFor,
   figureFor,
+  absenceFor,
   deltaFor,
   yoyFor,
   yoyNoteFor,
@@ -369,6 +370,7 @@ export function Search({ onEvidence, onBack }: { onEvidence: (kpi: Kpi) => void;
                   delta={deltaFor(k, period)}
                   yoy={yoyFor(k, period)}
                   yoyNote={yoyNoteFor(k, period)}
+                      absence={absenceFor(k, period)}
                 />
               ))}
             </motion.div>

@@ -10,8 +10,9 @@
  * treatment — the client's pick after comparing it live against a
  * small-multiple-arc alternative (docs/r10-notes.md).
  */
-import { ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react'
+import { ArrowUpRight, ArrowDownRight, Minus, CalendarClock, CircleSlash } from 'lucide-react'
 import type { Kpi } from '../model/types'
+import type { Absence } from '../model/dash'
 import { fmt } from '../model/data'
 import { EntityIcon } from './EntityIcon'
 import { KpiIdentity } from './KpiIdentity'
@@ -90,6 +91,7 @@ export function KpiCard({
   yoy,
   yoyNote,
   targetCompare,
+  absence,
   className = '',
 }: {
   group: Kpi[]
@@ -121,6 +123,9 @@ export function KpiCard({
   /** actual against the period's committed target — the honest same-scale
    *  comparison a partial quarter can make when a YoY cannot */
   targetCompare?: { text: string; tone: string } | null
+  /** what stands in the headline slot when there is NO reading. An em dash in
+   *  a numeric slot reads as a value; this reads as an absence. */
+  absence?: Absence | null
   className?: string
 }) {
   const k = group[0]
@@ -187,6 +192,28 @@ export function KpiCard({
            would crown the first indicator and bury the rest. The basis line
            still states what the reader is looking at (Fix 3). */
         <div className="mt-2 text-[11px] font-medium text-ink-mute">Q1 2026 · against 2026 targets</div>
+      ) : absence ? (
+        /**
+         * NO READING. The slot answers why there is no number and what the
+         * last one was, in words — never a dash in the numeric slot, which
+         * occupies the place the eye goes for a figure and says nothing about
+         * whether this is broken, late, or simply not due yet.
+         *
+         * A scheduled absence gets a calendar and the platform's neutral ink;
+         * a genuine gap gets a struck circle and the not-reported grey. Neither
+         * borrows the live figure's weight or its sidra green.
+         */
+        <div className="mt-2 flex items-start gap-2">
+          <span className="mt-[3px] shrink-0" style={{ color: absence.awaited ? '#7e938d' : '#9aaba5' }}>
+            {absence.awaited ? <CalendarClock size={15} strokeWidth={1.8} /> : <CircleSlash size={15} strokeWidth={1.8} />}
+          </span>
+          <span className="min-w-0">
+            <span className={`block font-semibold leading-tight text-ink-soft ${lg ? 'text-[16px]' : 'text-[14.5px]'}`}>
+              {absence.headline}
+            </span>
+            <span className="mt-0.5 block text-[11.5px] leading-tight text-ink-mute">{absence.detail}</span>
+          </span>
+        </div>
       ) : (
         <div className="mt-2 flex items-baseline gap-2">
           <span className={`num font-bold leading-none text-sidra ${lg ? 'text-[26px]' : 'text-[22px]'}`}>{figure}</span>

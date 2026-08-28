@@ -371,7 +371,53 @@ export function yoyFor(k: ObsKpi, p: Period): Yoy | null {
 /** The headline figure for the period — never borrowed from the other one. */
 export function figureFor(k: ObsKpi, p: Period): string {
   const a = actualFor(k, p)
-  return a === null ? '—' : `${fmt(a)}${unitOf(k)}`
+  return a === null ? '' : `${fmt(a)}${unitOf(k)}`
+}
+
+/**
+ * What stands in the headline slot when there IS no reading.
+ *
+ * The slot used to hold a bare em dash, in the same bold sidra-green the live
+ * figures use — which is exactly what the chart reference forbids: "an em-dash
+ * in a numeric slot reads as a value; this must read as an absence." On a CEO
+ * dashboard a dash is worse than useless: it occupies the one place the eye
+ * goes for a number and says nothing about whether something is broken, late,
+ * or simply not due yet.
+ *
+ * So the slot answers the two questions a reader actually has — WHY there is
+ * no number, and WHAT the last one was — and never claims a cadence the sheet
+ * does not support. An indicator with prior annual readings and no quarterly
+ * one is waiting for its year to close; one with nothing on record anywhere is
+ * a reporting gap, and says so.
+ */
+export interface Absence {
+  /** why there is no number — read before anything else */
+  headline: string
+  /** the last real reading, dated, so a magnitude survives the gap */
+  detail: string
+  /** a scheduled absence, not a missing one: changes the icon and the tone */
+  awaited: boolean
+}
+
+export function absenceFor(k: ObsKpi, p: Period): Absence | null {
+  if (actualFor(k, p) !== null) return null
+  const last = [...A_YEARS]
+    .reverse()
+    .map((y) => [y, histOf(k, y)] as const)
+    .find((x): x is readonly [string, number] => x[1] !== null)
+
+  if (!last)
+    return {
+      headline: 'Not reported',
+      detail: 'no reading on record in any period',
+      awaited: false,
+    }
+  const value = `${fmt(last[1])}${unitOf(k)}`
+  /* a row with closed years but no quarter is an annual reporter waiting for
+     its year to end — the same tell `q1Of` uses to read its Q1 zero as absent */
+  return p === 'q1'
+    ? { headline: 'Awaiting year end', detail: `Last reported ${value} · FY ${last[0]}`, awaited: true }
+    : { headline: 'Not reported', detail: `Last reported ${value} · FY ${last[0]}`, awaited: false }
 }
 
 /**
