@@ -32,6 +32,9 @@ import {
   interpret,
   chipsToFilters,
   statusFor,
+  bySeverity,
+  attainmentOf,
+  STATUS_ORDER,
   cardKpi,
   obsAsKpi,
   lineFor,
@@ -119,7 +122,12 @@ export function Search({ onEvidence, onBack }: { onEvidence: (kpi: Kpi) => void;
   }
 
   const filters: SearchFilters = useMemo(() => chipsToFilters(chips, residue), [chips, residue])
-  const shown = useMemo(() => obsKpis.filter((k) => matches(k, filters, period)), [filters, period])
+  /* Riskiest first is the DEFAULT state everywhere. A listing exists to
+     surface what needs attention, not to preserve the order of the sheet. */
+  const shown = useMemo(
+    () => obsKpis.filter((k) => matches(k, filters, period)).sort(bySeverity(period)),
+    [filters, period],
+  )
 
   const toggle = (kind: Chip['kind'], value: string, label = value) =>
     setChips((prev) => {
@@ -160,7 +168,7 @@ export function Search({ onEvidence, onBack }: { onEvidence: (kpi: Kpi) => void;
         kind: 'status',
         label: 'Status',
         labelFor: (v) => STATUS_LABEL[v as DashStatus],
-        items: (Object.keys(STATUS_LABEL) as DashStatus[]).map((s) => ({
+        items: STATUS_ORDER.map((s) => ({
           value: s,
           label: STATUS_LABEL[s],
           dot: STATUS_DOT[s],
@@ -205,7 +213,7 @@ export function Search({ onEvidence, onBack }: { onEvidence: (kpi: Kpi) => void;
   const answer = useMemo(() => {
     if (shown.length === 0) return null
     const risk = shown.filter((k) => statusFor(k, period) === 'atRisk').length
-    const mon = shown.filter((k) => statusFor(k, period) === 'monitoring').length
+    const mon = shown.filter((k) => statusFor(k, period) === 'noTarget').length
     const nr = shown.filter((k) => statusFor(k, period) === 'notReported').length
     const parts = [risk > 0 ? `${risk} at risk` : null, mon > 0 ? `${mon} without a target` : null, nr > 0 ? `${nr} not reported` : null].filter(Boolean)
     return `I found ${shown.length} indicator${shown.length === 1 ? '' : 's'}${
@@ -370,7 +378,8 @@ export function Search({ onEvidence, onBack }: { onEvidence: (kpi: Kpi) => void;
                   delta={deltaFor(k, period)}
                   yoy={yoyFor(k, period)}
                   yoyNote={yoyNoteFor(k, period)}
-                      absence={absenceFor(k, period)}
+                  absence={absenceFor(k, period)}
+                  attainment={attainmentOf(k, period)}
                 />
               ))}
             </motion.div>

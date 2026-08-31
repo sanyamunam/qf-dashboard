@@ -21,7 +21,8 @@ import {
   summaryFor,
   obsAsKpi,
   unitOf,
-  PACE,
+  RISK,
+  STATUS_ORDER,
   STATUS_LABEL,
   STATUS_DOT,
   STATUS_SENSE,
@@ -101,7 +102,7 @@ export function CollapsibleSummary({
   const [open, setOpen] = useState(false)
   const s = useMemo(() => summaryFor(p, within), [p, within])
 
-  const tile = (k: ObsKpi, kind: 'performing' | 'attention') => {
+  const tile = (k: ObsKpi, kind: 'onTarget' | 'attention') => {
     const a = actualFor(k, p) as number
     const bar = expectedBy(k, p)
     const t = targetFor(k, p)
@@ -112,8 +113,8 @@ export function CollapsibleSummary({
         onClick={() => onOpen(obsAsKpi(k.row))}
         className="flex flex-col rounded-card p-3.5 text-left transition-colors duration-200 hover:bg-cream/60"
       >
-        <span className="text-[10px] font-semibold tracking-[0.12em]" style={{ color: kind === 'performing' ? '#3f7300' : '#8a1538' }}>
-          {kind === 'performing' ? STATUS_LABEL.performing.toUpperCase() : STATUS_LABEL.atRisk.toUpperCase()}
+        <span className="text-[10px] font-semibold tracking-[0.12em]" style={{ color: kind === 'onTarget' ? '#3f7300' : '#8a1538' }}>
+          {kind === 'onTarget' ? STATUS_LABEL.onTarget.toUpperCase() : STATUS_LABEL.atRisk.toUpperCase()}
         </span>
         <span className="mt-1.5 block text-[11px] leading-tight text-ink-mute">{k.proposedEntity ?? 'Unassigned'}</span>
         <span className="block text-[13px] font-semibold leading-tight text-ink">{k.name.trim()}</span>
@@ -122,10 +123,10 @@ export function CollapsibleSummary({
           {unitOf(k)}
         </span>
         {/* the reason, and the bar it was actually judged against */}
-        <span className="mt-1 text-[11px] leading-snug" style={{ color: kind === 'performing' ? '#3f7300' : '#8a1538' }}>
+        <span className="mt-1 text-[11px] leading-snug" style={{ color: kind === 'onTarget' ? '#3f7300' : '#8a1538' }}>
           {paced
-            ? `${kind === 'performing' ? 'at or above' : 'below'} ${fmt(bar as number)}${unitOf(k)} — the pace a full year of ${fmt(t as number)}${unitOf(k)} implies by now`
-            : `${kind === 'performing' ? 'meets' : 'below'} its target of ${fmt(t as number)}${unitOf(k)}${k.polarity === 'Red' ? ' · lower is better' : ''}`}
+            ? `${kind === 'onTarget' ? 'at or above' : 'below'} ${fmt(bar as number)}${unitOf(k)} — the pace a full year of ${fmt(t as number)}${unitOf(k)} implies by now`
+            : `${kind === 'onTarget' ? 'meets' : 'below'} its target of ${fmt(t as number)}${unitOf(k)}${k.polarity === 'Red' ? ' · lower is better' : ''}`}
         </span>
       </button>
     )
@@ -159,7 +160,7 @@ export function CollapsibleSummary({
           <>
             <p>{s.prose}</p>
             <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {s.performing && tile(s.performing, 'performing')}
+              {s.onTarget && tile(s.onTarget, 'onTarget')}
               {s.atRisk && tile(s.atRisk, 'attention')}
             </div>
           </>
@@ -199,8 +200,14 @@ export function StatusCards({
 
   return (
     <>
-      <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {(Object.keys(STATUS_LABEL) as DashStatus[]).map((st, i) => {
+      {/* FIVE, not four stretched to five. At this count the tiles stop being a
+          grid and become a severity ROW — read left to right, worst first — so
+          the layout carries the ranking rather than merely holding the cards.
+          2-up on a phone, 3-up on a tablet, all five only where they stay
+          legible. `STATUS_ORDER` supplies the order, so the row can never
+          disagree with the sort beneath it. */}
+      <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
+        {STATUS_ORDER.map((st, i) => {
           const list = counts[st]
           return (
             <motion.button
@@ -232,7 +239,7 @@ export function StatusCards({
 
       <div className="mt-2.5 flex flex-wrap items-baseline gap-x-3 gap-y-1.5">
         <p className="text-[11.5px] text-ink-mute">
-          {counts.performing.length} + {counts.atRisk.length} + {counts.notReported.length} + {counts.monitoring.length} ={' '}
+          {STATUS_ORDER.map((s) => counts[s].length).join(' + ')} ={' '}
           <span className="font-semibold text-ink-soft">{total}</span> {noun}, judged for {PERIOD_LABEL[p]} only.
         </p>
         <button
@@ -257,10 +264,10 @@ export function StatusCards({
               <span className="font-semibold text-ink">An assumption, not QF's finding.</span> QF has not set quarterly
               milestones. {p === 'q1' ? (
                 <>
-                  So for the {PACE.elapsed * 100}% of the year Q1 represents ({PACE.elapsedLabel}), this platform assumes
+                  So for the {RISK.elapsed * 100}% of the year Q1 represents ({RISK.elapsedLabel}), this platform assumes
                   even accrual: a <span className="font-semibold text-ink">cumulative</span> indicator — anything that
                   adds up over the year, {paced} of these {total} — is judged against{' '}
-                  {Math.round(PACE.elapsed * 100)}% of its annual target rather than the whole of it. Judged against the
+                  {Math.round(RISK.elapsed * 100)}% of its annual target rather than the whole of it. Judged against the
                   full-year number instead, two thirds of the Thematic portfolio would read as behind, almost none of it
                   because anything is wrong.
                 </>
@@ -283,9 +290,24 @@ export function StatusCards({
             </p>
             <p className="mt-2">
               Direction comes from the sheet's Polarity column, never from the sign of a change — {within.filter((k) => k.polarity === 'Red').length} of
-              these are lower-is-better. An indicator with no target, or with a target of zero in an off-cycle year, is
-              placed under <span className="font-semibold text-ink">Monitoring</span>: no pass or fail is possible and
+              these are lower-is-better, and for those an <span className="font-semibold text-ink">overshoot</span> is
+              the risk. An indicator with no target, or with a target of zero in an off-cycle year, is placed under{' '}
+              <span className="font-semibold text-ink">{STATUS_LABEL.noTarget}</span>: no pass or fail is possible and
               none is invented.
+            </p>
+            <p className="mt-2">
+              <span className="font-semibold text-ink">{STATUS_LABEL.atRisk}</span> means under{' '}
+              {Math.round(RISK.threshold * 100)}% of that expected pace — materially behind, not merely behind.{' '}
+              <span className="font-semibold text-ink">{STATUS_LABEL.belowTarget}</span> is everything between{' '}
+              {Math.round(RISK.threshold * 100)}% and 100%. Every card prints its own attainment, so any verdict here
+              can be checked against the arithmetic that produced it. The {Math.round(RISK.threshold * 100)}% line is a
+              starting position rather than a finding, and is meant to be tuned once QF has seen the result.
+            </p>
+            <p className="mt-2">
+              An indicator with <span className="font-semibold text-ink">no reading is never at risk</span> — it is{' '}
+              {STATUS_LABEL.notReported}. A zero on a satisfaction score, an NPS or a rate is read as an empty cell
+              rather than a collapse to nothing, which is why {STATUS_LABEL.atRisk.toLowerCase()} stays a list worth
+              acting on instead of a list of reporting gaps.
             </p>
           </motion.div>
         )}

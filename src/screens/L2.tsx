@@ -12,6 +12,8 @@ import { HeaderCluster, LogoWhite, TopNav } from '../components/Shell'
 import { themeById, themeKpis } from '../model/data'
 import { facts, fmt, wishDropPct } from '../model/facts'
 import { topMovers } from '../model/spotlight'
+import { obsForKpi } from '../model/bridge'
+import { severityOf } from '../model/status'
 import type { Kpi } from '../model/types'
 import { buildGroupCards, type GroupCard, type YearKey } from '../components/charts/builders'
 import { EChart } from '../components/charts/EChart'
@@ -83,11 +85,11 @@ interface Filters {
   fw: string[] // frameworks
   cat: string[] // categories
   av: string[] // availability: trend | first | nr
-  sort: 'mover' | 'gap' | 'alpha' | 'entity'
+  sort: 'risk' | 'mover' | 'gap' | 'alpha' | 'entity'
   yr: YearKey
 }
 
-const EMPTY: Filters = { e: [], fw: [], cat: [], av: [], sort: 'mover', yr: '2026Q1' }
+const EMPTY: Filters = { e: [], fw: [], cat: [], av: [], sort: 'risk', yr: '2026Q1' }
 const YEARS: YearKey[] = ['2022', '2023', '2024', '2025', '2026Q1']
 
 function readFilters(themeId: string): Filters {
@@ -100,7 +102,7 @@ function readFilters(themeId: string): Filters {
     fw: p.get('fw')?.split('|').filter(Boolean) ?? [],
     cat: p.get('cat')?.split('|').filter(Boolean) ?? [],
     av: p.get('av')?.split('|').filter(Boolean) ?? [],
-    sort: (p.get('sort') as Filters['sort']) ?? 'mover',
+    sort: (p.get('sort') as Filters['sort']) ?? 'risk',
     yr: (YEARS.includes(p.get('yr') as YearKey) ? (p.get('yr') as YearKey) : '2026Q1'),
   }
 }
@@ -111,7 +113,7 @@ function writeFilters(themeId: string, f: Filters) {
   if (f.fw.length) p.set('fw', f.fw.join('|'))
   if (f.cat.length) p.set('cat', f.cat.join('|'))
   if (f.av.length) p.set('av', f.av.join('|'))
-  if (f.sort !== 'mover') p.set('sort', f.sort)
+  if (f.sort !== 'risk') p.set('sort', f.sort)
   if (f.yr !== '2026Q1') p.set('yr', f.yr)
   const base = location.hash.split('?')[0]
   const qs = p.toString()
@@ -210,7 +212,20 @@ export function L2({
       k.cadence === 'continuous' && (k.targets['2026'].value ?? 0) > 0 && k.actuals['2026Q1'].value !== null
         ? 1 - (k.actuals['2026Q1'].value as number) / (k.targets['2026'].value as number)
         : -2
-    if (filters.sort === 'alpha') s.sort((a, b) => a.name.localeCompare(b.name))
+    /* Riskiest first is the default on every listing. These pages run on the
+       Release-2 model, so each KPI is located in the OBS rows first — the
+       severity has to come from the ONE status model, not a second opinion
+       computed from this model's own cells. A row that cannot be located sorts
+       last rather than being guessed at. */
+    if (filters.sort === 'risk')
+      s.sort((a, b) => {
+        const ra = obsForKpi(a)
+        const rb = obsForKpi(b)
+        const sa = ra ? severityOf(ra, 'q1') : Number.MAX_SAFE_INTEGER
+        const sb = rb ? severityOf(rb, 'q1') : Number.MAX_SAFE_INTEGER
+        return sa - sb || a.name.localeCompare(b.name)
+      })
+    else if (filters.sort === 'alpha') s.sort((a, b) => a.name.localeCompare(b.name))
     else if (filters.sort === 'entity') s.sort((a, b) => a.entity.localeCompare(b.entity) || a.name.localeCompare(b.name))
     else if (filters.sort === 'gap') s.sort((a, b) => gapOf(b) - gapOf(a))
     else s.sort((a, b) => (b.movementScore ?? -1) - (a.movementScore ?? -1))
@@ -413,13 +428,13 @@ export function L2({
               <Opt key={d.id} on={filters.av.includes(d.id)} onClick={() => toggle('av', d.id)} label={d.label} n={count('av', d.test)} />
             ))}
           </FilterMenu>
-          <FilterMenu label={`Sort: ${{ mover: 'Biggest mover', gap: 'Largest gap', alpha: 'Alphabetical', entity: 'Entity' }[filters.sort]}`} hue={theme.fill} active={filters.sort !== 'mover'}>
-            {(['mover', 'gap', 'alpha', 'entity'] as const).map((s) => (
+          <FilterMenu label={`Sort: ${{ risk: 'Riskiest first', mover: 'Biggest mover', gap: 'Largest gap', alpha: 'Alphabetical', entity: 'Entity' }[filters.sort]}`} hue={theme.fill} active={filters.sort !== 'risk'}>
+            {(['risk', 'mover', 'gap', 'alpha', 'entity'] as const).map((s) => (
               <Opt
                 key={s}
                 on={filters.sort === s}
                 onClick={() => setFilters((f) => ({ ...f, sort: s }))}
-                label={{ mover: 'Biggest mover', gap: 'Largest gap', alpha: 'Alphabetical', entity: 'Entity' }[s]}
+                label={{ risk: 'Riskiest first', mover: 'Biggest mover', gap: 'Largest gap', alpha: 'Alphabetical', entity: 'Entity' }[s]}
               />
             ))}
           </FilterMenu>
@@ -480,7 +495,7 @@ export function L2({
             annotate={annotate}
             sort={filters.sort}
             year={filters.yr}
-            filtersActive={activeChips.length > 0 || filters.yr !== '2026Q1' || filters.sort !== 'mover'}
+            filtersActive={activeChips.length > 0 || filters.yr !== '2026Q1' || filters.sort !== 'risk'}
             focusId={pointFocus ?? null}
             onRelax={() => setFilters((f) => ({ ...EMPTY, sort: f.sort }))}
             groupByFramework={filters.fw.length > 0}

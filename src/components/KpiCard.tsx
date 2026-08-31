@@ -92,6 +92,7 @@ export function KpiCard({
   yoyNote,
   targetCompare,
   absence,
+  attainment,
   className = '',
 }: {
   group: Kpi[]
@@ -126,6 +127,15 @@ export function KpiCard({
   /** what stands in the headline slot when there is NO reading. An em dash in
    *  a numeric slot reads as a value; this reads as an absence. */
   absence?: Absence | null
+  /**
+   * The share of expected pace this reading achieved.
+   *
+   * Printed because a verdict the reader cannot check is a verdict they have to
+   * take on faith — and "At risk" is the one status that will be argued with.
+   * Infinity (nothing spent against a ceiling) and null (nothing to judge) both
+   * render as nothing rather than as a number that would mislead.
+   */
+  attainment?: number | null
   className?: string
 }) {
   const k = group[0]
@@ -169,7 +179,16 @@ export function KpiCard({
       {/* a finding earns an accent edge; a quiet card stays quiet */}
       {loud && <span aria-hidden className="absolute inset-y-0 start-0 w-[3px]" style={{ background: pol.tone }} />}
 
-      {status && <div className="mb-1.5 flex items-center gap-2">{status}</div>}
+      {status && (
+        <div className="mb-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+          {status}
+          {attainment !== null && attainment !== undefined && Number.isFinite(attainment) && (
+            <span className="num shrink-0 text-[10.5px] font-medium tabular-nums text-ink-mute">
+              {Math.round(attainment * 100)}% of pace
+            </span>
+          )}
+        </div>
+      )}
 
       {/* the entity is the logo, and its name is on hover — most rows fall back
           to the QF sidra, so the mark alone cannot say whose indicator this is */}

@@ -34,6 +34,11 @@ import {
   lineFor,
   figureFor,
   absenceFor,
+  attainmentOf,
+  bySeverity,
+  worstSeverityOf,
+  STATUS_ORDER,
+  RISK,
   deltaFor,
   yoyFor,
   yoyNoteFor,
@@ -113,7 +118,7 @@ function CollapsibleSummary({ p, onOpen }: { p: Period; onOpen: (k: Kpi) => void
   const [open, setOpen] = useState(false)
   const s = useMemo(() => summaryFor(p), [p])
 
-  const tile = (k: ObsKpi, kind: 'performing' | 'attention') => {
+  const tile = (k: ObsKpi, kind: 'onTarget' | 'attention') => {
     const a = actualFor(k, p) as number
     const t = targetFor(k, p)
     return (
@@ -122,8 +127,8 @@ function CollapsibleSummary({ p, onOpen }: { p: Period; onOpen: (k: Kpi) => void
         onClick={() => onOpen(obsAsKpi(k.row))}
         className="flex flex-col rounded-card p-3.5 text-left transition-colors duration-200 hover:bg-cream/60"
       >
-        <span className="text-[10px] font-semibold tracking-[0.12em]" style={{ color: kind === 'performing' ? '#3c6a5f' : '#8a1538' }}>
-          {kind === 'performing' ? 'PERFORMING WELL' : 'AT RISK'}
+        <span className="text-[10px] font-semibold tracking-[0.12em]" style={{ color: kind === 'onTarget' ? '#3c6a5f' : '#8a1538' }}>
+          {kind === 'onTarget' ? 'PERFORMING WELL' : 'AT RISK'}
         </span>
         <span className="mt-1.5 block text-[11px] leading-tight text-ink-mute">{k.proposedEntity ?? 'Unassigned'}</span>
         <span className="block text-[13px] font-semibold leading-tight text-ink">{k.name.trim()}</span>
@@ -131,8 +136,8 @@ function CollapsibleSummary({ p, onOpen }: { p: Period; onOpen: (k: Kpi) => void
           {fmt(a)}
           {unitOf(k)}
         </span>
-        <span className="mt-1 text-[11px] leading-snug" style={{ color: kind === 'performing' ? '#3c6a5f' : '#8a1538' }}>
-          {kind === 'performing'
+        <span className="mt-1 text-[11px] leading-snug" style={{ color: kind === 'onTarget' ? '#3c6a5f' : '#8a1538' }}>
+          {kind === 'onTarget'
             ? `meets its ${fmt(t as number)}${unitOf(k)} target`
             : `target ${fmt(t as number)}${unitOf(k)}${k.polarity === 'Red' ? ' · lower is better' : ''}`}
         </span>
@@ -168,7 +173,7 @@ function CollapsibleSummary({ p, onOpen }: { p: Period; onOpen: (k: Kpi) => void
           <>
             <p>{s.prose}</p>
             <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {s.performing && tile(s.performing, 'performing')}
+              {s.onTarget && tile(s.onTarget, 'onTarget')}
               {s.atRisk && tile(s.atRisk, 'attention')}
             </div>
           </>
@@ -227,18 +232,26 @@ export function Executive({ onEvidence }: { onEvidence: (kpi: Kpi) => void }) {
       if (inGroup.length === 0) continue
       if (node.subs.length > 0) {
         const cats = node.subs
-          .map((sub) => ({ name: sub.name, total: sub.total, cards: inGroup.filter((k) => subOf(k) === sub.name) }))
+          .map((sub) => ({
+            name: sub.name,
+            total: sub.total,
+            /* riskiest indicator first inside every category */
+            cards: inGroup.filter((k) => subOf(k) === sub.name).sort(bySeverity(period)),
+          }))
           .filter((c) => c.cards.length > 0)
+          /* and a category is as urgent as its worst indicator, so one at-risk
+             KPI lifts its whole category above an entirely healthy one */
+          .sort((a, b) => worstSeverityOf(a.cards, period) - worstSeverityOf(b.cards, period))
         out.push({ kind: 'wrapper', label: node.parent, total: node.total, cats })
       } else {
-        const cat: Cat = { name: node.parent, total: node.total, cards: inGroup }
+        const cat: Cat = { name: node.parent, total: node.total, cards: [...inGroup].sort(bySeverity(period)) }
         const last = out[out.length - 1]
         if (last && last.kind === 'plain') last.cats.push(cat)
         else out.push({ kind: 'plain', cats: [cat] })
       }
     }
     return out
-  }, [tree])
+  }, [tree, period])
 
   return (
     <div className="mx-auto min-h-dvh max-w-[1180px] px-5 pb-36 md:px-8">
@@ -274,8 +287,8 @@ export function Executive({ onEvidence }: { onEvidence: (kpi: Kpi) => void }) {
       {/* the four states over ALL 89 Executive indicators — computed per
           period, never hard-coded. Clicking opens the listing filtered to
           that status, where the filter shows as a removable chip. */}
-      <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {(Object.keys(STATUS_LABEL) as DashStatus[]).map((st, i) => {
+      <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
+        {STATUS_ORDER.map((st, i) => {
           const list = counts[st]
           const onDash = list.filter((k) => k.highlighted).length
           return (
@@ -308,11 +321,15 @@ export function Executive({ onEvidence }: { onEvidence: (kpi: Kpi) => void }) {
       </div>
 
       <p className="mt-2.5 text-[11.5px] text-ink-mute">
-        {counts.performing.length} + {counts.atRisk.length} + {counts.notReported.length} + {counts.monitoring.length} ={' '}
+        {/* the same five, in the same severity order as the cards above — read
+            from STATUS_ORDER so the line can never fall behind the row */}
+        {STATUS_ORDER.map((s) => counts[s].length).join(' + ')} ={' '}
         <span className="font-semibold text-ink-soft">{execRows.length}</span> Executive indicators, judged for{' '}
-        {PERIOD_LABEL[period]} only. <span className="font-semibold text-ink-soft">Monitoring</span> means a reading with no
-        target to judge it against — including nine cyclical rows whose target is 0 by design — so no pass/fail verdict is
-        possible, and none is invented.
+        {PERIOD_LABEL[period]} only. <span className="font-semibold text-ink-soft">{STATUS_LABEL.atRisk}</span> means
+        under {Math.round(RISK.threshold * 100)}% of the pace a full-year target implies by now — materially behind
+        rather than merely behind — and every card prints its own attainment so the verdict can be checked.{' '}
+        <span className="font-semibold text-ink-soft">{STATUS_LABEL.noTarget}</span> means a reading with nothing to
+        judge it against, so no pass or fail is possible and none is invented.
       </p>
 
       {/* the category tree. A wrapper is a divider; a category is a
@@ -357,6 +374,7 @@ export function Executive({ onEvidence }: { onEvidence: (kpi: Kpi) => void }) {
                       yoy={yoyFor(k, period)}
                       yoyNote={yoyNoteFor(k, period)}
                       absence={absenceFor(k, period)}
+                      attainment={attainmentOf(k, period)}
                       className="flex-1"
                     />
                   ))}

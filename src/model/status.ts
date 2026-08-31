@@ -38,6 +38,9 @@ export const RISK = {
   elapsedLabel: 'three of twelve months',
 } as const
 
+/** @deprecated the old name for the pace settings — prefer `RISK`. */
+export const PACE = RISK
+
 export type DashStatus = 'atRisk' | 'belowTarget' | 'onTarget' | 'noTarget' | 'notReported'
 
 /**
@@ -101,6 +104,11 @@ export const targetFor = (k: ObsKpi, p: Period): number | null =>
  * so it answers to its target directly whatever month it is: a satisfaction
  * score of 70% is 70% in March or in December.
  */
+/** How a reading accrues, which decides what its target means partway through
+ *  a period. Named for the distinction rather than the regex behind it. */
+export type Accrual = 'cumulative' | 'pointInTime'
+export const accrualOf = (k: ObsKpi): Accrual => (isPointInTime(k) ? 'pointInTime' : 'cumulative')
+
 export function expectedBy(k: ObsKpi, p: Period): number | null {
   const t = targetFor(k, p)
   if (t === null) return null
