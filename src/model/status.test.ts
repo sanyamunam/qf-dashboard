@@ -23,6 +23,8 @@ import {
   statusFor,
   actualFor,
   targetFor,
+  expectedBy,
+  accrualOf,
   STATUS_DOT,
   worstSeverityOf,
 } from './status'
@@ -79,11 +81,38 @@ describe('attainment is measured against the target', () => {
     }
   })
 
-  it('grades the six Progressive Education indicators as the brief states', () => {
+  it('THE MARK AND THE VERDICT CAN NEVER DISAGREE', () => {
+    /* At risk is tied to the pace line, so no indicator may be called at risk
+       while its fill sits past the dashed "by now" tick on its own bar. 31
+       cards used to contradict themselves this way. */
+    const contradictory = obsKpis.filter((k) => {
+      const a = actualFor(k, 'q1')
+      const by = expectedBy(k, 'q1')
+      if (a === null || by === null || isLowerBetter(k)) return false
+      return statusFor(k, 'q1') === 'atRisk' && a > by
+    })
+    expect(contradictory.map((x) => x.name.trim())).toEqual([])
+  })
+
+  it('and the converse: behind the tick is never called merely below target', () => {
+    const contradictory = obsKpis.filter((k) => {
+      const a = actualFor(k, 'q1')
+      const by = expectedBy(k, 'q1')
+      if (a === null || by === null || isLowerBetter(k)) return false
+      if (accrualOf(k) !== 'cumulative') return false
+      return statusFor(k, 'q1') === 'belowTarget' && a < by
+    })
+    expect(contradictory.map((x) => x.name.trim())).toEqual([])
+  })
+
+  it('grades the six Progressive Education indicators against the pace line', () => {
+    /* Three of these moved when At risk was tied to the pace line: each is
+       past its own "by now" tick, so each is behind its ANNUAL number without
+       being in trouble a quarter into the year. */
     const expected: [string, number, string][] = [
-      ['Beneficiaries', 27, 'atRisk'],
-      ['International Engagements', 30, 'atRisk'],
-      ['National Engagements', 40, 'atRisk'],
+      ['Beneficiaries', 27, 'belowTarget'],
+      ['International Engagements', 30, 'belowTarget'],
+      ['National Engagements', 40, 'belowTarget'],
       ['International Partnerships', 67, 'belowTarget'],
       ['Multiversity', 80, 'belowTarget'],
       ['National Partnerships', 140, 'onTarget'],

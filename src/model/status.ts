@@ -185,12 +185,41 @@ export function paceMarkerFor(k: ObsKpi, p: Period): number | null {
   return by
 }
 
+/**
+ * The attainment below which an indicator is MATERIALLY behind — the line that
+ * separates At risk from Below target.
+ *
+ * For an accruing count partway through a year it is the PACE LINE: the same
+ * position the dashed "by now" tick marks on its bar. That tie is the whole
+ * point. Before it, a card could show its fill crossing the tick and still be
+ * labelled At risk — 31 indicators did, including Total Policy Adoptions at
+ * 2 of 6, which is ahead of the 1.5 expected by now. The card argued with
+ * itself, and the reader was right to disbelieve it.
+ *
+ * Now red means behind the tick, amber means past the tick but short of the
+ * commitment, green means the commitment is met. The mark and the verdict
+ * cannot disagree, because they are the same number.
+ *
+ * A fixed floor applies wherever no pace line exists:
+ *   · a POINT-IN-TIME indicator is a level, not an accrual — a satisfaction
+ *     score should already be at its target in March, so its expected-by-now
+ *     IS its target, and tying the floor to that would make every rate below
+ *     target at risk with nothing left in between
+ *   · a LOWER-IS-BETTER indicator answers to a ceiling it must stay under all
+ *     year; there is nothing to accrue toward
+ *   · a CLOSED YEAR has fully elapsed, so its pace line is its target
+ */
+export function riskFloorFor(k: ObsKpi, p: Period): number {
+  if (p === 'q1' && accrualOf(k) === 'cumulative' && !isLowerBetter(k)) return RISK.elapsed
+  return RISK.belowTarget
+}
+
 export function statusFor(k: ObsKpi, p: Period): DashStatus {
   if (actualFor(k, p) === null) return 'notReported'
   const att = attainmentOf(k, p)
   if (att === null) return 'noTarget'
   if (att >= RISK.onTarget) return 'onTarget'
-  return att < RISK.belowTarget ? 'atRisk' : 'belowTarget'
+  return att < riskFloorFor(k, p) ? 'atRisk' : 'belowTarget'
 }
 
 /**

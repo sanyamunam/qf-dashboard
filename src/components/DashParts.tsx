@@ -266,21 +266,30 @@ export function StatusCards({
             className="mt-2.5 rounded-card bg-card p-4 text-[12.5px] leading-relaxed text-ink-soft shadow-(--shadow-card)"
           >
             <p>
-              <span className="font-semibold text-ink">Measured against the target, plainly.</span> Attainment is the
-              reading divided by the commitment — {STATUS_LABEL.onTarget} at {Math.round(RISK.onTarget * 100)}% or
-              above, {STATUS_LABEL.belowTarget} from {Math.round(RISK.belowTarget * 100)}% to{' '}
-              {Math.round(RISK.onTarget * 100)}%, and {STATUS_LABEL.atRisk} below{' '}
-              {Math.round(RISK.belowTarget * 100)}%. Every card prints its own figure, so any verdict here can be
-              checked against the arithmetic that produced it. Both thresholds are a starting position rather than a
+              <span className="font-semibold text-ink">Measured against the target; judged against the pace.</span>{' '}
+              Attainment is the reading divided by the commitment — {STATUS_LABEL.onTarget} at{' '}
+              {Math.round(RISK.onTarget * 100)}% or above. Below that, the line between{' '}
+              {STATUS_LABEL.belowTarget.toLowerCase()} and {STATUS_LABEL.atRisk.toLowerCase()} is the{' '}
+              <span className="font-semibold text-ink">pace line</span>: the dashed “by now” tick each card draws on its
+              own bar. Past the tick but short of the commitment is {STATUS_LABEL.belowTarget.toLowerCase()}; behind the
+              tick is {STATUS_LABEL.atRisk.toLowerCase()}. So the mark and the verdict cannot disagree — they are the
+              same number — and no card can read {STATUS_LABEL.atRisk.toLowerCase()} while its fill sits past its own
+              tick.
+            </p>
+            <p className="mt-2">
+              A rate, score or percentage has no pace line — it is a level that should already be at its target in
+              March, not something that accrues — so it keeps a fixed {Math.round(RISK.belowTarget * 100)}% floor, as
+              does a lower-is-better ceiling and any closed year. Both numbers are a starting position rather than a
               finding, and are meant to be tuned once QF has seen the result.
             </p>
             {p === 'q1' && (
               <p className="mt-2">
-                <span className="font-semibold text-ink">The year is not over, and the status does not pretend it is.</span>{' '}
-                Three months of twelve have closed, so a cumulative indicator — {paced} of these {total} — will read
-                behind simply because the year is young. That caveat belongs in words, on the card, in its own figures;
-                it is deliberately NOT folded into the number. Dividing by the elapsed quarter was tried and produced a
-                card reading “8 of 30 · on target”, which no arithmetic can defend to the person reading it.
+                <span className="font-semibold text-ink">The elapsed year sets the line, never the figure.</span> Three
+                months of twelve have closed, so a cumulative indicator — {paced} of these {total} — is expected to be
+                about {Math.round(RISK.elapsed * 100)}% of the way there. That share decides where{' '}
+                {STATUS_LABEL.atRisk.toLowerCase()} begins; it is deliberately NOT folded into the attainment figure.
+                Dividing the reading by the elapsed quarter was tried, and produced a card reading “8 of 30 · on
+                target”, which no arithmetic can defend to the person reading it.
               </p>
             )}
             <p className="mt-2">
