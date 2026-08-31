@@ -57,6 +57,18 @@ export function LedgerRows({
            rather than as a measurement */
         const w = Math.max(L1_MIN_FILL_PCT, (r.value / max) * 100)
         const tx = (r.target / max) * 100
+        /**
+         * NOT REPORTED draws no bar.
+         *
+         * The Release-2 card model stores a literal 0 for these; the platform
+         * reads that 0 as an absence, because the row has closed years behind
+         * it and went quiet this quarter. Drawing it from the raw cell put a
+         * bar on screen that said "0 of 5" for something nobody submitted, and
+         * then had to colour it grey because there is no verdict to give —
+         * which is exactly the grey the reader was asking about. An absence is
+         * stated in words; only a reading gets a bar.
+         */
+        const absent = r.tone === 'notReported'
         return (
           <div key={r.label}>
             <div className="flex items-baseline justify-between gap-3">
@@ -67,20 +79,20 @@ export function LedgerRows({
                 className="num shrink-0 font-bold leading-none"
                 style={{ color: textOf(r.tone), fontSize: z.num }}
               >
-                {nf(r.value)}
-                {r.status === 'met' && (
+                {absent ? <span className="font-medium text-ink-mute">not reported</span> : nf(r.value)}
+                {!absent && r.status === 'met' && (
                   <span className="ml-0.5" style={{ fontSize: z.check }}>
                     ✓
                   </span>
                 )}
                 {/* a figure that isn't this quarter's carries its year inline */}
-                {r.year && (
+                {!absent && r.year && (
                   <span className="ml-1 font-normal text-ink-mute" style={{ fontSize: z.of }}>
                     ({r.year})
                   </span>
                 )}
                 <span className="ml-1 font-normal text-ink-mute" style={{ fontSize: z.of }}>
-                  of {nf(r.target)}
+                  {absent ? `· target ${nf(r.target)}` : `of ${nf(r.target)}`}
                 </span>
               </span>
             </div>
@@ -88,14 +100,16 @@ export function LedgerRows({
               className="relative mt-1 overflow-visible rounded-full"
               style={{ height: z.track, background: 'rgba(200,201,199,0.3)' }}
             >
-              <div
-                className="ledger-fill h-full rounded-full"
-                style={{
-                  width: `${w}%`,
-                  background: fillOf(r.tone),
-                  boxShadow: r.status === 'met' ? '0 0 7px rgba(120,190,32,0.45)' : undefined,
-                }}
-              />
+              {!absent && (
+                <div
+                  className="ledger-fill h-full rounded-full"
+                  style={{
+                    width: `${w}%`,
+                    background: fillOf(r.tone),
+                    boxShadow: r.status === 'met' ? '0 0 7px rgba(120,190,32,0.45)' : undefined,
+                  }}
+                />
+              )}
               {/* the target marker: dashed, darker than the bar, unmissable */}
               <span
                 aria-hidden

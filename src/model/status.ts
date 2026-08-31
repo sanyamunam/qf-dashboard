@@ -153,6 +153,31 @@ export function statusFor(k: ObsKpi, p: Period): DashStatus {
   return att < RISK.threshold ? 'atRisk' : 'belowTarget'
 }
 
+/**
+ * Grade a COMPLETED year's reading against that year's own target.
+ *
+ * A card that falls back to "51 (2025) against that year's target" is making a
+ * claim about 2025, so its verdict has to be 2025's. Colouring it by the Q1
+ * status painted it grey — the quarter was never reported, which is precisely
+ * why the card reached for a closed year in the first place.
+ *
+ * No pace adjustment: a closed year is twelve months against a twelve-month
+ * number. Same threshold, same polarity rule, so a dated mark and a current
+ * one mean the same thing by the same test.
+ */
+export function statusForYear(k: ObsKpi, year: string): DashStatus {
+  const a = lift(k, k.actuals[year] ?? null)
+  if (a === null) return 'notReported'
+  const t = lift(k, k.targets[year] ?? null)
+  if (t === null || (!isLowerBetter(k) && t === 0)) return 'noTarget'
+  let att: number | null
+  if (isLowerBetter(k)) att = a === 0 ? Number.POSITIVE_INFINITY : t === 0 ? 0 : t / a
+  else att = t === 0 ? null : a / t
+  if (att === null) return 'noTarget'
+  if (att >= 1) return 'onTarget'
+  return att < RISK.threshold ? 'atRisk' : 'belowTarget'
+}
+
 export function statusCountsOf(rows: ObsKpi[], p: Period): Record<DashStatus, ObsKpi[]> {
   const out: Record<DashStatus, ObsKpi[]> = {
     atRisk: [],

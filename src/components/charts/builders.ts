@@ -7,7 +7,7 @@ import type { EChartsOption } from 'echarts'
 import { TREND_ACTUAL, TREND_TARGET } from './trendPalette'
 import type { Kpi } from '../../model/types'
 import { obsForKpi } from '../../model/bridge'
-import { statusFor, type DashStatus } from '../../model/status'
+import { statusFor, statusForYear, type DashStatus } from '../../model/status'
 import { L1_FILL, L1_INK, L1_MIN_FILL_PCT } from './l1Palette'
 import { AXIS, TOOLTIP, TARGET_LINE } from './EChart'
 
@@ -247,6 +247,19 @@ export const toneOf = (k: Kpi): DashStatus => {
   return row ? statusFor(row, 'q1') : 'noTarget'
 }
 
+/**
+ * The verdict for the period the mark is ACTUALLY showing.
+ *
+ * A dated position reports a closed year against that year's target, so it
+ * must be graded against that year — grading it by the quarter returned
+ * `notReported` and painted the bar grey, which is the grey the reader saw.
+ */
+const toneForYear = (k: Kpi, year: string): DashStatus => {
+  const row = obsForKpi(k)
+  if (!row) return 'noTarget'
+  return year === '2026Q1' ? statusFor(row, 'q1') : statusForYear(row, year)
+}
+
 export const yearLabel = (y: string) => (y === '2026Q1' ? 'Q1 2026' : y)
 
 /**
@@ -451,7 +464,7 @@ export function snapshotFor(group: Kpi[], hue: string, title?: string, scale: Ch
       const tk = last[0] === '2026Q1' ? '2026' : last[0]
       const t = k.targets[tk]?.value ?? null
       if (t === null || (t <= 0 && !(k.polarity === 'Red' && t === 0))) return null
-      return { k, value: last[1], target: t, year: last[0], status: DATED_STATUS, tone: toneOf(k) }
+      return { k, value: last[1], target: t, year: last[0], status: DATED_STATUS, tone: toneForYear(k, last[0]) }
     })
     .filter((p): p is Position => p !== null)
 
@@ -495,6 +508,13 @@ export function snapshotFor(group: Kpi[], hue: string, title?: string, scale: Ch
   }
 
   const { k, value: a, target: t, status: st, tone, year: pYear } = positions[0]
+
+  /* A single indicator with nothing reported draws NO mark. Its Q1 cell holds
+     a literal 0 in the Release-2 model, so without this it rendered a bar that
+     said "0 of 130" for a quarter nobody submitted — and then had to be
+     painted grey, because an absence has no verdict to colour it with. The
+     card's own note says what happened instead. */
+  if (tone === 'notReported') return { kind: 'none' }
 
   if (isRateLike(k)) {
     return {
