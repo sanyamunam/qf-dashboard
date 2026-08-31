@@ -17,7 +17,7 @@
  */
 import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Search as SearchIcon } from 'lucide-react'
+import { ArrowLeft, Info, Search as SearchIcon } from 'lucide-react'
 import { HeaderCluster, Spark, TopNav } from '../components/Shell'
 import { KpiCard } from '../components/KpiCard'
 import { CardMarkL1 } from '../components/charts/Marks2'
@@ -26,11 +26,9 @@ import { themeByName } from '../model/data'
 import {
   obsKpis,
 } from '../model/obs'
+import { searchWith, zeroAmbiguityNote, type Pick as FacetPick } from '../model/search'
 import {
   buildTree,
-  matches,
-  interpret,
-  chipsToFilters,
   statusFor,
   bySeverity,
   attainmentOf,
@@ -56,7 +54,6 @@ import {
   type Period,
   type DashStatus,
   type Chip,
-  type SearchFilters,
 } from '../model/dash'
 import type { Kpi } from '../model/types'
 
@@ -88,8 +85,10 @@ const parseHash = () => {
 export function Search({ onEvidence, onBack }: { onEvidence: (kpi: Kpi) => void; onBack: () => void }) {
   const [period, setPeriod] = useState<Period>('q1')
   const [input, setInput] = useState('')
+  /* manual picks only — the typed question is resolved fresh every render by
+     `searchWith`, so a chip can never describe a filter that did not run */
   const [chips, setChips] = useState<Chip[]>([])
-  const [residue, setResidue] = useState('')
+  const [typed, setTyped] = useState('')
 
   /* an arriving filter — a status card, a category label, the header search —
      lands as visible chips the reader can see and remove */
@@ -100,14 +99,8 @@ export function Search({ onEvidence, onBack }: { onEvidence: (kpi: Kpi) => void;
       if (h.cat) next.push({ kind: 'cat', value: h.cat, label: h.cat })
       if (h.status) next.push({ kind: 'status', value: h.status, label: STATUS_LABEL[h.status] })
       if (h.dash) next.push({ kind: 'dash', value: h.dash, label: `${h.dash} dashboard` })
-      if (h.q) {
-        const it = interpret(h.q)
-        next.push(...it.chips)
-        setResidue(it.residue)
-        setInput(h.q)
-      } else {
-        setResidue('')
-      }
+      setTyped(h.q)
+      if (h.q) setInput(h.q)
       setChips(next)
     }
     apply()
@@ -115,19 +108,17 @@ export function Search({ onEvidence, onBack }: { onEvidence: (kpi: Kpi) => void;
     return () => window.removeEventListener('hashchange', apply)
   }, [])
 
-  const submit = (rawQ: string) => {
-    const it = interpret(rawQ)
-    setChips((prev) => [...prev.filter((c) => !c.fromText), ...it.chips.map((c) => ({ ...c, fromText: true }))])
-    setResidue(it.residue)
-  }
+  const submit = (rawQ: string) => setTyped(rawQ)
 
-  const filters: SearchFilters = useMemo(() => chipsToFilters(chips, residue), [chips, residue])
-  /* Riskiest first is the DEFAULT state everywhere. A listing exists to
-     surface what needs attention, not to preserve the order of the sheet. */
-  const shown = useMemo(
-    () => obsKpis.filter((k) => matches(k, filters, period)).sort(bySeverity(period)),
-    [filters, period],
+  /* ONE engine for the question and the dropdowns. `applied` is what actually
+     ran after any relaxation, so the chips below can never advertise a filter
+     that was discarded. Rows come back risk-ordered. */
+  const picks: FacetPick[] = useMemo(
+    () => chips.map((c) => ({ facet: c.kind as FacetPick['facet'], value: c.value, label: c.label })),
+    [chips],
   )
+  const result = useMemo(() => searchWith(typed, picks, period), [typed, picks, period])
+  const shown = result.rows
 
   const toggle = (kind: Chip['kind'], value: string, label = value) =>
     setChips((prev) => {
@@ -135,8 +126,10 @@ export function Search({ onEvidence, onBack }: { onEvidence: (kpi: Kpi) => void;
       return has ? prev.filter((c) => !(c.kind === kind && c.value === value)) : [...prev, { kind, value, label }]
     })
 
-  const countWhere = (skip: keyof SearchFilters, test: (k: ObsKpi) => boolean) =>
-    obsKpis.filter((k) => matches(k, filters, period, skip) && test(k)).length
+  /* a count says "how many you would see if you picked this", so THIS facet's
+     own picks are lifted before counting */
+  const countWhere = (skipFacet: string, test: (k: ObsKpi) => boolean) =>
+    searchWith(typed, picks.filter((x) => x.facet !== skipFacet), period).rows.filter(test).length
 
   const tree = useMemo(() => buildTree(obsKpis), [])
   const entities = useMemo(() => [...new Set(obsKpis.map(entityOf))].sort(), [])
@@ -178,12 +171,12 @@ export function Search({ onEvidence, onBack }: { onEvidence: (kpi: Kpi) => void;
       {
         kind: 'entity',
         label: 'Entity',
-        items: entities.map((e) => ({ value: e, label: e, n: countWhere('entities', (k) => entityOf(k) === e) })),
+        items: entities.map((e) => ({ value: e, label: e, n: countWhere('entity', (k) => entityOf(k) === e) })),
       },
       {
         kind: 'theme',
         label: 'Thematic area',
-        items: themes.map((t) => ({ value: t, label: t, n: countWhere('themes', (k) => themeOf(k) === t) })),
+        items: themes.map((t) => ({ value: t, label: t, n: countWhere('theme', (k) => themeOf(k) === t) })),
       },
       {
         kind: 'cat',
@@ -191,12 +184,12 @@ export function Search({ onEvidence, onBack }: { onEvidence: (kpi: Kpi) => void;
         /* the two-level tree, flattened into one list but never levelled —
            a child is indented, and picking a parent still includes it */
         items: tree.flatMap((nd) => [
-          { value: nd.parent, label: nd.parent, n: countWhere('cats', (k) => groupOf(k) === nd.parent) },
+          { value: nd.parent, label: nd.parent, n: countWhere('cat', (k) => groupOf(k) === nd.parent) },
           ...nd.subs.map((s) => ({
             value: s.name,
             label: s.name,
             indent: true,
-            n: countWhere('cats', (k) => subOf(k) === s.name),
+            n: countWhere('cat', (k) => subOf(k) === s.name),
           })),
         ]),
       },
@@ -204,50 +197,30 @@ export function Search({ onEvidence, onBack }: { onEvidence: (kpi: Kpi) => void;
         kind: 'framework',
         label: 'Framework',
         labelFor: (v) => `${v} framework`,
-        items: frameworks.map((f) => ({ value: f, label: f, n: countWhere('frameworks', (k) => frameworkOf(k) === f) })),
+        items: frameworks.map((f) => ({ value: f, label: f, n: countWhere('framework', (k) => frameworkOf(k) === f) })),
       },
     ],
-    [chips, residue, period, tree, entities, themes, frameworks],
+    [chips, typed, period, tree, entities, themes, frameworks],
   )
 
-  const answer = useMemo(() => {
-    if (shown.length === 0) return null
-    const risk = shown.filter((k) => statusFor(k, period) === 'atRisk').length
-    const mon = shown.filter((k) => statusFor(k, period) === 'noTarget').length
-    const nr = shown.filter((k) => statusFor(k, period) === 'notReported').length
-    const parts = [risk > 0 ? `${risk} at risk` : null, mon > 0 ? `${mon} without a target` : null, nr > 0 ? `${nr} not reported` : null].filter(Boolean)
-    return `I found ${shown.length} indicator${shown.length === 1 ? '' : 's'}${
-      chips.length ? ` for ${chips.map((c) => c.label).join(', ')}` : ''
-    }${residue ? ` matching “${residue}”` : ''} — ${parts.length ? parts.join(', ') : 'none needing intervention'} for ${PERIOD_LABEL[period]}.`
-  }, [shown, chips, residue, period])
+  /* BOTaina's line is generated by the engine from what actually ran, so it
+     can never describe a filter the search discarded */
+  const answer = result.line
+  /* the sheet cannot tell "nothing achieved yet" from "not reported" — where a
+     result set turns on that, say so rather than letting the count stand alone */
+  const ambiguity = useMemo(() => zeroAmbiguityNote(shown, period), [shown, period])
 
   const relaxHint = useMemo(() => {
     if (shown.length > 0) return null
-    for (const key of ['status', 'cats', 'entities', 'themes', 'frameworks', 'stopped', 'dash', 'q'] as (keyof SearchFilters)[]) {
-      const val = filters[key]
-      const has = Array.isArray(val) ? val.length > 0 : Boolean(val)
-      if (has && obsKpis.some((k) => matches(k, filters, period, key))) {
-        const label =
-          key === 'q'
-            ? `the search term “${filters.q}”`
-            : key === 'cats'
-              ? 'the category filter'
-              : key === 'dash'
-                ? 'the dashboard filter'
-                : key === 'frameworks'
-                  ? 'the framework filter'
-                  : key === 'stopped'
-                    ? 'the stopped-reporting filter'
-                    : `the ${key === 'entities' ? 'entity' : key === 'themes' ? 'thematic area' : 'status'} filter`
-        return `Nothing matches everything at once — removing ${label} would show results.`
-      }
-    }
+    if (result.applied.length > 1)
+      return `Nothing matches all of ${result.applied.map((c) => c.label).join(' + ')} at once — try removing one.`
+    if (result.appliedText) return `No indicator mentions “${result.appliedText}”.`
     return 'Nothing matches — try clearing a chip above.'
-  }, [shown, filters, period])
+  }, [shown, result])
 
   const clearAll = () => {
     setChips([])
-    setResidue('')
+    setTyped('')
     setInput('')
     location.hash = 'search'
   }
@@ -321,24 +294,50 @@ export function Search({ onEvidence, onBack }: { onEvidence: (kpi: Kpi) => void;
             items={(['2025', 'q1'] as Period[]).map((p) => ({
               value: p,
               label: PERIOD_LABEL[p],
-              n: obsKpis.filter((k) => matches(k, filters, p)).length,
+              n: searchWith(typed, picks, p).rows.length,
             }))}
             selected={[period]}
             onToggle={(v) => setPeriod(v as Period)}
             onClear={() => setPeriod('q1')}
           />
         </div>
+        {/* the chips are `result.applied` — what RAN, never what was attempted.
+            A manual pick removes itself; a chip the question produced clears
+            the question, because that is what put it there. */}
         <FilterChips
-          chips={chips.map((c) => ({ key: `${c.kind}:${c.value}`, label: c.label }))}
+          chips={result.applied.map((c) => ({
+            key: c.manual ? `m:${c.entries[0].facet}:${c.entries[0].value}` : `q:${c.term}`,
+            label: c.label,
+          }))}
           onRemove={(key) => {
-            const [kind, ...rest] = key.split(':')
-            toggle(kind as Chip['kind'], rest.join(':'))
+            const [scope, ...rest] = key.split(':')
+            if (scope === 'm') {
+              const [kind, ...v] = rest
+              toggle(kind as Chip['kind'], v.join(':'))
+            } else {
+              setTyped('')
+              setInput('')
+            }
           }}
           onClearAll={clearAll}
-          residue={residue || undefined}
-          onClearResidue={() => setResidue('')}
+          residue={result.appliedText || undefined}
+          onClearResidue={() => {
+            setTyped('')
+            setInput('')
+          }}
         />
       </div>
+
+      {/* When the search had to give something up, it says so BEFORE the
+          results — the reader must be able to see how the question was read,
+          and correct it, rather than trusting a list that quietly answers a
+          slightly different question. */}
+      {result.note && (
+        <p className="mt-3 flex items-start gap-2 rounded-input bg-cream/70 px-3.5 py-2.5 text-[12.5px] leading-snug text-ink-soft">
+          <Info size={14} strokeWidth={1.9} className="mt-[1px] shrink-0 text-ink-mute" />
+          <span>{result.note}</span>
+        </p>
+      )}
 
       {/* BOTaina's one-line answer over the result set */}
       {answer && (
@@ -347,7 +346,11 @@ export function Search({ onEvidence, onBack }: { onEvidence: (kpi: Kpi) => void;
             <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-chip" style={{ background: 'var(--ai-wash-subtle)' }}>
               <Spark size={13} />
             </span>
-            <p className="voice text-[13.5px] leading-snug text-ink">{answer}</p>
+            <span className="min-w-0 flex-1">
+              <p className="voice text-[13.5px] leading-snug text-ink">{answer}</p>
+              {/* the one thing the sheet cannot answer, said rather than hidden */}
+              {ambiguity && <p className="mt-1.5 text-[11.5px] leading-snug text-ink-mute">{ambiguity}</p>}
+            </span>
           </div>
         </section>
       )}

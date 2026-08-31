@@ -97,42 +97,22 @@ export const dashTen: ObsKpi[] = execRows.filter((k) => k.highlighted)
 /** The old argument order, kept so every call site stays untouched. */
 export const statusCounts = (p: Period, within: ObsKpi[] = dashTen) => statusCountsOf(within, p)
 
-/* ─────────────────────── the category tree, parsed ───────────────────────
- * `Category` is `Parent - Child`, split on the space-hyphen-space delimiter
- * at parse time. A value with no delimiter is a standalone group. A row with
- * no category at all (Patents Granted – Other) routes to an explicit
- * `Uncategorised` group — never a group called `None`. */
-export const UNCAT = 'Uncategorised'
-
-export const groupOf = (k: ObsKpi) => (k.category.trim() ? k.group : UNCAT)
-export const subOf = (k: ObsKpi) => (k.category.trim() ? k.subgroup : UNCAT)
-
-export interface CatNode {
-  parent: string
-  total: number
-  /** empty = standalone: cards render directly under the parent */
-  subs: { name: string; total: number }[]
-}
-
-export function buildTree(rows: ObsKpi[]): CatNode[] {
-  const parents = new Map<string, Map<string, number>>()
-  for (const k of rows) {
-    const g = groupOf(k)
-    if (!parents.has(g)) parents.set(g, new Map())
-    const subs = parents.get(g)!
-    const s = subOf(k)
-    subs.set(s, (subs.get(s) ?? 0) + 1)
-  }
-  return [...parents].map(([parent, subs]) => {
-    const total = [...subs.values()].reduce((a, b) => a + b, 0)
-    const subList = [...subs].map(([name, n]) => ({ name, total: n }))
-    const standalone = subList.length === 1 && subList[0].name === parent
-    return { parent, total, subs: standalone ? [] : subList.sort((a, b) => b.total - a.total) }
-  })
-}
-
-/** Either level matches — selecting a parent includes all its children. */
-export const inCategory = (k: ObsKpi, label: string): boolean => groupOf(k) === label || subOf(k) === label
+/* The category tree and the facet accessors moved to facets.ts, so the search
+   lexicon can build itself from the same functions the filters read — the only
+   safe source for "every real value in the sheet" is the code that reads it.
+   Re-exported here because every surface already imports them from `dash`. */
+export {
+  UNCAT,
+  groupOf,
+  subOf,
+  buildTree,
+  inCategory,
+  entityOf,
+  themeOf,
+  dashOf,
+  frameworkOf,
+  type CatNode,
+} from './facets'
 
 /* ────────────── the card's Kpi, per period — no borrowed figures ────────────── */
 
@@ -512,116 +492,35 @@ export function summaryFor(p: Period, within: ObsKpi[] = dashTen): DashSummary {
   return { collapsed, prose, onTarget: performing, atRisk }
 }
 
-/* ───────────────────── search: filters, matching, NL ───────────────────── */
+/* ─────────────────────────────── search ───────────────────────────────
+ *
+ * The phrase-scanning parser that lived here is GONE, not patched.
+ *
+ * It asked "is this word one of the phrases I know?" and made everything it
+ * did not recognise a REQUIRED filter — so `under`, in "DIFI indicators under
+ * social progress", became a condition no row could satisfy and returned zero.
+ * The same shape produced a chip reading "related to well". Lengthening the
+ * stopword list only moves the next failure.
+ *
+ * The replacement asks the opposite question — "what in the sheet does this
+ * phrase name?" — and lives in three modules that can be tested without React:
+ *
+ *   lexicon.ts   the sheet's vocabulary, indexed
+ *   query.ts     phrase -> clauses (values within a clause OR, clauses AND)
+ *   search.ts    clauses -> rows, with a relax ladder that states itself
+ *
+ * See docs/superpowers/specs/2026-08-29-ai-search-rebuild-design.md for the
+ * approaches rejected, including why this is not an embedding search. */
+export { search, searchWith, zeroAmbiguityNote, type SearchResult, type Pick } from './search'
+export { resolveQuery, type Clause } from './query'
 
-export interface SearchFilters {
-  q: string
-  dash: string[]
-  status: DashStatus[]
-  cats: string[]
-  entities: string[]
-  themes: string[]
-  frameworks: string[]
-  /** "what has stopped reporting" — silent now, but with history on record */
-  stopped: boolean
-}
-
-export const entityOf = (k: ObsKpi) => k.proposedEntity ?? k.entity ?? 'Unassigned'
-export const themeOf = (k: ObsKpi) => k.theme ?? 'Unassigned'
-export const dashOf = (k: ObsKpi) => ((k.dashboard ?? '').startsWith('Exec') ? 'Executive' : 'Thematic')
-/** 12 Executive rows carry no framework — an explicit facet value, not a blank. */
-export const frameworkOf = (k: ObsKpi) => k.framework ?? 'Unassigned'
-
-export function matches(k: ObsKpi, f: SearchFilters, p: Period, skip?: keyof SearchFilters): boolean {
-  const term = f.q.trim().toLowerCase()
-  if (skip !== 'q' && term) {
-    const hay = `${k.name} ${entityOf(k)} ${k.category} ${themeOf(k)} ${k.definition ?? ''}`.toLowerCase()
-    if (!term.split(/\s+/).every((w) => hay.includes(w))) return false
-  }
-  if (skip !== 'dash' && f.dash.length && !f.dash.includes(dashOf(k))) return false
-  if (skip !== 'status' && f.status.length && !f.status.includes(statusFor(k, p))) return false
-  if (skip !== 'cats' && f.cats.length && !f.cats.some((c) => inCategory(k, c))) return false
-  if (skip !== 'entities' && f.entities.length && !f.entities.includes(entityOf(k))) return false
-  if (skip !== 'themes' && f.themes.length && !f.themes.includes(themeOf(k))) return false
-  if (skip !== 'frameworks' && f.frameworks.length && !f.frameworks.includes(frameworkOf(k))) return false
-  if (skip !== 'stopped' && f.stopped && !stoppedReporting(k, p)) return false
-  return true
-}
-
+/** Kept for the manual facet dropdowns and the arriving-filter chips. */
 export interface Chip {
-  kind: 'dash' | 'status' | 'cat' | 'entity' | 'theme' | 'framework' | 'stopped'
+  kind: 'dash' | 'status' | 'cat' | 'entity' | 'theme' | 'framework'
   value: string
   label: string
-  /** derived from typed text — replaced when a new query is submitted */
-  fromText?: boolean
 }
 
-const STATUS_PHRASES: [RegExp, DashStatus][] = [
-  [/\bat risk\b|\brisk\b|\bbehind\b|\bfailing\b|\boff target\b/, 'atRisk'],
-  [/\bperforming\b|\bdoing well\b|\bon target\b|\bmeets? target\b/, 'onTarget'],
-  [/\bnot reported\b|\bmissing (?:data|readings?)\b|\bno readings?\b/, 'notReported'],
-  [/\bno targets?\b|\bwithout (?:a )?targets?\b|\bmonitoring\b/, 'noTarget'],
-]
-
-/**
- * `which KPIs are at risk`, `what has no target`, `education indicators` all
- * resolve to structured chips; whatever remains is a text term. The chips are
- * shown, removable, so the reader sees how the question was understood.
- */
-export function interpret(rawQ: string): { chips: Chip[]; residue: string } {
-  let q = ` ${rawQ.toLowerCase()} `
-  const chips: Chip[] = []
-  const take = (re: RegExp) => {
-    const m = q.match(re)
-    if (m) q = q.replace(re, ' ')
-    return m
-  }
-
-  /* "stopped reporting" is not the same as "not reported" — it asks for the
-     rows that went QUIET, excluding the ones that never reported at all */
-  if (take(/\bstopp?ed reporting\b|\bwent (?:quiet|silent|dark)\b|\bno longer report(?:s|ing)?\b/))
-    chips.push({ kind: 'stopped', value: 'stopped', label: 'Stopped reporting' })
-  for (const [re, s] of STATUS_PHRASES) if (take(re)) chips.push({ kind: 'status', value: s, label: STATUS_LABEL[s] })
-  if (take(/\bexecutive\b/)) chips.push({ kind: 'dash', value: 'Executive', label: 'Executive dashboard' })
-  if (take(/\bthematic\b/)) chips.push({ kind: 'dash', value: 'Thematic', label: 'Thematic dashboard' })
-  if (take(/\bstrategic\b/)) chips.push({ kind: 'framework', value: 'Strategic', label: 'Strategic framework' })
-  if (take(/\bimpact\b/)) chips.push({ kind: 'framework', value: 'Impact', label: 'Impact framework' })
-  if (take(/\boperational\b/)) chips.push({ kind: 'framework', value: 'Operational', label: 'Operational framework' })
-
-  const tree = buildTree(obsKpis)
-  const catNames = [...new Set(tree.flatMap((t) => [t.parent, ...t.subs.map((s) => s.name)]))].filter((c) => c !== UNCAT)
-  const themes = [...new Set(obsKpis.map((k) => k.theme).filter((t): t is string => !!t && t !== 'All'))]
-  const entities = [...new Set(obsKpis.map((k) => k.proposedEntity).filter((e): e is string => !!e))]
-  const vocab: { kind: Chip['kind']; value: string }[] = [
-    ...catNames.map((v) => ({ kind: 'cat' as const, value: v })),
-    ...themes.map((v) => ({ kind: 'theme' as const, value: v })),
-    ...entities.map((v) => ({ kind: 'entity' as const, value: v })),
-  ].sort((a, b) => b.value.length - a.value.length)
-  for (const v of vocab) {
-    const re = new RegExp(`\\b${v.value.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`)
-    if (take(re)) chips.push({ kind: v.kind, value: v.value, label: v.value })
-  }
-
-  /* question marks and other punctuation are part of asking, not of any
-     indicator's name — left in, "at risk?" would search for a literal "?" */
-  q = q.replace(/[?!.,;:'"“”‘’]/g, ' ')
-  q = q.replace(/\b(which|what|anything|kpis?|indicators?|show|me|all|are|is|has|have|the|a|an|in|of|for|with)\b/g, ' ')
-  return { chips, residue: q.replace(/\s+/g, ' ').trim() }
-}
-
-export function chipsToFilters(chips: Chip[], residue: string): SearchFilters {
-  const f: SearchFilters = { q: residue, dash: [], status: [], cats: [], entities: [], themes: [], frameworks: [], stopped: false }
-  for (const c of chips) {
-    if (c.kind === 'dash') f.dash.push(c.value)
-    else if (c.kind === 'status') f.status.push(c.value as DashStatus)
-    else if (c.kind === 'cat') f.cats.push(c.value)
-    else if (c.kind === 'entity') f.entities.push(c.value)
-    else if (c.kind === 'theme') f.themes.push(c.value)
-    else if (c.kind === 'framework') f.frameworks.push(c.value)
-    else if (c.kind === 'stopped') f.stopped = true
-  }
-  return f
-}
-
+/* obs.ts primitives every surface reaches for through `dash` */
 export { obsAsKpi, unitOf, lift, isPercentRow }
 export type { ObsKpi }
