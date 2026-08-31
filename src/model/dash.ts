@@ -396,7 +396,13 @@ export function lineFor(k: ObsKpi, p: Period): string {
          or 2 it rounds to "about 0 of 1 would be expected by now", which is
          both silly and useless — a target that small says nothing about pace. */
       if (by !== null && Math.round(by) >= 1)
-        return `Three months in: about ${n(k, Math.round(by))} of ${n(k, t)} would be expected by now if delivery is even.`
+        /* "…of 101,350 would be expected by now if delivery is even" ran to 86
+           characters for a slot that holds about 55, so it was clipped on
+           every card. Half of it was redundant anyway: the target is printed
+           on the bar directly above, and "if delivery is even" is the
+           assumption the explanation already states. What is left is the one
+           number the reader cannot see — where they should be by now. */
+        return `Three months in — about ${n(k, Math.round(by))} expected by now.`
     }
 
     /* a target that moved is the one thing a value-against-target mark can

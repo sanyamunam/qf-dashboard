@@ -128,7 +128,7 @@ export function KpiCard({
    *  a numeric slot reads as a value; this reads as an absence. */
   absence?: Absence | null
   /**
-   * The share of expected pace this reading achieved.
+   * The share of the TARGET this reading achieved.
    *
    * Printed because a verdict the reader cannot check is a verdict they have to
    * take on faith — and "At risk" is the one status that will be argued with.
@@ -272,7 +272,25 @@ export function KpiCard({
           <span className="mt-0.5 shrink-0">
             <Spark size={10} />
           </span>
-          <span className={lg ? 'line-clamp-2' : 'line-clamp-1'}>{line ?? aiLineFor(group)}</span>
+          {/**
+           * TWO lines, not one, and never hover-to-reveal.
+           *
+           * A single clamp cut every caption mid-word — "…would be expected b…"
+           * — which is worse than saying nothing, because the reader can see
+           * that something was withheld. Hover was the obvious fix and is the
+           * wrong one here: it fails on touch, it competes with the card's own
+           * click target (the card opens the overlay), and it hides the line
+           * during precisely the activity it exists for, which is scanning a
+           * grid of cards without touching any of them.
+           *
+           * So the sentence was shortened to fit instead, and the clamp is
+           * raised to two lines as the safety net. `title` gives the full text
+           * on hover as well, at no layout cost — a supplement, never the
+           * mechanism.
+           */}
+          <span className="line-clamp-2" title={line ?? aiLineFor(group)}>
+            {line ?? aiLineFor(group)}
+          </span>
         </p>
       )}
     </button>
