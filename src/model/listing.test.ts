@@ -13,7 +13,7 @@ const st = (k: (typeof kpis)[number]) => {
 }
 
 describe('every mode keeps every indicator exactly once', () => {
-  for (const mode of ['attention', 'category', 'risk'] as ListingMode[])
+  for (const mode of ['attention', 'risk'] as ListingMode[])
     for (const name of NAMES)
       it(`${mode} · ${name}`, () => {
         const set = themeKpis(name)
@@ -62,7 +62,7 @@ describe('needs-attention band', () => {
 
 describe('ordering', () => {
   it('puts the worst category first in every category-grouped mode', () => {
-    for (const mode of ['attention', 'category'] as ListingMode[])
+    for (const mode of ['attention'] as ListingMode[])
       for (const name of NAMES) {
         const cats = sectionsFor(themeKpis(name), 'q1', mode).filter((s) => !s.isBand)
         if (cats.length < 2) continue
@@ -89,6 +89,18 @@ describe('ordering', () => {
   it('risk mode emits no empty group', () => {
     for (const name of NAMES)
       for (const s of sectionsFor(themeKpis(name), 'q1', 'risk')) expect(s.kpis.length).toBeGreaterThan(0)
+  })
+
+  it('closing the band leaves exactly the plain category listing', () => {
+    /* the third mode used to return this. It is now what you get by shutting
+       the band, so nothing was lost when the mode went. */
+    for (const name of NAMES) {
+      const set = themeKpis(name)
+      const withBand = sectionsFor(set, 'q1', 'attention')
+      const closed = withBand.filter((s) => !s.isBand)
+      expect(closed.every((s) => s.key.startsWith('cat:'))).toBe(true)
+      expect(closed.flatMap((s) => s.kpis)).toHaveLength(set.length)
+    }
   })
 
   it('is stable — the same input yields the same order', () => {

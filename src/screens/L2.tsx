@@ -107,7 +107,11 @@ function readFilters(themeId: string): Filters {
     cat: p.get('cat')?.split('|').filter(Boolean) ?? [],
     av: p.get('av')?.split('|').filter(Boolean) ?? [],
     sort: (p.get('sort') as Filters['sort']) ?? 'risk',
-    mode: (p.get('mode') as ListingMode) ?? 'attention',
+    /* the mode is a PREFERENCE, not a filter: it survives the session and
+       every theme, so the reader sets it once by using it rather than by
+       finding a settings screen. A URL still wins, so a shared link shows
+       what the sender saw. */
+    mode: (p.get('mode') as ListingMode) ?? (localStorage.getItem('almishkat.listingMode') as ListingMode) ?? 'attention',
     yr: (YEARS.includes(p.get('yr') as YearKey) ? (p.get('yr') as YearKey) : '2026Q1'),
   }
 }
@@ -120,6 +124,7 @@ function writeFilters(themeId: string, f: Filters) {
   if (f.av.length) p.set('av', f.av.join('|'))
   if (f.sort !== 'risk') p.set('sort', f.sort)
   if (f.mode !== 'attention') p.set('mode', f.mode)
+  try { localStorage.setItem('almishkat.listingMode', f.mode) } catch { /* private window */ }
   if (f.yr !== '2026Q1') p.set('yr', f.yr)
   const base = location.hash.split('?')[0]
   const qs = p.toString()
@@ -501,7 +506,7 @@ export function L2({
             hue={theme.fill}
             active={filters.mode !== 'attention'}
           >
-            {(['attention', 'category', 'risk'] as ListingMode[]).map((m) => (
+            {(['attention', 'risk'] as ListingMode[]).map((m) => (
               <Opt
                 key={m}
                 on={filters.mode === m}
@@ -1274,6 +1279,15 @@ function BandBody({
    * alphabetical means it; they reorder WITHIN each section rather than
    * replacing the organisation.
    */
+  /* the band's open state is a preference too, and it is remembered the same
+     way the mode is — the reader closes it once, not once per theme */
+  const [bandOpen, setBandOpen] = useState(() => {
+    try { return localStorage.getItem('almishkat.bandOpen') !== '0' } catch { return true }
+  })
+  useEffect(() => {
+    try { localStorage.setItem('almishkat.bandOpen', bandOpen ? '1' : '0') } catch { /* private window */ }
+  }, [bandOpen])
+
   const sections = useMemo(() => {
     const secs = sectionsFor(kpis, 'q1', mode)
     if (sort === 'risk') return secs
@@ -1328,13 +1342,27 @@ function BandBody({
                 />
                 {sec.heading}
                 <span className="text-[12px] font-normal text-ink-mute">{sec.kpis.length}</span>
+                {/* Closing the band leaves the plain category listing — which is
+                    what the third mode used to be. A block you can shut is not
+                    a view you should have to choose. The COUNT stays either
+                    way, so the page never stops saying how much is behind. */}
+                {sec.isBand && (
+                  <button
+                    onClick={() => setBandOpen((v) => !v)}
+                    aria-expanded={bandOpen}
+                    className="flex items-center gap-1 text-[11.5px] font-medium text-ink-soft underline underline-offset-2"
+                  >
+                    {bandOpen ? 'Hide' : 'Show'}
+                    <ChevronDown size={13} strokeWidth={2} className={bandOpen ? '' : '-rotate-90'} />
+                  </button>
+                )}
                 {sec.isBand && (
                   <span className="w-full text-[11.5px] font-normal leading-snug text-ink-mute">
                     {bandNote(sec.kpis, 'q1')}
                   </span>
                 )}
               </h3>
-              {year !== '2026Q1' ? (
+              {sec.isBand && !bandOpen ? null : year !== '2026Q1' ? (
                 /* a historical year keeps its uniform value tiles (R6 fix 5) */
                 <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
                   {cards.map((c) => (

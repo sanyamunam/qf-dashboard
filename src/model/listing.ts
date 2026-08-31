@@ -15,25 +15,28 @@
  *
  * So the organisation itself becomes the reader's choice:
  *
- *   attention  the ones that are behind, lifted into a band, then the taxonomy
- *   category   the taxonomy alone, worst category first
+ *   attention  the taxonomy, worst category first, with the ones that are
+ *              behind lifted into a band above it
  *   risk       no taxonomy at all — grouped by verdict
+ *
+ * There was briefly a third, "by category", which returned the taxonomy WITHOUT
+ * the band. It was not a view: it was this one with a block deleted, and nobody
+ * opens a dashboard thinking "show me the categories but hide what is wrong".
+ * That is a thing you close, so the band is collapsible and the mode is gone.
  */
 import type { Kpi } from './types'
 import { obsForKpi } from './bridge'
 import { severityOf, statusFor, STATUS_ORDER, STATUS_LABEL, type DashStatus, type Period } from './status'
 
-export type ListingMode = 'attention' | 'category' | 'risk'
+export type ListingMode = 'attention' | 'risk'
 
 export const LISTING_MODE_LABEL: Record<ListingMode, string> = {
-  attention: 'Needs attention',
-  category: 'By category',
+  attention: 'By category',
   risk: 'By risk',
 }
 
 export const LISTING_MODE_HINT: Record<ListingMode, string> = {
-  attention: 'What is behind, lifted to the top — then the full listing by category',
-  category: 'The category listing, worst category first',
+  attention: 'The category listing, worst category first, with what is behind lifted to the top',
   risk: 'Every indicator grouped by its verdict, worst first',
 }
 
@@ -103,8 +106,6 @@ export function sectionsFor(kpis: Kpi[], p: Period, mode: ListingMode): Section[
     })).filter((sec) => sec.kpis.length > 0)
 
   const cats = categorySections(kpis, p)
-  if (mode === 'category') return cats
-
   const behind = kpis.filter((k) => isBehind(k, p)).sort(byRisk(p))
   /* no band when nothing is behind — its ABSENCE is the finding, and an empty
      "needs attention" box would be a box that says nothing */
