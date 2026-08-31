@@ -92,10 +92,44 @@ export function BulletMark({ m }: { m: Extract<L1Mark, { kind: 'bullet' }> }) {
   const fillW = Math.max(6, (m.value / (ceiling || 1)) * W)
   const tickX = Math.min(W, (m.target / (ceiling || 1)) * W)
   const inside = m.value > m.target
+  /**
+   * WHERE AN EVEN DELIVERY WOULD STAND BY NOW — the elapsed-time caveat, drawn.
+   *
+   * A sentence had to repeat itself on every at-risk card to carry this. A tick
+   * carries it once, in the place the reader is already looking, and shows the
+   * SIZE of the gap rather than stating it: Beneficiaries puts a sliver of fill
+   * a quarter of the way short of this mark, National Partnerships nearly
+   * touches it, and both are At risk.
+   *
+   * Deliberately SUBORDINATE to the target tick — dashed, shorter, and the
+   * muted grey the axis labels use. The commitment is the reference that
+   * matters; this is a second one, and two marks of equal weight on one bar
+   * would leave the reader deciding which is which. `paceMarkerFor` returns
+   * null wherever drawing it would say nothing.
+   */
+  const paceX = m.pace === null ? null : Math.min(W, (m.pace / (ceiling || 1)) * W)
+  /* only label it where the label has room to sit clear of "target N" */
+  const paceLabel = paceX !== null && tickX - paceX > 46
   return (
     <svg viewBox={`0 0 ${W} 42`} height="42" width="100%" style={{ overflow: 'visible' }} aria-hidden>
       <rect x="0" y="12" width={W} height="14" rx="7" fill={TRACK} />
       <rect x="0" y="12" width={fillW} height="14" rx="7" fill={L1_FILL[m.tone]} />
+      {paceX !== null && (
+        <line
+          x1={paceX}
+          y1="9"
+          x2={paceX}
+          y2="29"
+          stroke={GREY}
+          strokeWidth="1.5"
+          strokeDasharray="2 2"
+        />
+      )}
+      {paceLabel && (
+        <text x={paceX as number} y="40" textAnchor="middle" fontSize="9" fill={GREY}>
+          by now
+        </text>
+      )}
       {/* the target marker — when the value overshoots it sits INSIDE the fill,
           which is the thing an arc cannot do */}
       <line x1={tickX} y1="6" x2={tickX} y2="32" stroke={inside ? '#0e4a2a' : BRAND} strokeWidth="2.5" />

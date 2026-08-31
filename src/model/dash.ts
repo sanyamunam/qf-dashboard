@@ -29,6 +29,7 @@ import {
   actualFor,
   attainmentOf,
   expectedBy,
+  paceMarkerFor,
   bySeverity,
   statusCountsOf,
   statusFor,
@@ -71,6 +72,7 @@ export {
   targetFor,
   expectedBy,
   attainmentOf,
+  paceMarkerFor,
   statusFor,
   statusCountsOf,
   severityOf,
@@ -390,18 +392,21 @@ export function lineFor(k: ObsKpi, p: Period): string {
      * that is actually behind. A rate is a level that exists at an instant, and
      * an indicator already past its target needs no excuse made for it.
      */
-    if (p === 'q1' && accrualOf(k) === 'cumulative' && a < t) {
+    /**
+     * The elapsed-time caveat is DRAWN now, not written: `paceMarkerFor` puts a
+     * dashed "by now" tick on the bullet bar, which shows the SIZE of the gap
+     * rather than stating it, and does not repeat itself down nine cards.
+     *
+     * The sentence survives only where the tick cannot be drawn but the caveat
+     * still applies — a percentage takes an arc, which has nowhere to put the
+     * mark. Both branches ask the SAME `paceMarkerFor`, so a card can never
+     * end up with neither.
+     */
+    if (p === 'q1' && accrualOf(k) === 'cumulative' && a < t && paceMarkerFor(k, p) === null) {
       const by = expectedBy(k, p)
-      /* only where the expectation is a whole unit or more. On a target of 1
-         or 2 it rounds to "about 0 of 1 would be expected by now", which is
-         both silly and useless — a target that small says nothing about pace. */
+      /* and only where a quarter of the target is a whole unit or more — on a
+         target of 1 it rounds to "about 0 expected by now", which is useless */
       if (by !== null && Math.round(by) >= 1)
-        /* "…of 101,350 would be expected by now if delivery is even" ran to 86
-           characters for a slot that holds about 55, so it was clipped on
-           every card. Half of it was redundant anyway: the target is printed
-           on the bar directly above, and "if delivery is even" is the
-           assumption the explanation already states. What is left is the one
-           number the reader cannot see — where they should be by now. */
         return `Three months in — about ${n(k, Math.round(by))} expected by now.`
     }
 
@@ -409,7 +414,10 @@ export function lineFor(k: ObsKpi, p: Period): string {
        never show — and "on target" means something different once you know.
        Kept SHORT: the long form ran past the card's two-line clamp and was
        cut mid-sentence at "…before it was reset to". */
-    const moved = anyTarget.filter(([, v]) => v !== t)
+    /* MATERIALLY different, not merely different. 101,400 → 101,350 is a
+       rounding adjustment, and calling it a reset spends the caption on
+       nothing while implying the commitment was renegotiated. */
+    const moved = anyTarget.filter(([, v]) => Math.abs(v - t) / Math.max(Math.abs(t), 1) >= 0.05)
     if (moved.length) {
       const lastMoved = moved[moved.length - 1]
       return `Commitment reset from ${n(k, lastMoved[1])} to ${n(k, t)}; read against the current one.`

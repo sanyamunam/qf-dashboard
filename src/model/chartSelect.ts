@@ -10,7 +10,7 @@
  * 4, bare figure 9, idle 9, no-history 124, all exact.
  */
 import { obsKpis, annualZeroIsAbsent, type ObsKpi } from './obs'
-import { statusFor, type DashStatus } from './status'
+import { statusFor, paceMarkerFor, type DashStatus } from './status'
 
 /* ─────────────────────────── what kind of number ─────────────────────────── */
 
@@ -85,7 +85,10 @@ export type L1Mark =
   /** D · a reading with nothing to score it against */
   | { kind: 'bareFigure'; value: number; unit: string }
   /** B1 · count vs target — fill, track, target marker; overshoot sits inside */
-  | { kind: 'bullet'; value: number; target: number; unit: string; met: boolean; tone: DashStatus }
+  /** B1 · count vs target. `pace` is where an evenly-delivered indicator would
+   *  stand by now — drawn as a second, subordinate reference so the reader can
+   *  SEE the gap rather than read a sentence about it. Null where meaningless. */
+  | { kind: 'bullet'; value: number; target: number; unit: string; met: boolean; tone: DashStatus; pace: number | null }
   /** B2 · percentage vs target — 0–100 arc, target tick ON the arc */
   | { kind: 'gauge'; value: number; target: number; unit: string; met: boolean; tone: DashStatus }
   /** C · variance — zero at the top, deviation either side */
@@ -143,7 +146,7 @@ export function selectL1(k: ObsKpi, p: Period): L1Mark {
   const tone = statusFor(k, p)
   return isPercent(k)
     ? { kind: 'gauge', value: a, target: t, unit, met, tone }
-    : { kind: 'bullet', value: a, target: t, unit, met, tone }
+    : { kind: 'bullet', value: a, target: t, unit, met, tone, pace: paceMarkerFor(k, p) }
 }
 
 /* ──────────────────────────────── L2 — trend ────────────────────────────── */

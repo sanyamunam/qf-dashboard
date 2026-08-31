@@ -158,6 +158,33 @@ export function attainmentOf(k: ObsKpi, p: Period): number | null {
   return a / t
 }
 
+/**
+ * Where an evenly-delivered indicator would stand BY NOW — as a mark on the
+ * bar, or null where drawing one would say nothing.
+ *
+ * This is the elapsed-time caveat, drawn instead of written. A sentence had to
+ * repeat itself on every at-risk card to carry it; a tick carries it once, in
+ * the one place the reader is already looking, and lets them see the size of
+ * the gap rather than read it.
+ *
+ * ONE definition, because `selectL1` draws the tick and `lineFor` suppresses
+ * the sentence when it is drawn. Two conditions that could drift apart would
+ * eventually leave a card with neither.
+ *
+ * Null where it would be noise: a closed year (elapsed is the whole year, so
+ * the mark lands on the target), a point-in-time indicator (a level, not an
+ * accrual — its target applies in full at any instant), or a target so small
+ * that a quarter of it rounds below one whole unit.
+ */
+export function paceMarkerFor(k: ObsKpi, p: Period): number | null {
+  if (p !== 'q1' || accrualOf(k) !== 'cumulative') return null
+  const t = targetFor(k, p)
+  if (t === null || t <= 0) return null
+  const by = expectedBy(k, p)
+  if (by === null || Math.round(by) < 1 || by >= t) return null
+  return by
+}
+
 export function statusFor(k: ObsKpi, p: Period): DashStatus {
   if (actualFor(k, p) === null) return 'notReported'
   const att = attainmentOf(k, p)
