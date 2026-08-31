@@ -86,23 +86,45 @@ export const targOf = (k: ObsKpi, y: string): number | null => lift(k, k.targets
 export const A_YEARS = ['2022', '2023', '2024', '2025']
 
 /**
- * An ANNUAL reporter's Q1 cell holds a 0 that is an absence, not a reading.
+ * A rate, percentage, score or NPS — a level that exists at an INSTANT rather
+ * than something that accrues over a period.
  *
- * The tell is in the data: a zero this quarter on a row that HAS 2022–25
- * history is the year-end reporting pattern — % Employee Turnover reads
- * 8.45 · 8.3 · 9.0 · 7.0 and then 0, which is plainly "not yet", not a
- * collapse to zero. 27 of the 151 Thematic rows share it. The parser already
- * strips exactly these zeros out of `movementSeries` for the same reason; this
- * applies the same judgement to the current reading, so the status, the L1
- * mark and the trend cannot disagree about whether a period was reported.
- *
- * A zero with NO history is left alone — that is a real "nothing delivered
- * yet" from an indicator in its first year, and hiding it would be worse.
+ * It lives here because two separate rules depend on it: what a target means
+ * partway through a year, and — below — whether a zero is a reading at all.
  */
-export const annualZeroIsAbsent = (k: ObsKpi): boolean =>
-  k.q1 === 0 && A_YEARS.some((y) => typeof k.actuals[y] === 'number')
+export const isPointInTime = (k: ObsKpi): boolean =>
+  /percentage|%|ratio|rate|score|index|average|per employee|satisfaction|time to hire|turnover|utili[sz]ation|nps/i.test(
+    `${k.definition ?? ''} ${k.name}`,
+  )
 
-export const q1Of = (k: ObsKpi): number | null => (annualZeroIsAbsent(k) ? null : lift(k, k.q1))
+/**
+ * A Q1 cell holding 0 that is an ABSENCE rather than a reading.
+ *
+ * Two tells, and the second was missing:
+ *
+ * 1. A zero on a row that HAS 2022–25 history is the year-end reporting
+ *    pattern — % Employee Turnover reads 8.45 · 8.3 · 9.0 · 7.0 and then 0,
+ *    which is plainly "not yet", not a collapse to zero. 28 rows.
+ *
+ * 2. A zero on a POINT-IN-TIME indicator is not a measurement at all. "0%
+ *    satisfaction with Ya Hala", "Summit NPS 0", "0% succession planning
+ *    rate" are empty cells, not findings. 52 rows carry a Q1 zero with no
+ *    history whatever, and 47 of those carry a target — so under the old rule
+ *    every one of them would have been graded as failing. 15 are QF Human
+ *    Capital rows, which is exactly the set that must never read that way.
+ *
+ * A cumulative COUNT of zero is still left alone: 0 policy adoptions in Q1 is
+ * a real fact about delivery, and hiding that would be the worse error. The
+ * distinction is the whole point — an empty cell and a delivered nothing are
+ * different claims.
+ */
+export const q1IsAbsent = (k: ObsKpi): boolean =>
+  k.q1 === 0 && (A_YEARS.some((y) => typeof k.actuals[y] === 'number') || isPointInTime(k))
+
+/** @deprecated the rule outgrew the name — prefer `q1IsAbsent`. */
+export const annualZeroIsAbsent = q1IsAbsent
+
+export const q1Of = (k: ObsKpi): number | null => (q1IsAbsent(k) ? null : lift(k, k.q1))
 
 /** `Red` = lower is better (Budget Variance). The column is authoritative for
  *  the dashboard ten; three rows elsewhere are inverted and flagged. */
