@@ -38,6 +38,7 @@ const skinFor = (hues: TrendHues, dark?: boolean): TrendSkin =>
     : { hues, target: TREND_TARGET, rule: TREND_RULE, axis: TREND_AXIS_INK }
 import { selectL1, selectL2, type L1Mark, type L2Mark, type TrendPoint, type Period } from '../../model/chartSelect'
 import type { DashStatus } from '../../model/status'
+import { L1_FILL, L1_GAP, L1_INK } from './l1Palette'
 import type { ObsKpi } from '../../model/obs'
 
 /* the reference's own chart palette */
@@ -55,58 +56,11 @@ const ZONE_OVER = '#f2cfc9'
 const ZONE_WITHIN = '#b9dcc2'
 const BAR_MUTED = '#cfe0da'
 
-/* ─────────────────────────── L1 is RAG, L2 is thematic ───────────────────────
- *
- * One rule, two layers, and the split is what makes both legible together.
- *
- * An L1 mark answers "how is this doing against target" — it IS a verdict, so
- * colouring it by the verdict is honest rather than decorative. An L2 trend
- * answers "which way is this moving", which is not a verdict at all, so it
- * carries the theme's identity instead. In an overlay a red bullet bar sits
- * above a terracotta trend line, and the difference in colour is precisely
- * what tells the reader they are being shown two different kinds of claim.
- *
- * This supersedes the earlier rule that status colour appeared only as a dot.
- * That rule existed to stop the two thematic greens colliding with the status
- * green; giving each layer one job solves the same problem without spending
- * the strongest signal on the smallest element.
- *
- * The tone comes from `selectL1`, which reads the platform's one `statusFor` —
- * so filtering a listing to At risk paints every card on it red by
- * construction rather than by two functions happening to agree.
- */
-const L1_FILL: Record<DashStatus, string> = {
-  onTarget: GREEN,
-  /* NOT the brighter #f9a825 the marks used before. As a large fill on a white
-     card that amber measured 1.97:1, under the 3:1 floor for a graphical
-     element; this one clears it at 3.25 and is the same amber the status chip
-     already uses, so the dot and the bar on one card agree. */
-  belowTarget: '#b8860b',
-  atRisk: RED,
-  /* nothing to judge against, so no verdict colour is available to give */
-  noTarget: GREY,
-  notReported: GREY,
-}
-
-/** The shortfall band on a gauge — the same verdict, one step back, so the gap
- *  reads as part of the same claim rather than as a second one. */
-const L1_GAP: Record<DashStatus, string> = {
-  onTarget: '#bfe0c4',
-  belowTarget: AMBER_GAP,
-  atRisk: '#f0c6c0',
-  noTarget: '#dcdedf',
-  notReported: '#dcdedf',
-}
-
-/** Ink for a figure printed inside a mark — darkened so it holds contrast on a
- *  white card at the size these actually render. */
-const L1_INK: Record<DashStatus, string> = {
-  onTarget: '#2e7d32',
-  belowTarget: AMBER_INK,
-  atRisk: '#a5301f',
-  noTarget: '#6f7376',
-  notReported: '#6f7376',
-}
+/* The L1 palette lives in l1Palette.ts — ONE table, read by both mark systems.
+   It had to move: the OBS marks below took their colour from `statusFor`, while
+   the Release-2 snapshot marks on the thematic pages carried a separate
+   five-value status of which only three had colours, so the rest fell through
+   to the theme hue. Two implementations, one of them wrong. */
 
 const val = (n: number, unit: string) => `${fmt(n)}${unit}`
 const compact = (n: number) => {

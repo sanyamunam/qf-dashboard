@@ -9,7 +9,9 @@
  */
 import type { Kpi } from '../../model/types'
 import { EChart } from './EChart'
-import { snapshotFor, STATUS_COLOR, type ChartScale, type SnapshotRow } from './builders'
+import { snapshotFor, type ChartScale, type SnapshotRow } from './builders'
+import { L1_FILL, L1_INK, L1_MIN_FILL_PCT } from './l1Palette'
+import type { DashStatus } from '../../model/status'
 
 const nf = (n: number) => new Intl.NumberFormat('en', { maximumFractionDigits: 1 }).format(n)
 
@@ -19,10 +21,18 @@ const S = {
   overlay: { track: 18, marker: 26, num: 22, of: 13, check: 15, label: 13.5, gap: 18 },
 } as const
 
-const fillOf = (s: SnapshotRow['status'], hue: string) =>
-  s === 'met' || s === 'behind' || s === 'breach' ? STATUS_COLOR[s].fill : hue
-const textOf = (s: SnapshotRow['status']) =>
-  s === 'met' || s === 'behind' || s === 'breach' ? STATUS_COLOR[s].text : '#122822'
+/**
+ * A bar's colour is its indicator's VERDICT — never the theme's identity.
+ *
+ * These took `hue` as a fallback for the two legacy `ChartStatus` values that
+ * had no colour of their own, which is how a Social Progress indicator behind
+ * target came to be drawn in Social Progress indigo, and a Sustainability one
+ * in a green all but identical to the on-target green. `hue` is gone from
+ * both; the theme is already carried by the card's icon, its accent and the
+ * page it sits on.
+ */
+const fillOf = (tone: DashStatus) => L1_FILL[tone]
+const textOf = (tone: DashStatus) => L1_INK[tone]
 
 /**
  * The status ledger (R10 fix 5 — the client's chosen grouped-chart treatment).
@@ -32,19 +42,20 @@ const textOf = (s: SnapshotRow['status']) =>
 export function LedgerRows({
   rows,
   max,
-  hue,
   scale = 'card',
 }: {
   rows: SnapshotRow[]
   max: number
-  hue: string
   scale?: ChartScale
 }) {
   const z = S[scale]
   return (
     <div className="flex flex-col" style={{ gap: z.gap }}>
       {rows.map((r) => {
-        const w = Math.max(2, (r.value / max) * 100)
+        /* a reading of zero still gets a BAR, not a coloured speck —
+           "International 0 of 2" rendered as a 2px dot that read as decoration
+           rather than as a measurement */
+        const w = Math.max(L1_MIN_FILL_PCT, (r.value / max) * 100)
         const tx = (r.target / max) * 100
         return (
           <div key={r.label}>
@@ -54,7 +65,7 @@ export function LedgerRows({
               </span>
               <span
                 className="num shrink-0 font-bold leading-none"
-                style={{ color: textOf(r.status), fontSize: z.num }}
+                style={{ color: textOf(r.tone), fontSize: z.num }}
               >
                 {nf(r.value)}
                 {r.status === 'met' && (
@@ -81,7 +92,7 @@ export function LedgerRows({
                 className="ledger-fill h-full rounded-full"
                 style={{
                   width: `${w}%`,
-                  background: fillOf(r.status, hue),
+                  background: fillOf(r.tone),
                   boxShadow: r.status === 'met' ? '0 0 7px rgba(120,190,32,0.45)' : undefined,
                 }}
               />
@@ -133,7 +144,7 @@ export function SnapshotMark({
     return (
       <>
         {dated}
-        <LedgerRows rows={snap.rows} max={snap.max} hue={hue} scale={scale} />
+        <LedgerRows rows={snap.rows} max={snap.max} scale={scale} />
       </>
     )
   if (snap.kind !== 'none')

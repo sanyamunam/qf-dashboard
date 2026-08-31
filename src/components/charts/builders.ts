@@ -6,6 +6,9 @@
 import type { EChartsOption } from 'echarts'
 import { TREND_ACTUAL, TREND_TARGET } from './trendPalette'
 import type { Kpi } from '../../model/types'
+import { obsForKpi } from '../../model/bridge'
+import { statusFor, type DashStatus } from '../../model/status'
+import { L1_FILL, L1_INK, L1_MIN_FILL_PCT } from './l1Palette'
 import { AXIS, TOOLTIP, TARGET_LINE } from './EChart'
 
 export const SERIES_PALETTE = ['#034638', '#556bb4', '#0cc1e9', '#e5a823', '#5b2e8a', '#b9dc7a', '#c8c9c7']
@@ -219,8 +222,30 @@ export function statusOf(k: Kpi): ChartStatus {
   return 'neutral'
 }
 
-const fillFor = (s: ChartStatus, hue: string) => (s === 'met' || s === 'behind' || s === 'breach' ? STATUS_COLOR[s].fill : hue)
-const textFor = (s: ChartStatus) => (s === 'met' || s === 'behind' || s === 'breach' ? STATUS_COLOR[s].text : '#122822')
+/**
+ * An L1 fill is the KPI's STATUS, full stop.
+ *
+ * These used to fall back to `hue` — the theme colour — for the two
+ * `ChartStatus` values that had no colour of their own (`onpace`, `neutral`).
+ * That is how a Social Progress indicator behind target came to be drawn in
+ * Social Progress indigo, and a Sustainability one in a green almost identical
+ * to the on-target green. The `hue` parameter is gone from both; a mark that
+ * cannot say how an indicator is doing must not borrow a colour that says
+ * something else instead.
+ */
+const fillFor = (tone: DashStatus) => L1_FILL[tone]
+const textFor = (tone: DashStatus) => L1_INK[tone]
+
+/**
+ * The Release-2 card model and the OBS workbook are the same indicators
+ * recorded twice, so a card resolves to its row before asking the platform's
+ * one `statusFor`. All 151 thematic rows resolve; an unlocatable one takes the
+ * no-verdict grey, never a theme colour.
+ */
+export const toneOf = (k: Kpi): DashStatus => {
+  const row = obsForKpi(k)
+  return row ? statusFor(row, 'q1') : 'noTarget'
+}
 
 export const yearLabel = (y: string) => (y === '2026Q1' ? 'Q1 2026' : y)
 
@@ -243,6 +268,8 @@ interface Position {
   target: number
   year: string
   status: ChartStatus
+  /** the platform's verdict — what actually colours the mark */
+  tone: DashStatus
 }
 
 /**
@@ -280,6 +307,9 @@ export interface SnapshotRow {
   value: number
   target: number
   status: ChartStatus
+  /** the platform's verdict — what actually colours the bar. `status` above is
+   *  the legacy five-value shape, kept only for the ✓ and the glow. */
+  tone: DashStatus
   /** set ONLY when the figure is not this quarter's — rendered inline beside
    *  the number, so a prior year's reading can never pass for a current one */
   year?: string
@@ -309,7 +339,8 @@ export type ChartScale = 'card' | 'overlay'
  */
 function gaugeFor(
   row: SnapshotRow,
-  hue: string,
+  /* no `hue` parameter, deliberately: an arc is an L1 mark and takes its
+     colour from `row.tone`. A theme colour has no way back in from here. */
   center: [string, string],
   radius: string,
   sz: { ring: number; v: number; c: number; s: number; offset: string },
@@ -318,7 +349,7 @@ function gaugeFor(
 ) {
   const over = row.value > row.target
   const max = over ? row.value : row.target
-  const fill = fillFor(row.status, hue)
+  const fill = fillFor(row.tone)
   const met = row.status === 'met'
   const axisColor: [number, string][] = over
     ? [
@@ -354,7 +385,7 @@ function gaugeFor(
       offsetCenter: [0, sz.offset],
       formatter: `{v|${nf(row.value)}}${met ? '{c| ✓}' : ''}\n{s|of ${nf(row.target)}${sub ? ` · ${sub}` : ''}}`,
       rich: {
-        v: { fontSize: sz.v, fontWeight: 700, fontFamily: 'Space Grotesk', color: textFor(row.status) },
+        v: { fontSize: sz.v, fontWeight: 700, fontFamily: 'Space Grotesk', color: textFor(row.tone) },
         c: { fontSize: sz.c, fontWeight: 700, fontFamily: 'Space Grotesk', color: STATUS_COLOR.met.fill },
         s: { fontSize: sz.s, fontFamily: 'Space Grotesk', color: '#7e938d', padding: [2, 0, 0, 0] },
       },
@@ -398,6 +429,7 @@ export function snapshotFor(group: Kpi[], hue: string, title?: string, scale: Ch
       target: k.targets['2026'].value as number,
       year: '2026Q1',
       status: statusOf(k),
+      tone: toneOf(k),
     }))
 
   /**
@@ -419,7 +451,7 @@ export function snapshotFor(group: Kpi[], hue: string, title?: string, scale: Ch
       const tk = last[0] === '2026Q1' ? '2026' : last[0]
       const t = k.targets[tk]?.value ?? null
       if (t === null || (t <= 0 && !(k.polarity === 'Red' && t === 0))) return null
-      return { k, value: last[1], target: t, year: last[0], status: DATED_STATUS }
+      return { k, value: last[1], target: t, year: last[0], status: DATED_STATUS, tone: toneOf(k) }
     })
     .filter((p): p is Position => p !== null)
 
@@ -451,6 +483,7 @@ export function snapshotFor(group: Kpi[], hue: string, title?: string, scale: Ch
       value: p.value,
       target: p.target,
       status: p.status,
+      tone: p.tone,
       year: p.year === '2026Q1' ? undefined : yearLabel(p.year),
     }))
     return {
@@ -461,7 +494,7 @@ export function snapshotFor(group: Kpi[], hue: string, title?: string, scale: Ch
     }
   }
 
-  const { k, value: a, target: t, status: st, year: pYear } = positions[0]
+  const { k, value: a, target: t, status: st, tone, year: pYear } = positions[0]
 
   if (isRateLike(k)) {
     return {
@@ -471,8 +504,7 @@ export function snapshotFor(group: Kpi[], hue: string, title?: string, scale: Ch
       option: {
         series: [
           gaugeFor(
-            { label: '', value: a, target: t, status: st },
-            hue,
+            { label: '', value: a, target: t, status: st, tone },
             ['50%', '76%'],
             big ? '126%' : '120%',
             big
@@ -501,11 +533,17 @@ export function snapshotFor(group: Kpi[], hue: string, title?: string, scale: Ch
       series: [
         {
           type: 'bar',
-          data: [a],
+          /* A reading of ZERO still draws a bar. Plotted at 0 the series
+             renders nothing at all, so an indicator that delivered none of its
+             target looked identical to one with no mark — the two states the
+             platform works hardest to keep apart. The stub is the same
+             minimum the ledger rows use; the label below prints the true 0,
+             so nothing here overstates the reading. */
+          data: [a === 0 ? (max * 1.05 * L1_MIN_FILL_PCT) / 100 : a],
           barWidth: big ? 22 : 12,
           itemStyle: met
-            ? { color: fillFor(st, hue), borderRadius: [0, 6, 6, 0], shadowColor: 'rgba(120,190,32,0.45)', shadowBlur: 7 }
-            : { color: fillFor(st, hue), borderRadius: [0, 6, 6, 0] },
+            ? { color: fillFor(tone), borderRadius: [0, 6, 6, 0], shadowColor: 'rgba(120,190,32,0.45)', shadowBlur: 7 }
+            : { color: fillFor(tone), borderRadius: [0, 6, 6, 0] },
           showBackground: true,
           backgroundStyle: { color: 'rgba(200,201,199,0.25)', borderRadius: [0, 6, 6, 0] },
           label: {
@@ -514,7 +552,7 @@ export function snapshotFor(group: Kpi[], hue: string, title?: string, scale: Ch
             fontFamily: 'Space Grotesk',
             fontWeight: 700,
             fontSize: big ? 26 : 14,
-            color: textFor(st),
+            color: textFor(tone),
             // the year rides with the number whenever it isn't this quarter's
             formatter: () => `${nf(a)}${met ? ' ✓' : ''}${basis ? ` (${yearLabel(pYear)})` : ''}`,
           },
