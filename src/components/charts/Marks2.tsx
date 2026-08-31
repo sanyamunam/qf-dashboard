@@ -37,6 +37,7 @@ const skinFor = (hues: TrendHues, dark?: boolean): TrendSkin =>
     ? { hues: TREND_DARK, target: TREND_TARGET_DARK, rule: TREND_RULE_DARK, axis: TREND_AXIS_INK_DARK }
     : { hues, target: TREND_TARGET, rule: TREND_RULE, axis: TREND_AXIS_INK }
 import { selectL1, selectL2, type L1Mark, type L2Mark, type TrendPoint, type Period } from '../../model/chartSelect'
+import type { DashStatus } from '../../model/status'
 import type { ObsKpi } from '../../model/obs'
 
 /* the reference's own chart palette */
@@ -53,6 +54,59 @@ const ZONE_UNDER = '#f5e2b8'
 const ZONE_OVER = '#f2cfc9'
 const ZONE_WITHIN = '#b9dcc2'
 const BAR_MUTED = '#cfe0da'
+
+/* ─────────────────────────── L1 is RAG, L2 is thematic ───────────────────────
+ *
+ * One rule, two layers, and the split is what makes both legible together.
+ *
+ * An L1 mark answers "how is this doing against target" — it IS a verdict, so
+ * colouring it by the verdict is honest rather than decorative. An L2 trend
+ * answers "which way is this moving", which is not a verdict at all, so it
+ * carries the theme's identity instead. In an overlay a red bullet bar sits
+ * above a terracotta trend line, and the difference in colour is precisely
+ * what tells the reader they are being shown two different kinds of claim.
+ *
+ * This supersedes the earlier rule that status colour appeared only as a dot.
+ * That rule existed to stop the two thematic greens colliding with the status
+ * green; giving each layer one job solves the same problem without spending
+ * the strongest signal on the smallest element.
+ *
+ * The tone comes from `selectL1`, which reads the platform's one `statusFor` —
+ * so filtering a listing to At risk paints every card on it red by
+ * construction rather than by two functions happening to agree.
+ */
+const L1_FILL: Record<DashStatus, string> = {
+  onTarget: GREEN,
+  /* NOT the brighter #f9a825 the marks used before. As a large fill on a white
+     card that amber measured 1.97:1, under the 3:1 floor for a graphical
+     element; this one clears it at 3.25 and is the same amber the status chip
+     already uses, so the dot and the bar on one card agree. */
+  belowTarget: '#b8860b',
+  atRisk: RED,
+  /* nothing to judge against, so no verdict colour is available to give */
+  noTarget: GREY,
+  notReported: GREY,
+}
+
+/** The shortfall band on a gauge — the same verdict, one step back, so the gap
+ *  reads as part of the same claim rather than as a second one. */
+const L1_GAP: Record<DashStatus, string> = {
+  onTarget: '#bfe0c4',
+  belowTarget: AMBER_GAP,
+  atRisk: '#f0c6c0',
+  noTarget: '#dcdedf',
+  notReported: '#dcdedf',
+}
+
+/** Ink for a figure printed inside a mark — darkened so it holds contrast on a
+ *  white card at the size these actually render. */
+const L1_INK: Record<DashStatus, string> = {
+  onTarget: '#2e7d32',
+  belowTarget: AMBER_INK,
+  atRisk: '#a5301f',
+  noTarget: '#6f7376',
+  notReported: '#6f7376',
+}
 
 const val = (n: number, unit: string) => `${fmt(n)}${unit}`
 const compact = (n: number) => {
@@ -87,7 +141,7 @@ export function BulletMark({ m }: { m: Extract<L1Mark, { kind: 'bullet' }> }) {
   return (
     <svg viewBox={`0 0 ${W} 42`} height="42" width="100%" style={{ overflow: 'visible' }} aria-hidden>
       <rect x="0" y="12" width={W} height="14" rx="7" fill={TRACK} />
-      <rect x="0" y="12" width={fillW} height="14" rx="7" fill={m.met ? GREEN : AMBER} />
+      <rect x="0" y="12" width={fillW} height="14" rx="7" fill={L1_FILL[m.tone]} />
       {/* the target marker — when the value overshoots it sits INSIDE the fill,
           which is the thing an arc cannot do */}
       <line x1={tickX} y1="6" x2={tickX} y2="32" stroke={inside ? '#0e4a2a' : BRAND} strokeWidth="2.5" />
@@ -100,7 +154,7 @@ export function BulletMark({ m }: { m: Extract<L1Mark, { kind: 'bullet' }> }) {
         textAnchor={inside ? 'end' : 'start'}
         fontSize="11"
         fontWeight="700"
-        fill={inside ? '#fff' : m.met ? GREEN : AMBER}
+        fill={inside ? '#fff' : L1_INK[m.tone]}
       >
         {val(m.value, m.unit)}
       </text>
@@ -122,10 +176,10 @@ export function GaugeMark({ m }: { m: Extract<L1Mark, { kind: 'gauge' }> }) {
       <path d={arc(0, 1)} fill="none" stroke={TRACK} strokeWidth="14" strokeLinecap="round" />
       {/* the shortfall, drawn rather than implied: amber sits in the space
           between where the fill stops and where the target is */}
-      {short && <path d={arc(tv, tt)} fill="none" stroke={AMBER_GAP} strokeWidth="14" />}
-      <path d={arc(0, tv)} fill="none" stroke={GREEN} strokeWidth="14" strokeLinecap="round" />
+      {short && <path d={arc(tv, tt)} fill="none" stroke={L1_GAP[m.tone]} strokeWidth="14" />}
+      <path d={arc(0, tv)} fill="none" stroke={L1_FILL[m.tone]} strokeWidth="14" strokeLinecap="round" />
       <line x1={tickIn.x} y1={tickIn.y} x2={tickOut.x} y2={tickOut.y} stroke={BRAND} strokeWidth="3" />
-      <text x={CX} y="74" textAnchor="middle" fontSize="26" fontWeight="700" fill={short ? AMBER_INK : BRAND}>
+      <text x={CX} y="74" textAnchor="middle" fontSize="26" fontWeight="700" fill={L1_INK[m.tone]}>
         {val(m.value, m.unit)}
       </text>
       <text x="28" y="98" fontSize="10" fill={GREY}>0%</text>
@@ -152,9 +206,12 @@ export function CentredGaugeMark({ m }: { m: Extract<L1Mark, { kind: 'centredGau
   const bandHi = toT(m.tolerance)
   const nv = Math.min(1, Math.max(0, toT(m.value)))
   const n = pt(nv)
-  const over = m.value > m.tolerance
-  const under = m.value < -m.tolerance
-  const tone = over ? RED : under ? AMBER_INK : GREEN
+  /* the zone BANDS stay — amber under, green tolerance, red over — because
+     they already speak the same RAG language and mark out where the sheet's
+     own tolerance ends. Only the NEEDLE carries the verdict, so the reading
+     and the scale it is read against never claim the same thing twice. */
+  const tone = L1_FILL[m.tone]
+  const ink = L1_INK[m.tone]
   return (
     <svg viewBox="0 0 176 112" width="100%" height="124" style={{ overflow: 'visible' }} aria-hidden>
       <path d={arc(0, 1)} fill="none" stroke={TRACK} strokeWidth="14" strokeLinecap="round" />
@@ -167,7 +224,7 @@ export function CentredGaugeMark({ m }: { m: Extract<L1Mark, { kind: 'centredGau
       <line x1={CX} y1={CY - R + 20} x2={CX} y2={CY - R - 10} stroke={BRAND} strokeWidth="2.5" />
       <line x1={CX} y1={CY} x2={n.x} y2={n.y} stroke={tone} strokeWidth="3.5" strokeLinecap="round" />
       <circle cx={CX} cy={CY} r="5" fill={tone} />
-      <text x={CX} y="104" textAnchor="middle" fontSize="21" fontWeight="700" fill={tone}>
+      <text x={CX} y="104" textAnchor="middle" fontSize="21" fontWeight="700" fill={ink}>
         {m.value > 0 ? '+' : ''}
         {val(m.value, m.unit)}
       </text>

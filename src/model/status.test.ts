@@ -9,6 +9,11 @@
  */
 import { describe, expect, it } from 'vitest'
 import { obsKpis, q1Of, isLowerBetter } from './obs'
+import { selectL1 } from './chartSelect'
+import { trendHues } from '../components/charts/trendPalette'
+import { THEMES } from './data'
+
+const THEME_IDS = Object.fromEntries(THEMES.map((t) => [t.id, t.name]))
 import {
   RISK,
   STATUS_ORDER,
@@ -16,6 +21,7 @@ import {
   bySeverity,
   statusCountsOf,
   statusFor,
+  STATUS_DOT,
   worstSeverityOf,
 } from './status'
 
@@ -138,5 +144,38 @@ describe('risk-first ordering', () => {
   it('severity order runs At Risk first and On target last', () => {
     expect(STATUS_ORDER[0]).toBe('atRisk')
     expect(STATUS_ORDER[STATUS_ORDER.length - 1]).toBe('onTarget')
+  })
+})
+
+describe('L1 is RAG, L2 is thematic', () => {
+  it('gives every judged mark the SAME verdict the filter uses', () => {
+    /* the guarantee behind "filter to At risk and every card is red": the
+       mark's tone is not a second opinion, it is statusFor itself */
+    for (const k of obsKpis)
+      for (const p of ['q1', '2025'] as const) {
+        const m = selectL1(k, p)
+        if (m.kind === 'bullet' || m.kind === 'gauge' || m.kind === 'centredGauge')
+          expect(m.tone).toBe(statusFor(k, p))
+      }
+  })
+
+  it('draws no mark at all where nothing was reported', () => {
+    const nr = obsKpis.filter((k) => statusFor(k, 'q1') === 'notReported')
+    expect(nr.length).toBeGreaterThan(0)
+    for (const k of nr) expect(selectL1(k, 'q1').kind).toBe('notReported')
+  })
+
+  it('never gives a judged mark to an indicator with no target', () => {
+    for (const k of obsKpis.filter((k) => statusFor(k, 'q1') === 'noTarget'))
+      expect(['bareFigure', 'idle', 'notReported']).toContain(selectL1(k, 'q1').kind)
+  })
+
+  it('keeps every trend on its theme, never on a status colour', () => {
+    const statusColours = new Set(Object.values(STATUS_DOT).map((c) => c.toLowerCase()))
+    for (const t of Object.keys(THEME_IDS)) {
+      const h = trendHues(t)
+      expect(statusColours.has(h.now.toLowerCase())).toBe(false)
+      expect(statusColours.has(h.past.toLowerCase())).toBe(false)
+    }
   })
 })

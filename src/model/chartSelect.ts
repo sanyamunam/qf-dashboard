@@ -10,6 +10,7 @@
  * 4, bare figure 9, idle 9, no-history 124, all exact.
  */
 import { obsKpis, annualZeroIsAbsent, type ObsKpi } from './obs'
+import { statusFor, type DashStatus } from './status'
 
 /* ─────────────────────────── what kind of number ─────────────────────────── */
 
@@ -67,6 +68,15 @@ export const annualActuals = (k: ObsKpi): { year: string; value: number }[] =>
 
 /* ───────────────────────────── L1 — current value ───────────────────────── */
 
+/**
+ * The verdict a mark is drawing, carried WITH the geometry.
+ *
+ * An L1 mark exists to answer "how is this doing against target" — it IS a
+ * verdict, so it is coloured by one. That colour comes from the platform's one
+ * `statusFor`, never from anything this module works out for itself, which is
+ * what guarantees that filtering a listing to At risk paints every card on it
+ * red: the filter and the fill are reading the same function.
+ */
 export type L1Mark =
   /** A · no reading for this period. No chart; an em-dash would read as a value */
   | { kind: 'notReported'; lastValue: number | null; lastYear: string | null; unit: string }
@@ -75,11 +85,11 @@ export type L1Mark =
   /** D · a reading with nothing to score it against */
   | { kind: 'bareFigure'; value: number; unit: string }
   /** B1 · count vs target — fill, track, target marker; overshoot sits inside */
-  | { kind: 'bullet'; value: number; target: number; unit: string; met: boolean }
+  | { kind: 'bullet'; value: number; target: number; unit: string; met: boolean; tone: DashStatus }
   /** B2 · percentage vs target — 0–100 arc, target tick ON the arc */
-  | { kind: 'gauge'; value: number; target: number; unit: string; met: boolean }
+  | { kind: 'gauge'; value: number; target: number; unit: string; met: boolean; tone: DashStatus }
   /** C · variance — zero at the top, deviation either side */
-  | { kind: 'centredGauge'; value: number; tolerance: number; span: number; unit: string; zeroLabel: string }
+  | { kind: 'centredGauge'; value: number; tolerance: number; span: number; unit: string; zeroLabel: string; tone: DashStatus }
 
 /** A cumulative target accrues; a rate is a level that exists at an instant.
  *  Mirrors `accrualOf`/`expectedBy` in dash.ts — the two must not drift. */
@@ -110,6 +120,7 @@ export function selectL1(k: ObsKpi, p: Period): L1Mark {
     const tolerance = t !== null && t > 0 ? t : 0
     return {
       kind: 'centredGauge',
+      tone: statusFor(k, p),
       value: a,
       tolerance,
       span: niceSpan(Math.max(Math.abs(a), tolerance, 10) * 1.4),
@@ -126,7 +137,13 @@ export function selectL1(k: ObsKpi, p: Period): L1Mark {
      MARKER stays at the annual number: the commitment is the commitment. */
   const bar = paceBar(k, t, p)
   const met = isLowerBetter(k) ? a <= bar : a >= bar
-  return isPercent(k) ? { kind: 'gauge', value: a, target: t, unit, met } : { kind: 'bullet', value: a, target: t, unit, met }
+  /* the ONE status function — not a second opinion computed from this
+     module's own normalisation, which reads percentages by a slightly wider
+     rule and could disagree with the chip sitting above the mark */
+  const tone = statusFor(k, p)
+  return isPercent(k)
+    ? { kind: 'gauge', value: a, target: t, unit, met, tone }
+    : { kind: 'bullet', value: a, target: t, unit, met, tone }
 }
 
 /* ──────────────────────────────── L2 — trend ────────────────────────────── */

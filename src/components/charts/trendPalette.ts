@@ -45,7 +45,11 @@ export interface TrendHues {
 const BY_THEME: Record<string, TrendHues> = {
   social: { now: '#3a4267', past: '#cdd2e4' },
   sustain: { now: '#274c3a', past: '#c0d2c6' },
-  edu: { now: '#866528', past: '#e6d7b8' },
+  /* deepened from #866528 when the L1 below-target amber moved to #b8860b for
+     contrast: against the new amber the old value measured dE 28.3, sitting
+     exactly on the floor where two colours stop being confusable. This
+     restores the headroom to 32.5 and stays in Progressive Education's gold. */
+  edu: { now: '#7a5a22', past: '#e6d7b8' },
   ai: { now: '#2b6b7e', past: '#c8dfe6' },
   health: { now: '#3f2a56', past: '#d2c9dd' },
   oe: { now: '#2b3242', past: '#ccd0d8' },
