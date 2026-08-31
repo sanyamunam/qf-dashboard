@@ -13,7 +13,8 @@ import { themeById, themeKpis } from '../model/data'
 import { facts, fmt, wishDropPct } from '../model/facts'
 import { topMovers } from '../model/spotlight'
 import { obsForKpi } from '../model/bridge'
-import { severityOf } from '../model/status'
+import { severityOf, statusFor, attainmentOf, targetFor, expectedBy, accrualOf } from '../model/status'
+import type { ObsKpi } from '../model/obs'
 import type { Kpi } from '../model/types'
 import { buildGroupCards, type GroupCard, type YearKey } from '../components/charts/builders'
 import { EChart } from '../components/charts/EChart'
@@ -231,7 +232,63 @@ export function L2({
     else s.sort((a, b) => (b.movementScore ?? -1) - (a.movementScore ?? -1))
     return s
   }, [visible, filters.sort])
-  const annotate = themeId === 'social' && filters.yr === '2026Q1' ? facts.wish.kpi.id : null
+  /**
+   * The ONE indicator BOTaina points at, computed rather than named.
+   *
+   * This used to be `themeId === 'social' ? facts.wish.kpi.id : null` — a
+   * single hard-coded KPI on a single page, so four of the five thematic areas
+   * never got a pointer at all and Social Progress kept pointing at the same
+   * row whatever the data did.
+   *
+   * It is now the worst performer on the page, ranked by the same `severityOf`
+   * every listing sorts by — so the card BOTaina points at is the card sitting
+   * at the top of the list, and the two can never disagree.
+   *
+   * Two deliberate silences. She only speaks when something is actually behind
+   * (at risk or below target): pointing at the least-good of a healthy set and
+   * saying "raise this first" would manufacture a concern the data does not
+   * support. And she stays quiet on a historical year, which is a look back
+   * rather than a call to act.
+   */
+  const annotate = useMemo((): { id: string; reason: string } | null => {
+    if (filters.yr !== '2026Q1') return null
+    const ranked = visible
+      .map((k) => ({ k, row: obsForKpi(k) }))
+      .filter((x): x is { k: Kpi; row: ObsKpi } => x.row !== null)
+      .filter((x) => {
+        const st = statusFor(x.row, 'q1')
+        return st === 'atRisk' || st === 'belowTarget'
+      })
+      /**
+       * Skip indicators whose expected-by-now is under a single whole unit.
+       *
+       * A count with an annual target of 1 or 2 has a Q1 pace bar of 0.25–0.5,
+       * so a zero scores 0% attainment and ranks worst in the portfolio — when
+       * delivering one policy adoption in Q4 is a perfectly normal year. It is
+       * a tolerable artefact in a ranked list, where it is one row among many.
+       * It is not tolerable here: this is a single emphatic "look at this
+       * first", and spending it on a target of 1 is bad advice.
+       */
+      .filter((x) => {
+        const bar = expectedBy(x.row, 'q1')
+        return accrualOf(x.row) !== 'cumulative' || bar === null || bar >= 1
+      })
+      .sort((a, b) => severityOf(a.row, 'q1') - severityOf(b.row, 'q1'))
+    const worst = ranked[0]
+    if (!worst) return null
+    const att = attainmentOf(worst.row, 'q1')
+    const pct = att !== null && Number.isFinite(att) ? Math.round(att * 100) : null
+    const target = targetFor(worst.row, 'q1')
+    /* the reason is the number itself, not an adjective — she is pointing at
+       an arithmetic fact the reader can check on the card below her */
+    const reason =
+      pct === 0 && target !== null
+        ? `Nothing delivered yet against ${fmt(target)} for the year.`
+        : pct !== null
+          ? `At ${pct}% of the pace expected by now — the furthest behind here.`
+          : 'The furthest behind here.'
+    return { id: worst.k.id, reason }
+  }, [visible, filters.yr])
 
   // a historical year regenerates the summary — and admits thinness rather than
   // manufacturing a claim (R6 fix 5)
@@ -1055,7 +1112,7 @@ function Bands({
   isOE: boolean
   hue: string
   onOpenKpi: (kpi: Kpi, group?: Kpi[]) => void
-  annotate: string | null
+  annotate: { id: string; reason: string } | null
   sort: Filters['sort']
   year: YearKey
   filtersActive: boolean
@@ -1073,7 +1130,7 @@ function Bands({
   // must never sit behind a fold.
   const [openBands, setOpenBands] = useState<Set<string>>(() => {
     const s = new Set<string>(isOE ? ['Operational'] : [])
-    for (const id of [focusId, annotate])
+    for (const id of [focusId, annotate?.id])
       if (id) {
         const fw = visible.find((k) => k.id === id)?.framework
         if (fw) s.add(fw)
@@ -1154,7 +1211,7 @@ function BandBody({
   kpis: Kpi[]
   hue: string
   onOpenKpi: (kpi: Kpi, group?: Kpi[]) => void
-  annotateKpiId: string | null
+  annotateKpiId: { id: string; reason: string } | null
   sort: Filters['sort']
   year: YearKey
 }) {
@@ -1205,7 +1262,7 @@ function BandBody({
                 /* the same card as everywhere else — snapshot only, trends in the overlay (R8 fixes 1/6) */
                 <div className="grid grid-cols-1 items-stretch gap-4 sm:grid-cols-2 xl:grid-cols-3">
                   {cards.map((c) => (
-                    <AnnotatedSlot key={c.key} annotated={c.kpis.some((k) => k.id === annotateKpiId)}>
+                    <AnnotatedSlot key={c.key} annotated={annotateKpiId && c.kpis.some((k) => k.id === annotateKpiId.id) ? annotateKpiId.reason : null}>
                       <KpiCard
                         group={c.kpis}
                         title={c.title}
@@ -1236,23 +1293,29 @@ function availabilityLabel(k: Kpi): string {
 
 /* BOTaina's handoff annotation, anchored to the card itself — the card no
    longer carries a trend chart, so there is no chart pixel to point at (R8). */
-function AnnotatedSlot({ annotated, children }: { annotated: boolean; children: React.ReactNode }) {
+function AnnotatedSlot({ annotated, children }: { annotated: string | null; children: React.ReactNode }) {
   if (!annotated) return <>{children}</>
   return (
     <div className="relative">
       {children}
       <motion.div
-        className="pointer-events-none absolute -top-9 right-2 z-10 flex items-end gap-1.5"
+        /* bottom-full, not a negative top: the bubble grew a second line when
+           it started carrying its reason, and a fixed offset let it drop over
+           the card's own title — so the reader could see BOTaina pointing but
+           not what she was pointing AT. Anchored to the card's top edge it
+           always clears the content it is about, whatever it says. */
+        className="pointer-events-none absolute bottom-full right-2 z-10 mb-1 flex items-end gap-1.5"
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.55, duration: 0.5, ease: [0.32, 0.72, 0, 1] }}
       >
-        <BotainaFigure size={52} state="pointing" />
+        <BotainaFigure size={44} state="pointing" />
         <div
-          className="mb-4 max-w-[170px] rounded-input px-2.5 py-1.5 text-[11px] leading-snug text-white shadow-md"
+          className="max-w-[210px] rounded-input px-2.5 py-2 text-[11px] leading-snug text-white shadow-md"
           style={{ background: 'var(--ai-panel-gradient)' }}
         >
-          This is the number I would raise first.
+          <span className="block font-semibold">Raise this one first.</span>
+          <span className="mt-1 block text-white/85">{annotated}</span>
         </div>
       </motion.div>
     </div>
