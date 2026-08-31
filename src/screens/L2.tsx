@@ -13,7 +13,8 @@ import { themeById, themeKpis } from '../model/data'
 import { facts, fmt, wishDropPct } from '../model/facts'
 import { topMovers } from '../model/spotlight'
 import { obsForKpi } from '../model/bridge'
-import { severityOf, statusFor, attainmentOf, targetFor, expectedBy, accrualOf } from '../model/status'
+import { sectionsFor, bandNote, LISTING_MODE_LABEL, LISTING_MODE_HINT, type ListingMode } from '../model/listing'
+import { severityOf, statusFor, attainmentOf, targetFor, expectedBy, accrualOf, STATUS_DOT } from '../model/status'
 import type { ObsKpi } from '../model/obs'
 import type { Kpi } from '../model/types'
 import { buildGroupCards, type GroupCard, type YearKey } from '../components/charts/builders'
@@ -87,10 +88,12 @@ interface Filters {
   cat: string[] // categories
   av: string[] // availability: trend | first | nr
   sort: 'risk' | 'mover' | 'gap' | 'alpha' | 'entity'
+  /* how the listing is ORGANISED — a different question from how it is sorted */
+  mode: ListingMode
   yr: YearKey
 }
 
-const EMPTY: Filters = { e: [], fw: [], cat: [], av: [], sort: 'risk', yr: '2026Q1' }
+const EMPTY: Filters = { e: [], fw: [], cat: [], av: [], sort: 'risk', mode: 'attention', yr: '2026Q1' }
 const YEARS: YearKey[] = ['2022', '2023', '2024', '2025', '2026Q1']
 
 function readFilters(themeId: string): Filters {
@@ -104,6 +107,7 @@ function readFilters(themeId: string): Filters {
     cat: p.get('cat')?.split('|').filter(Boolean) ?? [],
     av: p.get('av')?.split('|').filter(Boolean) ?? [],
     sort: (p.get('sort') as Filters['sort']) ?? 'risk',
+    mode: (p.get('mode') as ListingMode) ?? 'attention',
     yr: (YEARS.includes(p.get('yr') as YearKey) ? (p.get('yr') as YearKey) : '2026Q1'),
   }
 }
@@ -115,6 +119,7 @@ function writeFilters(themeId: string, f: Filters) {
   if (f.cat.length) p.set('cat', f.cat.join('|'))
   if (f.av.length) p.set('av', f.av.join('|'))
   if (f.sort !== 'risk') p.set('sort', f.sort)
+  if (f.mode !== 'attention') p.set('mode', f.mode)
   if (f.yr !== '2026Q1') p.set('yr', f.yr)
   const base = location.hash.split('?')[0]
   const qs = p.toString()
@@ -485,6 +490,27 @@ export function L2({
               <Opt key={d.id} on={filters.av.includes(d.id)} onClick={() => toggle('av', d.id)} label={d.label} n={count('av', d.test)} />
             ))}
           </FilterMenu>
+          {/* HOW THE LISTING IS ORGANISED — a different question from how it is
+              sorted, and the one the client was actually asking. Sorting only
+              reorders within the category boxes; on Sustainability the rows
+              that are behind sit in 7 of 8 categories, so no sort can gather
+              them. This chooses the boxes themselves. Grid view only, because
+              it is the only view built from category sections. */}
+          <FilterMenu
+            label={`Show: ${LISTING_MODE_LABEL[filters.mode]}`}
+            hue={theme.fill}
+            active={filters.mode !== 'attention'}
+          >
+            {(['attention', 'category', 'risk'] as ListingMode[]).map((m) => (
+              <Opt
+                key={m}
+                on={filters.mode === m}
+                onClick={() => setFilters((f) => ({ ...f, mode: m }))}
+                label={LISTING_MODE_LABEL[m]}
+                hint={LISTING_MODE_HINT[m]}
+              />
+            ))}
+          </FilterMenu>
           <FilterMenu label={`Sort: ${{ risk: 'Riskiest first', mover: 'Biggest mover', gap: 'Largest gap', alpha: 'Alphabetical', entity: 'Entity' }[filters.sort]}`} hue={theme.fill} active={filters.sort !== 'risk'}>
             {(['risk', 'mover', 'gap', 'alpha', 'entity'] as const).map((s) => (
               <Opt
@@ -551,6 +577,7 @@ export function L2({
             onOpenKpi={onOpenKpi}
             annotate={annotate}
             sort={filters.sort}
+            mode={filters.mode}
             year={filters.yr}
             filtersActive={activeChips.length > 0 || filters.yr !== '2026Q1' || filters.sort !== 'risk'}
             focusId={pointFocus ?? null}
@@ -1007,18 +1034,35 @@ function FilterMenu({
   )
 }
 
-function Opt({ on, onClick, label, n }: { on: boolean; onClick: () => void; label: string; n?: number }) {
+function Opt({
+  on,
+  onClick,
+  label,
+  n,
+  hint,
+}: {
+  on: boolean
+  onClick: () => void
+  label: string
+  n?: number
+  /** what the option DOES, where the label alone cannot say it — three ways of
+   *  organising one listing are not self-explanatory from three short names */
+  hint?: string
+}) {
   return (
     <button
       onClick={onClick}
-      className="flex items-center justify-between gap-4 rounded-chip px-2.5 py-1.5 text-left text-[12.5px] transition-colors hover:bg-cream"
+      className="flex items-start justify-between gap-4 rounded-chip px-2.5 py-1.5 text-left text-[12.5px] transition-colors hover:bg-cream"
       style={{ color: on ? 'var(--color-sidra)' : 'var(--color-ink-soft)', fontWeight: on ? 600 : 400 }}
     >
-      <span>
-        {on ? '✓ ' : ''}
-        {label}
+      <span className="min-w-0">
+        <span className="block">
+          {on ? '✓ ' : ''}
+          {label}
+        </span>
+        {hint && <span className="mt-0.5 block max-w-[230px] text-[11px] font-normal leading-snug text-ink-mute">{hint}</span>}
       </span>
-      {n !== undefined && <span className="num text-[11px] text-ink-mute">{n}</span>}
+      {n !== undefined && <span className="num mt-0.5 text-[11px] text-ink-mute">{n}</span>}
     </button>
   )
 }
@@ -1102,6 +1146,7 @@ function Bands({
   onOpenKpi,
   annotate,
   sort,
+  mode,
   year,
   filtersActive,
   focusId,
@@ -1114,6 +1159,7 @@ function Bands({
   onOpenKpi: (kpi: Kpi, group?: Kpi[]) => void
   annotate: { id: string; reason: string } | null
   sort: Filters['sort']
+  mode: ListingMode
   year: YearKey
   filtersActive: boolean
   focusId: string | null
@@ -1153,7 +1199,7 @@ function Bands({
 
   // the default read: one list of indicators, no classification headers
   if (!groupByFramework)
-    return <BandBody kpis={visible} hue={hue} onOpenKpi={onOpenKpi} annotateKpiId={annotate} sort={sort} year={year} />
+    return <BandBody kpis={visible} hue={hue} onOpenKpi={onOpenKpi} annotateKpiId={annotate} sort={sort} mode={mode} year={year} />
 
   return (
     <>
@@ -1188,7 +1234,7 @@ function Bands({
               </span>
             </button>
             {open ? (
-              <BandBody kpis={bandKpis} hue={hue} onOpenKpi={onOpenKpi} annotateKpiId={annotate} sort={sort} year={year} />
+              <BandBody kpis={bandKpis} hue={hue} onOpenKpi={onOpenKpi} annotateKpiId={annotate} sort={sort} mode={mode} year={year} />
             ) : (
               /* the collapsed state is a characterisation, not a teaser */
               <div className="py-3.5 text-[13.5px] leading-snug text-ink-soft">{bandLine(bandKpis)}</div>
@@ -1206,6 +1252,7 @@ function BandBody({
   onOpenKpi,
   annotateKpiId,
   sort,
+  mode,
   year,
 }: {
   kpis: Kpi[]
@@ -1213,43 +1260,79 @@ function BandBody({
   onOpenKpi: (kpi: Kpi, group?: Kpi[]) => void
   annotateKpiId: { id: string; reason: string } | null
   sort: Filters['sort']
+  mode: ListingMode
   year: YearKey
 }) {
-  const groups = useMemo(() => {
-    const sorted = [...kpis]
-    if (sort === 'alpha') sorted.sort((a, b) => a.name.localeCompare(b.name))
-    if (sort === 'entity') sorted.sort((a, b) => a.entity.localeCompare(b.entity) || a.name.localeCompare(b.name))
-    if (sort === 'mover') sorted.sort((a, b) => (b.movementScore ?? -1) - (a.movementScore ?? -1))
-    if (sort === 'gap')
-      sorted.sort((a, b) => {
-        const g = (k: Kpi) =>
-          k.cadence === 'continuous' && (k.targets['2026'].value ?? 0) > 0 && k.actuals['2026Q1'].value !== null
-            ? 1 - (k.actuals['2026Q1'].value as number) / (k.targets['2026'].value as number)
-            : -2
-        return g(b) - g(a)
-      })
-    const m = new Map<string, Kpi[]>()
-    for (const k of sorted) m.set(k.category, [...(m.get(k.category) ?? []), k])
-    return m
-  }, [kpis, sort])
+  /**
+   * The listing's SHAPE comes from `sectionsFor`, not from a sort inside this
+   * component. It used to build its own groups from a sort switch that had no
+   * `risk` branch at all — so the default "Riskiest first" fell through every
+   * `if` and left the incoming order untouched. The control said one thing and
+   * the page did another.
+   *
+   * The explicit sorts are still honoured, because a reader who asks for
+   * alphabetical means it; they reorder WITHIN each section rather than
+   * replacing the organisation.
+   */
+  const sections = useMemo(() => {
+    const secs = sectionsFor(kpis, 'q1', mode)
+    if (sort === 'risk') return secs
+    const reorder = (list: Kpi[]) => {
+      const s = [...list]
+      if (sort === 'alpha') s.sort((a, b) => a.name.localeCompare(b.name))
+      if (sort === 'entity') s.sort((a, b) => a.entity.localeCompare(b.entity) || a.name.localeCompare(b.name))
+      if (sort === 'mover') s.sort((a, b) => (b.movementScore ?? -1) - (a.movementScore ?? -1))
+      if (sort === 'gap')
+        s.sort((a, b) => {
+          const g = (k: Kpi) =>
+            k.cadence === 'continuous' && (k.targets['2026'].value ?? 0) > 0 && k.actuals['2026Q1'].value !== null
+              ? 1 - (k.actuals['2026Q1'].value as number) / (k.targets['2026'].value as number)
+              : -2
+          return g(b) - g(a)
+        })
+      return s
+    }
+    return secs.map((x) => ({ ...x, kpis: reorder(x.kpis) }))
+  }, [kpis, sort, mode])
 
   return (
     <div className="mt-4 flex flex-col gap-7">
       <AnimatePresence mode="popLayout">
-        {[...groups.entries()].map(([cat, list], gi) => {
-          const cards = buildGroupCards(list, hue, year)
+        {sections.map((sec, gi) => {
+          /* cards are built per section, then ordered by their WORST member —
+             `buildGroupCards` bundles indicators into one card by chart group,
+             and without this the bundling silently undid the risk order */
+          const cards = buildGroupCards(sec.kpis, hue, year)
+          const worstOf = (c: GroupCard) => Math.min(...c.kpis.map((k) => {
+            const r = obsForKpi(k)
+            return r ? severityOf(r, 'q1') : Number.MAX_SAFE_INTEGER
+          }))
+          if (sort === 'risk') cards.sort((a, b) => worstOf(a) - worstOf(b) || a.title.localeCompare(b.title))
           return (
             <motion.div
-              key={cat}
+              key={sec.key}
               layout
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2, delay: gi * 0.03 }}
+              /* the band is a summary of rows repeated below, so it is set
+                 apart rather than reading as another category */
+              className={sec.isBand ? 'rounded-panel bg-card p-5 shadow-(--shadow-card)' : undefined}
             >
-              <h3 className="mb-3 flex items-center gap-2 text-[14px] font-semibold text-ink">
-                <span aria-hidden className="h-3.5 w-[3px] rounded-full" style={{ background: hue }} />
-                {cat}
+              <h3 className="mb-3 flex flex-wrap items-center gap-2 text-[14px] font-semibold text-ink">
+                <span
+                  aria-hidden
+                  className="h-3.5 w-[3px] shrink-0 rounded-full"
+                  style={{ background: sec.status ? STATUS_DOT[sec.status] : sec.isBand ? '#c0392b' : hue }}
+                />
+                {sec.heading}
+                <span className="text-[12px] font-normal text-ink-mute">{sec.kpis.length}</span>
+                {sec.isBand && (
+                  <span className="w-full text-[11.5px] font-normal leading-snug text-ink-mute">
+                    {bandNote(sec.kpis, 'q1')}
+                  </span>
+                )}
               </h3>
               {year !== '2026Q1' ? (
                 /* a historical year keeps its uniform value tiles (R6 fix 5) */
