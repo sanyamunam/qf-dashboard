@@ -7,7 +7,7 @@ import type { EChartsOption } from 'echarts'
 import { TREND_ACTUAL, TREND_TARGET } from './trendPalette'
 import type { Kpi } from '../../model/types'
 import { obsForKpi } from '../../model/bridge'
-import { statusFor, statusForYear, type DashStatus } from '../../model/status'
+import { statusFor, statusForYear, paceMarkerFor, type DashStatus } from '../../model/status'
 import { L1_FILL, L1_INK, L1_MIN_FILL_PCT } from './l1Palette'
 import { AXIS, TOOLTIP, TARGET_LINE } from './EChart'
 
@@ -164,8 +164,20 @@ export function aiLineFor(group: Kpi[]): string {
   }
   if (met.length > 0 && group.length > 1)
     return `${met.length} of ${group.length} already at the full-year 2026 target; the rest are in progress with three quarters to run.`
+  /**
+   * The old line here read "…judged against elapsed time rather than the
+   * annual number", which is now the opposite of what the platform does:
+   * attainment IS the annual number, and elapsed time only decides where At
+   * risk begins. It also repeated on every card in a theme.
+   *
+   * Where the bar carries a "by now" tick the caption says nothing at all —
+   * the mark shows the position, and a sentence restating it is noise. The
+   * card hides an empty caption rather than drawing a rule and an icon
+   * around one.
+   */
+  if (q1 !== null && t26 && paceOf(k) !== null) return ''
   if (q1 !== null && t26)
-    return `${nf(q1)} of ${nf(t26)} at the quarter — in progress, judged against elapsed time rather than the annual number.`
+    return `${nf(q1)} of ${nf(t26)} for the full year, with three quarters still to run.`
   return `First reading this quarter; a baseline being set, with no comparison available yet.`
 }
 
@@ -248,6 +260,17 @@ export const toneOf = (k: Kpi): DashStatus => {
 }
 
 /**
+ * Where an evenly-delivered indicator would stand by now — the SAME
+ * `paceMarkerFor` the OBS bullet draws, so the tick on a thematic card and the
+ * tick on a search card mark the same thing. Null where drawing one would say
+ * nothing.
+ */
+export const paceOf = (k: Kpi): number | null => {
+  const row = obsForKpi(k)
+  return row ? paceMarkerFor(row, 'q1') : null
+}
+
+/**
  * The verdict for the period the mark is ACTUALLY showing.
  *
  * A dated position reports a closed year against that year's target, so it
@@ -283,6 +306,8 @@ interface Position {
   status: ChartStatus
   /** the platform's verdict — what actually colours the mark */
   tone: DashStatus
+  /** where an even delivery would stand by now, or null */
+  pace: number | null
 }
 
 /**
@@ -323,6 +348,8 @@ export interface SnapshotRow {
   /** the platform's verdict — what actually colours the bar. `status` above is
    *  the legacy five-value shape, kept only for the ✓ and the glow. */
   tone: DashStatus
+  /** where an even delivery would stand by now, or null */
+  pace: number | null
   /** set ONLY when the figure is not this quarter's — rendered inline beside
    *  the number, so a prior year's reading can never pass for a current one */
   year?: string
@@ -443,6 +470,7 @@ export function snapshotFor(group: Kpi[], hue: string, title?: string, scale: Ch
       year: '2026Q1',
       status: statusOf(k),
       tone: toneOf(k),
+      pace: paceOf(k),
     }))
 
   /**
@@ -464,7 +492,7 @@ export function snapshotFor(group: Kpi[], hue: string, title?: string, scale: Ch
       const tk = last[0] === '2026Q1' ? '2026' : last[0]
       const t = k.targets[tk]?.value ?? null
       if (t === null || (t <= 0 && !(k.polarity === 'Red' && t === 0))) return null
-      return { k, value: last[1], target: t, year: last[0], status: DATED_STATUS, tone: toneForYear(k, last[0]) }
+      return { k, value: last[1], target: t, year: last[0], status: DATED_STATUS, tone: toneForYear(k, last[0]), pace: null as number | null }
     })
     .filter((p): p is Position => p !== null)
 
@@ -497,6 +525,7 @@ export function snapshotFor(group: Kpi[], hue: string, title?: string, scale: Ch
       target: p.target,
       status: p.status,
       tone: p.tone,
+      pace: p.pace,
       year: p.year === '2026Q1' ? undefined : yearLabel(p.year),
     }))
     return {
@@ -507,7 +536,7 @@ export function snapshotFor(group: Kpi[], hue: string, title?: string, scale: Ch
     }
   }
 
-  const { k, value: a, target: t, status: st, tone, year: pYear } = positions[0]
+  const { k, value: a, target: t, status: st, tone, pace, year: pYear } = positions[0]
 
   /* A single indicator with nothing reported draws NO mark. Its Q1 cell holds
      a literal 0 in the Release-2 model, so without this it rendered a bar that
@@ -524,7 +553,7 @@ export function snapshotFor(group: Kpi[], hue: string, title?: string, scale: Ch
       option: {
         series: [
           gaugeFor(
-            { label: '', value: a, target: t, status: st, tone },
+            { label: '', value: a, target: t, status: st, tone, pace },
             ['50%', '76%'],
             big ? '126%' : '120%',
             big
@@ -590,7 +619,32 @@ export function snapshotFor(group: Kpi[], hue: string, title?: string, scale: Ch
               fontWeight: 600,
               fontFamily: 'Instrument Sans',
             },
-            data: [{ xAxis: t }],
+            /* the commitment, and — where one exists — the dashed "by now"
+               tick marking where an even delivery would stand at the end of
+               the quarter. The pace mark is deliberately lighter and thinner
+               than the target: the commitment is the reference that matters,
+               and two marks of equal weight would leave the reader deciding
+               which is which. Red begins behind this tick, so the bar and the
+               status label are the same claim. */
+            data: [
+              { xAxis: t },
+              ...(pace !== null
+                ? [
+                    {
+                      xAxis: pace,
+                      lineStyle: { type: 'dotted' as const, color: '#989a9c', width: 1.5 },
+                      label: {
+                        formatter: 'by now',
+                        position: 'end' as const,
+                        color: '#989a9c',
+                        fontSize: big ? 11 : 9,
+                        fontWeight: 400 as const,
+                        fontFamily: 'Instrument Sans',
+                      },
+                    },
+                  ]
+                : []),
+            ],
           },
         },
       ],

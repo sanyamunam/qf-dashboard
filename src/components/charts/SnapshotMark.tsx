@@ -110,6 +110,23 @@ export function LedgerRows({
                   }}
                 />
               )}
+              {/* where an even delivery would stand by now — lighter and
+                  thinner than the commitment, because the commitment is the
+                  reference that matters and two equal marks would confuse the
+                  two. Red begins behind this tick, so the bar and the status
+                  label are the same claim. */}
+              {r.pace !== null && (
+                <span
+                  aria-hidden
+                  className="absolute w-0 border-l border-dotted"
+                  style={{
+                    left: `${Math.min(99, (r.pace / max) * 100)}%`,
+                    top: (z.track - z.marker * 0.7) / 2,
+                    height: z.marker * 0.7,
+                    borderColor: '#989a9c',
+                  }}
+                />
+              )}
               {/* the target marker: dashed, darker than the bar, unmissable */}
               <span
                 aria-hidden
