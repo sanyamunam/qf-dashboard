@@ -6,36 +6,51 @@
  * listing. A surface that computes its own verdict is how a card and its
  * overlay come to disagree, so no surface is allowed to.
  *
- * ── why a threshold measured against PACE, and not the target ──
+ * ── attainment is measured against the TARGET, plainly ──
  *
- * Three months of a twelve-month year have closed. Measured against the raw
- * 2026 target, 75 of the 151 Thematic indicators sit below 25% of it — and
- * that is not 75 emergencies, it is a quarter of the year elapsing. Grading a
- * three-month reading against a twelve-month commitment makes almost the whole
- * portfolio look catastrophic and the status useless.
+ * It used to be measured against a pace bar — the share of the target expected
+ * by the end of Q1 — and that was a mistake, for a reason worth recording so
+ * it is not repeated.
  *
- * So a cumulative indicator is judged against the share of its target expected
- * BY NOW, and a point-in-time one against its target directly. That is the
- * difference between 26 indicators worth a conversation and 75 worth ignoring.
+ * The arithmetic was not wrong. Dividing by a quarter of the target genuinely
+ * answers "how are you doing against the pace". But it produced a card reading
+ * "Beneficiaries · 8 of 30 · On target", and no amount of correct arithmetic
+ * survives a reader seeing that. It also printed figures like "560% of pace",
+ * a number with no meaning to anyone.
+ *
+ * So the status answers the question a reader is actually asking — how does
+ * this stand against what was committed — and the elapsed-time argument moves
+ * OUT of the calculation and INTO the caption, where a sentence can carry a
+ * caveat that a percentage cannot:
+ *
+ *     8 of 30 · 27% of target
+ *     At risk — a quarter into the year, roughly a quarter would be expected.
+ *
+ * The status stays honest and the context is still given. `expectedBy` below
+ * survives for exactly that sentence, and is never used to grade anything.
  */
 import { isLowerBetter, isPointInTime, lift, q1Of, type ObsKpi } from './obs'
 
 export type Period = '2025' | 'q1'
 
 /**
- * Tunable, because 50% is a starting position rather than a finding.
+ * The thresholds, tunable — 50% is a starting position rather than a finding.
  *
- * QF has set NO quarterly milestones, so even accrual is this platform's
- * assumption and is stated on screen beside every count that rests on it.
- * Once QF has seen the result they will want to move this number; it is one
- * object so that is a one-line change rather than a hunt.
+ * `elapsed` is kept here beside them ON PURPOSE, so that the one place holding
+ * the grading rule also holds the caveat that goes in the caption. It is the
+ * share of the year gone by; QF has set no quarterly milestones, so it is this
+ * platform's assumption and is stated on screen wherever it is used.
  */
 export const RISK = {
-  /** attainment below this share of expected pace is MATERIALLY behind */
-  threshold: 0.5,
-  /** how much of the year Q1 represents */
+  /** at or above its target — met or exceeded */
+  onTarget: 1,
+  /** between this and the target: behind, but within reach */
+  belowTarget: 0.5,
+  /** how much of the year Q1 represents — used in WORDS, never in the maths */
   elapsed: 0.25,
-  elapsedLabel: 'three of twelve months',
+  elapsedLabel: 'roughly a quarter of the year',
+  /** @deprecated the old single threshold — read `belowTarget` */
+  threshold: 0.5,
 } as const
 
 /** @deprecated the old name for the pace settings — prefer `RISK`. */
@@ -80,9 +95,9 @@ export const STATUS_DOT: Record<DashStatus, string> = {
 
 /** What each verdict MEANS, in the same words the explanation uses. */
 export const STATUS_SENSE: Record<DashStatus, string> = {
-  atRisk: 'under half the pace expected by now',
-  belowTarget: 'behind the pace expected by now',
-  onTarget: 'at or ahead of the pace expected by now',
+  atRisk: 'under half its target',
+  belowTarget: 'behind its target, but within reach',
+  onTarget: 'met or exceeded its target',
   noTarget: 'a reading, but no target to judge it against',
   notReported: 'no reading this period',
 }
@@ -96,19 +111,18 @@ export const actualFor = (k: ObsKpi, p: Period): number | null =>
 export const targetFor = (k: ObsKpi, p: Period): number | null =>
   lift(k, k.targets[p === 'q1' ? '2026' : '2025'] ?? null)
 
-/**
- * What the target asks for BY NOW rather than by December.
- *
- * A cumulative indicator accrues — 200 internships across a year is roughly 50
- * by the end of Q1. A point-in-time one is a level that exists at an instant,
- * so it answers to its target directly whatever month it is: a satisfaction
- * score of 70% is 70% in March or in December.
- */
 /** How a reading accrues, which decides what its target means partway through
  *  a period. Named for the distinction rather than the regex behind it. */
 export type Accrual = 'cumulative' | 'pointInTime'
 export const accrualOf = (k: ObsKpi): Accrual => (isPointInTime(k) ? 'pointInTime' : 'cumulative')
 
+/**
+ * What the target would imply BY NOW, for the CAPTION only.
+ *
+ * Never used to grade an indicator — that was the bug. It exists so a card can
+ * say "roughly 8 of 30 would be expected by now" beside a status computed
+ * against the full 30.
+ */
 export function expectedBy(k: ObsKpi, p: Period): number | null {
   const t = targetFor(k, p)
   if (t === null) return null
@@ -119,8 +133,8 @@ export function expectedBy(k: ObsKpi, p: Period): number | null {
 }
 
 /**
- * The share of expected pace achieved — the number every verdict rests on, and
- * the one each card prints so a classification can always be traced back.
+ * The share of the TARGET achieved — the number every verdict rests on, and the
+ * one each card prints so a classification can always be traced back.
  *
  * POLARITY governs direction and the sign of a number never does. For a
  * lower-is-better indicator the ratio inverts, so an OVERSHOOT is what drives
@@ -132,25 +146,24 @@ export function expectedBy(k: ObsKpi, p: Period): number | null {
 export function attainmentOf(k: ObsKpi, p: Period): number | null {
   const a = actualFor(k, p)
   if (a === null) return null
-  const bar = expectedBy(k, p)
-  if (bar === null) return null
   const t = targetFor(k, p)
+  if (t === null) return null
   /* a zero target on a higher-is-better indicator is an off-year, not a
      ceiling — the reference's nine idle rows. Watched, never judged. */
   if (!isLowerBetter(k) && t === 0) return null
   if (isLowerBetter(k)) {
     if (a === 0) return Number.POSITIVE_INFINITY // nothing spent against a ceiling is perfect
-    return bar === 0 ? 0 : bar / a
+    return t === 0 ? 0 : t / a
   }
-  return bar === 0 ? null : a / bar
+  return a / t
 }
 
 export function statusFor(k: ObsKpi, p: Period): DashStatus {
   if (actualFor(k, p) === null) return 'notReported'
   const att = attainmentOf(k, p)
   if (att === null) return 'noTarget'
-  if (att >= 1) return 'onTarget'
-  return att < RISK.threshold ? 'atRisk' : 'belowTarget'
+  if (att >= RISK.onTarget) return 'onTarget'
+  return att < RISK.belowTarget ? 'atRisk' : 'belowTarget'
 }
 
 /**
@@ -174,8 +187,8 @@ export function statusForYear(k: ObsKpi, year: string): DashStatus {
   if (isLowerBetter(k)) att = a === 0 ? Number.POSITIVE_INFINITY : t === 0 ? 0 : t / a
   else att = t === 0 ? null : a / t
   if (att === null) return 'noTarget'
-  if (att >= 1) return 'onTarget'
-  return att < RISK.threshold ? 'atRisk' : 'belowTarget'
+  if (att >= RISK.onTarget) return 'onTarget'
+  return att < RISK.belowTarget ? 'atRisk' : 'belowTarget'
 }
 
 export function statusCountsOf(rows: ObsKpi[], p: Period): Record<DashStatus, ObsKpi[]> {

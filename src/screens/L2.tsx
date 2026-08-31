@@ -290,7 +290,7 @@ export function L2({
       pct === 0 && target !== null
         ? `Nothing delivered yet against ${fmt(target)} for the year.`
         : pct !== null
-          ? `At ${pct}% of the pace expected by now — the furthest behind here.`
+          ? `At ${pct}% of its target — the furthest behind here.`
           : 'The furthest behind here.'
     return { id: worst.k.id, reason }
   }, [visible, filters.yr])

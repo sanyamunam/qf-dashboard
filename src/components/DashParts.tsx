@@ -104,9 +104,10 @@ export function CollapsibleSummary({
 
   const tile = (k: ObsKpi, kind: 'onTarget' | 'attention') => {
     const a = actualFor(k, p) as number
-    const bar = expectedBy(k, p)
     const t = targetFor(k, p)
-    const paced = accrualOf(k) === 'cumulative' && p === 'q1'
+    /* the elapsed-year caveat, in words, only where it is load-bearing */
+    const bar = expectedBy(k, p)
+    const young = accrualOf(k) === 'cumulative' && p === 'q1' && kind === 'attention' && bar !== null
     return (
       <button
         key={k.row}
@@ -124,9 +125,13 @@ export function CollapsibleSummary({
         </span>
         {/* the reason, and the bar it was actually judged against */}
         <span className="mt-1 text-[11px] leading-snug" style={{ color: kind === 'onTarget' ? '#3f7300' : '#8a1538' }}>
-          {paced
-            ? `${kind === 'onTarget' ? 'at or above' : 'below'} ${fmt(bar as number)}${unitOf(k)} — the pace a full year of ${fmt(t as number)}${unitOf(k)} implies by now`
-            : `${kind === 'onTarget' ? 'meets' : 'below'} its target of ${fmt(t as number)}${unitOf(k)}${k.polarity === 'Red' ? ' · lower is better' : ''}`}
+          {`${kind === 'onTarget' ? 'meets' : 'below'} its target of ${fmt(t as number)}${unitOf(k)}${k.polarity === 'Red' ? ' · lower is better' : ''}`}
+          {young && (
+            <span className="mt-0.5 block text-ink-mute">
+              three months in — about {fmt(Math.round(bar as number))}
+              {unitOf(k)} would be expected by now
+            </span>
+          )}
         </span>
       </button>
     )
@@ -261,33 +266,23 @@ export function StatusCards({
             className="mt-2.5 rounded-card bg-card p-4 text-[12.5px] leading-relaxed text-ink-soft shadow-(--shadow-card)"
           >
             <p>
-              <span className="font-semibold text-ink">An assumption, not QF's finding.</span> QF has not set quarterly
-              milestones. {p === 'q1' ? (
-                <>
-                  So for the {RISK.elapsed * 100}% of the year Q1 represents ({RISK.elapsedLabel}), this platform assumes
-                  even accrual: a <span className="font-semibold text-ink">cumulative</span> indicator — anything that
-                  adds up over the year, {paced} of these {total} — is judged against{' '}
-                  {Math.round(RISK.elapsed * 100)}% of its annual target rather than the whole of it. Judged against the
-                  full-year number instead, two thirds of the Thematic portfolio would read as behind, almost none of it
-                  because anything is wrong.
-                </>
-              ) : (
-                <>
-                  For a closed year no pace assumption is needed: every figure is a full twelve months against a
-                  full-year target.
-                </>
-              )}
+              <span className="font-semibold text-ink">Measured against the target, plainly.</span> Attainment is the
+              reading divided by the commitment — {STATUS_LABEL.onTarget} at {Math.round(RISK.onTarget * 100)}% or
+              above, {STATUS_LABEL.belowTarget} from {Math.round(RISK.belowTarget * 100)}% to{' '}
+              {Math.round(RISK.onTarget * 100)}%, and {STATUS_LABEL.atRisk} below{' '}
+              {Math.round(RISK.belowTarget * 100)}%. Every card prints its own figure, so any verdict here can be
+              checked against the arithmetic that produced it. Both thresholds are a starting position rather than a
+              finding, and are meant to be tuned once QF has seen the result.
             </p>
-            <p className="mt-2">
-              A <span className="font-semibold text-ink">point-in-time</span> indicator — a rate, a percentage, a score,
-              an average — is a level that exists at an instant, so it is compared against its target directly in either
-              period. The split is inferred from each indicator's unit and wording, not read from a column:{' '}
-              <span className="font-semibold text-ink">
-                {paced} cumulative, {total - paced} point-in-time
-              </span>
-              . <span className="font-semibold text-ink">This classification is the platform's inference and QF should
-              correct it</span> where a row is on the wrong side.
-            </p>
+            {p === 'q1' && (
+              <p className="mt-2">
+                <span className="font-semibold text-ink">The year is not over, and the status does not pretend it is.</span>{' '}
+                Three months of twelve have closed, so a cumulative indicator — {paced} of these {total} — will read
+                behind simply because the year is young. That caveat belongs in words, on the card, in its own figures;
+                it is deliberately NOT folded into the number. Dividing by the elapsed quarter was tried and produced a
+                card reading “8 of 30 · on target”, which no arithmetic can defend to the person reading it.
+              </p>
+            )}
             <p className="mt-2">
               Direction comes from the sheet's Polarity column, never from the sign of a change — {within.filter((k) => k.polarity === 'Red').length} of
               these are lower-is-better, and for those an <span className="font-semibold text-ink">overshoot</span> is
@@ -295,14 +290,8 @@ export function StatusCards({
               <span className="font-semibold text-ink">{STATUS_LABEL.noTarget}</span>: no pass or fail is possible and
               none is invented.
             </p>
-            <p className="mt-2">
-              <span className="font-semibold text-ink">{STATUS_LABEL.atRisk}</span> means under{' '}
-              {Math.round(RISK.threshold * 100)}% of that expected pace — materially behind, not merely behind.{' '}
-              <span className="font-semibold text-ink">{STATUS_LABEL.belowTarget}</span> is everything between{' '}
-              {Math.round(RISK.threshold * 100)}% and 100%. Every card prints its own attainment, so any verdict here
-              can be checked against the arithmetic that produced it. The {Math.round(RISK.threshold * 100)}% line is a
-              starting position rather than a finding, and is meant to be tuned once QF has seen the result.
-            </p>
+            {/* the thresholds are stated once, in the opening paragraph — this
+                second copy said the same thing again in the old pace language */}
             <p className="mt-2">
               An indicator with <span className="font-semibold text-ink">no reading is never at risk</span> — it is{' '}
               {STATUS_LABEL.notReported}. A zero on a satisfaction score, an NPS or a rate is read as an empty cell

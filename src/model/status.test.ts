@@ -1,11 +1,11 @@
 /**
  * The numeric contract for the status model.
  *
- * The brief that specified `At Risk` came with its own tripwire: measured
- * against the raw annual target, 69–75 of the 151 Thematic indicators sit
- * below 25% of target — which is not 69 emergencies, it is a quarter of the
- * year elapsing. These tests exist to catch the day someone removes the pace
- * adjustment and the CEO's dashboard turns maroon.
+ * Attainment is measured against the TARGET. It was briefly measured against a
+ * quarter of the target instead — arithmetically defensible, and it produced a
+ * card reading "Beneficiaries · 8 of 30 · On target" plus figures like "560%
+ * of pace". The first test below is the one that would have caught it, and it
+ * fails the moment any multiplier returns.
  */
 import { describe, expect, it } from 'vitest'
 import { obsKpis, q1Of, isLowerBetter } from './obs'
@@ -21,6 +21,8 @@ import {
   bySeverity,
   statusCountsOf,
   statusFor,
+  actualFor,
+  targetFor,
   STATUS_DOT,
   worstSeverityOf,
 } from './status'
@@ -53,14 +55,44 @@ describe('a Q1 zero that is not a reading', () => {
   })
 })
 
-describe('At Risk is measured against expected pace, never the annual total', () => {
-  it('does not flag a quarter of the portfolio', () => {
-    const n = thematicRows.filter((k) => statusFor(k, 'q1') === 'atRisk').length
-    /* THE TRIPWIRE. Against the raw annual target 75 of these 151 sit below
-       25% — a quarter of the year elapsing, not 75 emergencies. If this
-       assertion fails upward, the pace adjustment has been lost. */
-    expect(n).toBeLessThan(40)
-    expect(n).toBeGreaterThan(10)
+describe('attainment is measured against the target', () => {
+  it('NEVER calls an indicator on target while it sits below its target', () => {
+    /* THE SANITY CHECK. Attainment used to be measured against a quarter of
+       the target, so "Beneficiaries · 8 of 30" scored 107% and read On
+       target. Any reappearance of a multiplier fails here. */
+    const wrong = obsKpis.filter((k) => {
+      const a = actualFor(k, 'q1')
+      const t = targetFor(k, 'q1')
+      if (a === null || t === null || t === 0 || isLowerBetter(k)) return false
+      return a < t && statusFor(k, 'q1') === 'onTarget'
+    })
+    expect(wrong.map((k) => k.name.trim())).toEqual([])
+  })
+
+  it('never reports attainment above 100% while the actual is below target', () => {
+    for (const k of obsKpis) {
+      const a = actualFor(k, 'q1')
+      const t = targetFor(k, 'q1')
+      const att = attainmentOf(k, 'q1')
+      if (a === null || t === null || t === 0 || isLowerBetter(k) || att === null) continue
+      if (a < t) expect(att).toBeLessThan(1)
+    }
+  })
+
+  it('grades the six Progressive Education indicators as the brief states', () => {
+    const expected: [string, number, string][] = [
+      ['Beneficiaries', 27, 'atRisk'],
+      ['International Engagements', 30, 'atRisk'],
+      ['National Engagements', 40, 'atRisk'],
+      ['International Partnerships', 67, 'belowTarget'],
+      ['Multiversity', 80, 'belowTarget'],
+      ['National Partnerships', 140, 'onTarget'],
+    ]
+    for (const [name, pct, status] of expected) {
+      const k = obsKpis.find((x) => x.name.trim() === name && x.theme === 'Progressive Education')!
+      expect(Math.round((attainmentOf(k, 'q1') ?? 0) * 100)).toBe(pct)
+      expect(statusFor(k, 'q1')).toBe(status)
+    }
   })
 
   it('leaves the Executive set small enough to act on', () => {
@@ -102,8 +134,10 @@ describe('At Risk is measured against expected pace, never the annual total', ()
     expect(obsKpis.filter(isLowerBetter)).toHaveLength(15)
   })
 
-  it('puts the threshold in a settings object so QF can tune it', () => {
-    expect(RISK.threshold).toBe(0.5)
+  it('puts both thresholds in a settings object so QF can tune them', () => {
+    expect(RISK.onTarget).toBe(1)
+    expect(RISK.belowTarget).toBe(0.5)
+    /* elapsed survives for the CAPTION only — it must never reach the maths */
     expect(RISK.elapsed).toBe(0.25)
   })
 

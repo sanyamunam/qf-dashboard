@@ -119,7 +119,7 @@ function lineFor(rows: ObsKpi[], clauses: Clause[], text: string, p: Period): st
   /* the two furthest behind, named, with the arithmetic that says so */
   const worst = risky.slice(0, 2).map((k) => k.name.trim())
   const att = attainmentOf(risky[0], p)
-  const pct = att !== null && Number.isFinite(att) ? `${Math.round(att * 100)}% of the pace expected by now` : null
+  const pct = att !== null && Number.isFinite(att) ? `${Math.round(att * 100)}% of target` : null
   const lead =
     worst.length > 1 ? `${worst[0]} and ${worst[1]} are furthest behind` : `${worst[0]} is furthest behind`
   return `${n} ${noun} · ${what} — ${lead}${pct ? ` (${pct})` : ''}.`

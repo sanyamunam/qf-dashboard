@@ -28,6 +28,7 @@ import {
   RISK as RISK_,
   actualFor,
   attainmentOf,
+  expectedBy,
   bySeverity,
   statusCountsOf,
   statusFor,
@@ -373,22 +374,55 @@ export function lineFor(k: ObsKpi, p: Period): string {
 
   if (kind === 'judged') {
     const t = targetFor(k, p) as number
+    const a = actualFor(k, p) as number
+
+    /**
+     * THE ELAPSED-TIME CAVEAT — the right home for the argument that used to
+     * live in the arithmetic.
+     *
+     * The status is judged against the whole target, so an indicator a quarter
+     * of the way to its number reads At risk in March. That is honest, and on
+     * its own it is also incomplete: the year is not over. A sentence can
+     * carry that where a percentage cannot, and it carries it in this
+     * indicator's OWN figures, so no two cards say the same thing.
+     *
+     * Only where it is load-bearing: a cumulative count in a partial period
+     * that is actually behind. A rate is a level that exists at an instant, and
+     * an indicator already past its target needs no excuse made for it.
+     */
+    if (p === 'q1' && accrualOf(k) === 'cumulative' && a < t) {
+      const by = expectedBy(k, p)
+      /* only where the expectation is a whole unit or more. On a target of 1
+         or 2 it rounds to "about 0 of 1 would be expected by now", which is
+         both silly and useless — a target that small says nothing about pace. */
+      if (by !== null && Math.round(by) >= 1)
+        return `Three months in: about ${n(k, Math.round(by))} of ${n(k, t)} would be expected by now if delivery is even.`
+    }
+
     /* a target that moved is the one thing a value-against-target mark can
-       never show — and "on target" means something different once you know */
+       never show — and "on target" means something different once you know.
+       Kept SHORT: the long form ran past the card's two-line clamp and was
+       cut mid-sentence at "…before it was reset to". */
     const moved = anyTarget.filter(([, v]) => v !== t)
     if (moved.length) {
       const lastMoved = moved[moved.length - 1]
-      return `The commitment was ${n(k, lastMoved[1])} through ${lastMoved[0]} before it was reset to ${n(k, t)}; performance is read against the current one.`
+      return `Commitment reset from ${n(k, lastMoved[1])} to ${n(k, t)}; read against the current one.`
     }
+
     if (years.length >= 2) {
       const vals = years.map(([, v]) => v)
       const lo = Math.min(...vals)
       const hi = Math.max(...vals)
-      return `Closed years have run ${n(k, lo)} to ${n(k, hi)} — the plan allows ${n(k, t)}.`
+      return `Closed years ran ${n(k, lo)} to ${n(k, hi)}; the plan allows ${n(k, t)}.`
     }
-    /* named, so eight first-reading cards in one listing do not all carry the
-       same sentence — the commitment is the part that differs */
-    return `The first reading this indicator carries, against a commitment of ${n(k, t)} for ${p === 'q1' ? '2026' : '2025'}.`
+
+    /**
+     * Nothing specific left to say. The old fallback — "The first reading this
+     * indicator carries, against a commitment of X" — ran verbatim on six
+     * cards in one screenshot, which is a caption that costs space and says
+     * nothing the figure above it has not. Silence is the better answer.
+     */
+    return ''
   }
 
   if (kind === 'trend') {
@@ -472,7 +506,7 @@ export function summaryFor(p: Period, within: ObsKpi[] = dashTen): DashSummary {
   const collapsed =
     c.atRisk.length > 0 && atRisk
       ? `${c.atRisk.length} of ${n} at risk ${label} — ${atRisk.name.trim()} is furthest behind${
-          worstPct !== null ? ` at ${worstPct}% of the pace expected by now` : ''
+          worstPct !== null ? ` at ${worstPct}% of its target` : ''
         }; ${c.belowTarget.length} below target, ${c.onTarget.length} on target, ${c.noTarget.length} without a target and ${plural(
           c.notReported.length,
           'has',
@@ -487,8 +521,8 @@ export function summaryFor(p: Period, within: ObsKpi[] = dashTen): DashSummary {
   const cumulative = within.filter((k) => accrualOf(k) === 'cumulative').length
   const prose =
     p === 'q1'
-      ? `Three months in, so ${cumulative} of these ${n} are judged against ${Math.round(RISK_.elapsed * 100)}% of their annual number rather than the whole of it — even accrual is the platform's assumption, not a milestone QF has set. At risk means under ${Math.round(RISK_.threshold * 100)}% of that pace, which is what separates ${c.atRisk.length} worth acting on from the ${c.belowTarget.length} merely behind. The ${c.notReported.length} not reported have no reading at all — a zero on a satisfaction score or an NPS is read as an empty cell, never as a collapse — so none of them can be at risk. The ${c.noTarget.length} with no target carry a reading but nothing to judge it against, and no verdict is invented.`
-      : `The complete-year view: every figure is a closed twelve months against a full-year target, so no pace assumption applies. ${c.onTarget.length} met or beat their number, ${c.belowTarget.length} fell short and ${c.atRisk.length} came in under ${Math.round(RISK_.threshold * 100)}% of it; ${c.noTarget.length} carry no 2025 target and are watched rather than judged, and ${c.notReported.length} have nothing on record for the year.`
+      ? `Every figure here is measured against its full-year commitment — ${c.onTarget.length} have met theirs, ${c.belowTarget.length} sit between ${Math.round(RISK_.belowTarget * 100)}% and it, and ${c.atRisk.length} are under ${Math.round(RISK_.belowTarget * 100)}%. Three months of twelve have closed, so ${cumulative} of these ${n} accrue across the year and will read behind simply because it is young; that caveat is on each card, in its own numbers, rather than folded into the percentage. The ${c.notReported.length} not reported have no reading at all, so none of them can be at risk, and the ${c.noTarget.length} with no target carry a reading but nothing to judge it against.`
+      : `The complete-year view: every figure is a closed twelve months against a full-year target. ${c.onTarget.length} met or beat their number, ${c.belowTarget.length} fell short of it and ${c.atRisk.length} came in under ${Math.round(RISK_.belowTarget * 100)}% of it; ${c.noTarget.length} carry no ${p} target and are watched rather than judged, and ${c.notReported.length} have nothing on record for the year.`
   return { collapsed, prose, onTarget: performing, atRisk }
 }
 

@@ -326,8 +326,9 @@ export function Executive({ onEvidence }: { onEvidence: (kpi: Kpi) => void }) {
         {STATUS_ORDER.map((s) => counts[s].length).join(' + ')} ={' '}
         <span className="font-semibold text-ink-soft">{execRows.length}</span> Executive indicators, judged for{' '}
         {PERIOD_LABEL[period]} only. <span className="font-semibold text-ink-soft">{STATUS_LABEL.atRisk}</span> means
-        under {Math.round(RISK.threshold * 100)}% of the pace a full-year target implies by now — materially behind
-        rather than merely behind — and every card prints its own attainment so the verdict can be checked.{' '}
+        under {Math.round(RISK.belowTarget * 100)}% of its target, {STATUS_LABEL.belowTarget.toLowerCase()} is between
+        that and {Math.round(RISK.onTarget * 100)}%, and every card prints its own figure so the verdict can be
+        checked.{' '}
         <span className="font-semibold text-ink-soft">{STATUS_LABEL.noTarget}</span> means a reading with nothing to
         judge it against, so no pass or fail is possible and none is invented.
       </p>

@@ -184,7 +184,7 @@ export function KpiCard({
           {status}
           {attainment !== null && attainment !== undefined && Number.isFinite(attainment) && (
             <span className="num shrink-0 text-[10.5px] font-medium tabular-nums text-ink-mute">
-              {Math.round(attainment * 100)}% of pace
+              {Math.round(attainment * 100)}% of target
             </span>
           )}
         </div>
@@ -263,12 +263,18 @@ export function KpiCard({
           the shared SnapshotMark under an L1 state that renders to nothing. */}
       {markBody && <div className="mt-2.5">{markBody}</div>}
 
-      <p className={`mt-2 flex items-start gap-1.5 border-t border-cream pt-2 text-[11.5px] italic leading-snug text-ink-soft`}>
-        <span className="mt-0.5 shrink-0">
-          <Spark size={10} />
-        </span>
-        <span className={lg ? 'line-clamp-2' : 'line-clamp-1'}>{line ?? aiLineFor(group)}</span>
-      </p>
+      {/* An EMPTY caption draws nothing at all — not a rule, an icon and a
+          blank line. `lineFor` now returns '' where it has nothing specific to
+          say rather than repeating a sentence across six cards, and a card
+          with nothing to add should look like one. */}
+      {(line ?? aiLineFor(group)) !== '' && (
+        <p className={`mt-2 flex items-start gap-1.5 border-t border-cream pt-2 text-[11.5px] italic leading-snug text-ink-soft`}>
+          <span className="mt-0.5 shrink-0">
+            <Spark size={10} />
+          </span>
+          <span className={lg ? 'line-clamp-2' : 'line-clamp-1'}>{line ?? aiLineFor(group)}</span>
+        </p>
+      )}
     </button>
   )
 }
