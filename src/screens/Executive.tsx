@@ -37,7 +37,7 @@ import {
   attainmentOf,
   bySeverity,
   worstSeverityOf,
-  STATUS_ORDER,
+  STATUS_DISPLAY_ORDER,
   RISK,
   deltaFor,
   yoyFor,
@@ -288,7 +288,7 @@ export function Executive({ onEvidence }: { onEvidence: (kpi: Kpi) => void }) {
           period, never hard-coded. Clicking opens the listing filtered to
           that status, where the filter shows as a removable chip. */}
       <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
-        {STATUS_ORDER.map((st, i) => {
+        {STATUS_DISPLAY_ORDER.map((st, i) => {
           const list = counts[st]
           const onDash = list.filter((k) => k.highlighted).length
           return (
@@ -322,8 +322,9 @@ export function Executive({ onEvidence }: { onEvidence: (kpi: Kpi) => void }) {
 
       <p className="mt-2.5 text-[11.5px] text-ink-mute">
         {/* the same five, in the same severity order as the cards above — read
-            from STATUS_ORDER so the line can never fall behind the row */}
-        {STATUS_ORDER.map((s) => counts[s].length).join(' + ')} ={' '}
+            from STATUS_DISPLAY_ORDER so the line can never fall behind the
+            row above it */}
+        {STATUS_DISPLAY_ORDER.map((s) => counts[s].length).join(' + ')} ={' '}
         <span className="font-semibold text-ink-soft">{execRows.length}</span> Executive indicators, judged for{' '}
         {PERIOD_LABEL[period]} only. <span className="font-semibold text-ink-soft">{STATUS_LABEL.atRisk}</span> means
         behind the pace its target implies by now — the dashed tick on each card's bar —{' '}

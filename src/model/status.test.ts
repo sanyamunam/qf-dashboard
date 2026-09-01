@@ -17,6 +17,7 @@ const THEME_IDS = Object.fromEntries(THEMES.map((t) => [t.id, t.name]))
 import {
   RISK,
   STATUS_ORDER,
+  STATUS_DISPLAY_ORDER,
   attainmentOf,
   bySeverity,
   statusCountsOf,
@@ -207,6 +208,23 @@ describe('risk-first ordering', () => {
   it('severity order runs At Risk first and On target last', () => {
     expect(STATUS_ORDER[0]).toBe('atRisk')
     expect(STATUS_ORDER[STATUS_ORDER.length - 1]).toBe('onTarget')
+  })
+
+  it('the display order is QF’s, and is NOT the severity ranking', () => {
+    /* Reordering STATUS_ORDER to match the design would silently invert every
+       risk-first sort — severityOf ranks by its index, so On target would
+       become the most urgent thing in the portfolio. Two arrays, on purpose. */
+    expect(STATUS_DISPLAY_ORDER).toEqual(['onTarget', 'belowTarget', 'atRisk', 'notReported', 'noTarget'])
+    expect(STATUS_DISPLAY_ORDER).not.toEqual(STATUS_ORDER)
+    /* but they must describe the same five states, or a dashboard row would
+       silently drop one and the reconciliation line would stop summing */
+    expect([...STATUS_DISPLAY_ORDER].sort()).toEqual([...STATUS_ORDER].sort())
+  })
+
+  it('severity still ranks worst-first after the display order was added', () => {
+    const ranked = [...thematicRows].sort(bySeverity('q1'))
+    expect(statusFor(ranked[0], 'q1')).toBe('atRisk')
+    expect(statusFor(ranked[ranked.length - 1], 'q1')).toBe('onTarget')
   })
 })
 

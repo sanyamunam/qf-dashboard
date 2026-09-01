@@ -22,7 +22,7 @@ import {
   obsAsKpi,
   unitOf,
   RISK,
-  STATUS_ORDER,
+  STATUS_DISPLAY_ORDER,
   STATUS_LABEL,
   STATUS_DOT,
   STATUS_SENSE,
@@ -209,10 +209,11 @@ export function StatusCards({
           grid and become a severity ROW — read left to right, worst first — so
           the layout carries the ranking rather than merely holding the cards.
           2-up on a phone, 3-up on a tablet, all five only where they stay
-          legible. `STATUS_ORDER` supplies the order, so the row can never
-          disagree with the sort beneath it. */}
+          legible. `STATUS_DISPLAY_ORDER` is QF's own reading order — healthy
+          end first, the two no-verdict states last — and is deliberately NOT
+          the severity ranking the listings sort by. */}
       <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
-        {STATUS_ORDER.map((st, i) => {
+        {STATUS_DISPLAY_ORDER.map((st, i) => {
           const list = counts[st]
           return (
             <motion.button
@@ -244,7 +245,7 @@ export function StatusCards({
 
       <div className="mt-2.5 flex flex-wrap items-baseline gap-x-3 gap-y-1.5">
         <p className="text-[11.5px] text-ink-mute">
-          {STATUS_ORDER.map((s) => counts[s].length).join(' + ')} ={' '}
+          {STATUS_DISPLAY_ORDER.map((s) => counts[s].length).join(' + ')} ={' '}
           <span className="font-semibold text-ink-soft">{total}</span> {noun}, judged for {PERIOD_LABEL[p]} only.
         </p>
         <button

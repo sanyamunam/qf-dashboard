@@ -67,6 +67,31 @@ export type DashStatus = 'atRisk' | 'belowTarget' | 'onTarget' | 'noTarget' | 'n
  */
 export const STATUS_ORDER: DashStatus[] = ['atRisk', 'belowTarget', 'noTarget', 'notReported', 'onTarget']
 
+/**
+ * The order the five states are READ IN on a dashboard — which is not the order
+ * they are RANKED in.
+ *
+ * QF's own design sets it: Performing, Watch, At Risk, Not Reported,
+ * Monitoring. It runs from the healthy end toward the problems and finishes
+ * with the two states that carry no verdict, so the row reads as a spectrum
+ * rather than as a queue.
+ *
+ * It has to be a SEPARATE array from `STATUS_ORDER`, and the reason is worth
+ * recording: `severityOf` computes an indicator's rank from
+ * `STATUS_ORDER.indexOf(...)`. Reordering that one array to match the design
+ * would silently invert every risk-first sort on the platform — On target would
+ * become the most urgent thing in the portfolio, and the listings, the
+ * needs-attention band and BOTaina's pointer would all quietly agree with it.
+ * One array is a ranking; this one is a layout.
+ */
+export const STATUS_DISPLAY_ORDER: DashStatus[] = [
+  'onTarget',
+  'belowTarget',
+  'atRisk',
+  'notReported',
+  'noTarget',
+]
+
 export const STATUS_LABEL: Record<DashStatus, string> = {
   atRisk: 'At risk',
   belowTarget: 'Below target',
