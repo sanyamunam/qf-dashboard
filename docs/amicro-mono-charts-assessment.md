@@ -112,3 +112,33 @@ stage-inside-card structure. That can be applied to our own marks under §2's
 "keep the current implementation for that mark and match its styling to the
 library's", with no dependency and no second engine. Not done here; awaiting a
 decision.
+
+---
+
+## 5. Addendum — `github.com/Subhan-code/Monocharts` (checked 2026-09-02)
+
+Proposed as an alternative. **It is the same project under a different repo name,
+at an older commit.** Same `Amicro logo.jpg`, same `registry/`, same
+`package.json` — `@subhanhq/amicro` v1.0.1. Created and last pushed the same day,
+2026-08-15; the Amicro repo has moved on since.
+
+All 29 mono-chart files were downloaded from it and diffed against the Amicro
+copies:
+
+- **19 of 29 byte-identical**, including every component that matters here —
+  `MonoRoundedBulletChart`, `MonoRoundedGaugeArc`, `MonoRoundedMeterChart` and
+  `MonoRoundedRadialGaugeChart` all match exactly.
+- **10 differ**, and the entire difference is a mobile-animation tweak: the newer
+  Amicro copies add `useIsMobile()` and gate `isAnimationActive` / `animationDuration`
+  on it. No API change, no data plumbing.
+
+The API surface is identical: `{theme?, compact?}` across 28 files plus one
+`accentColor?`. Zero data props. Zero `LabelList`. The same 21 of 29 on recharts.
+
+**On npm**, `@subhanhq/amicro` (1.0.0, 1.0.1) publishes `main: dist/index.html`
+with no `exports` and no `bin` — it ships the *built demo website*, not importable
+components. `import { MonoRoundedBulletChart } from '@subhanhq/amicro'` cannot
+resolve.
+
+**Verdict unchanged.** This is the older snapshot of the library already assessed,
+so it fails the same four §5 gates, for the same reasons, in the same files.
