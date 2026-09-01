@@ -59,6 +59,11 @@ import type { Kpi } from '../model/types'
 
 const EASE: [number, number, number, number] = [0.32, 0.72, 0, 1]
 
+/** Cards rendered per page. 60 paints in about a second; all 241 takes three
+ *  and produces a 19,600px scroll, which is why this is paged rather than
+ *  simply uncapped. */
+const PAGE = 60
+
 const hueFor = (theme: string | null) => themeByName(theme ?? '').fill
 
 function RowMeta({ k, p }: { k: ObsKpi; p: Period }) {
@@ -119,6 +124,12 @@ export function Search({ onEvidence, onBack }: { onEvidence: (kpi: Kpi) => void;
   )
   const result = useMemo(() => searchWith(typed, picks, period), [typed, picks, period])
   const shown = result.rows
+
+  /* how many are in the DOM. Reset on every new result set, so changing a
+     filter never leaves the reader scrolled into a page that no longer
+     describes what they asked for. */
+  const [visible, setVisible] = useState(PAGE)
+  useEffect(() => setVisible(PAGE), [typed, picks, period])
 
   const toggle = (kind: Chip['kind'], value: string, label = value) =>
     setChips((prev) => {
@@ -368,7 +379,7 @@ export function Search({ onEvidence, onBack }: { onEvidence: (kpi: Kpi) => void;
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.35, ease: EASE }}
             >
-              {shown.slice(0, 60).map((k) => (
+              {shown.slice(0, visible).map((k) => (
                 <KpiCard
                   key={k.row}
                   group={[cardKpi(k, period)]}
@@ -387,10 +398,42 @@ export function Search({ onEvidence, onBack }: { onEvidence: (kpi: Kpi) => void;
               ))}
             </motion.div>
           )}
-          {shown.length > 60 && (
-            <p className="mt-4 text-[12px] text-ink-mute">
-              Showing the first 60 of {shown.length} — narrow with a facet or a search term.
-            </p>
+          {/**
+           * Nothing is hidden — it is PAGED, and the reader decides.
+           *
+           * The old line stopped at 60 and told the reader to narrow their
+           * search, which put the burden on them for a limit the page chose.
+           * But rendering all 241 costs about three seconds of jank on every
+           * filter change and a 19,600px scroll, so paging is not arbitrary:
+           * the first page paints in about a second, and everything beyond it
+           * is one click away.
+           *
+           * "Show all" exists because a page that only loads on demand cannot
+           * be searched with the browser's own find — anyone scanning or
+           * printing the full list needs it in the DOM.
+           */}
+          {shown.length > visible && (
+            <div className="mt-6 flex flex-wrap items-center gap-3">
+              <button
+                onClick={() => setVisible((v) => v + PAGE)}
+                className="rounded-full px-4 py-2 text-[12.5px] font-semibold text-white transition-transform duration-200 hover:-translate-y-[1px]"
+                style={{ background: 'linear-gradient(180deg, #107660 0%, #095c4a 100%)' }}
+              >
+                Show {Math.min(PAGE, shown.length - visible)} more
+              </button>
+              <button
+                onClick={() => setVisible(shown.length)}
+                className="text-[12.5px] font-medium text-sidra underline underline-offset-2"
+              >
+                Show all {shown.length}
+              </button>
+              <span className="text-[12px] text-ink-mute">
+                showing {visible} of {shown.length}
+              </span>
+            </div>
+          )}
+          {shown.length > PAGE && shown.length === visible && (
+            <p className="mt-6 text-[12px] text-ink-mute">All {shown.length} shown.</p>
           )}
         </div>
       </div>
