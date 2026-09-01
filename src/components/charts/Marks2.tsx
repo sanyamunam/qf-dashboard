@@ -39,6 +39,7 @@ const skinFor = (hues: TrendHues, dark?: boolean): TrendSkin =>
 import { selectL1, selectL2, type L1Mark, type L2Mark, type TrendPoint, type Period } from '../../model/chartSelect'
 import type { DashStatus } from '../../model/status'
 import { L1_FILL, L1_GAP, L1_INK } from './l1Palette'
+import { numStyle, microStyle } from './chartType'
 import type { ObsKpi } from '../../model/obs'
 
 /* the reference's own chart palette */
@@ -111,7 +112,7 @@ export function BulletMark({ m }: { m: Extract<L1Mark, { kind: 'bullet' }> }) {
   /* only label it where the label has room to sit clear of "target N" */
   const paceLabel = paceX !== null && tickX - paceX > 46
   return (
-    <svg viewBox={`0 0 ${W} 42`} height="42" width="100%" style={{ overflow: 'visible' }} aria-hidden>
+    <svg viewBox={`0 0 ${W} 42`} height="42" width="100%" style={{ overflow: 'visible', ...numStyle }} aria-hidden>
       <rect x="0" y="12" width={W} height="14" rx="7" fill={TRACK} />
       <rect x="0" y="12" width={fillW} height="14" rx="7" fill={L1_FILL[m.tone]} />
       {paceX !== null && (
@@ -126,14 +127,14 @@ export function BulletMark({ m }: { m: Extract<L1Mark, { kind: 'bullet' }> }) {
         />
       )}
       {paceLabel && (
-        <text x={paceX as number} y="40" textAnchor="middle" fontSize="9" fill={GREY}>
+        <text x={paceX as number} y="40" textAnchor="middle" fontSize="9" fill={GREY} style={microStyle}>
           by now
         </text>
       )}
       {/* the target marker — when the value overshoots it sits INSIDE the fill,
           which is the thing an arc cannot do */}
       <line x1={tickX} y1="6" x2={tickX} y2="32" stroke={inside ? '#0e4a2a' : BRAND} strokeWidth="2.5" />
-      <text x={Math.max(28, tickX - 8)} y="40" textAnchor="end" fontSize="10" fill={GREY}>
+      <text x={Math.max(28, tickX - 8)} y="40" textAnchor="end" fontSize="10" fill={GREY} style={microStyle}>
         target {val(m.target, m.unit)}
       </text>
       <text
@@ -160,7 +161,7 @@ export function GaugeMark({ m }: { m: Extract<L1Mark, { kind: 'gauge' }> }) {
   const tickIn = { x: CX + (R - 12) * Math.cos(Math.PI * (1 - tt)), y: CY - (R - 12) * Math.sin(Math.PI * (1 - tt)) }
   const tickOut = { x: CX + (R + 12) * Math.cos(Math.PI * (1 - tt)), y: CY - (R + 12) * Math.sin(Math.PI * (1 - tt)) }
   return (
-    <svg viewBox="0 0 176 106" width="100%" height="118" style={{ overflow: 'visible' }} aria-hidden>
+    <svg viewBox="0 0 176 106" width="100%" height="118" style={{ overflow: 'visible', ...numStyle }} aria-hidden>
       <path d={arc(0, 1)} fill="none" stroke={TRACK} strokeWidth="14" strokeLinecap="round" />
       {/* the shortfall, drawn rather than implied: amber sits in the space
           between where the fill stops and where the target is */}
@@ -170,8 +171,8 @@ export function GaugeMark({ m }: { m: Extract<L1Mark, { kind: 'gauge' }> }) {
       <text x={CX} y="74" textAnchor="middle" fontSize="26" fontWeight="700" fill={L1_INK[m.tone]}>
         {val(m.value, m.unit)}
       </text>
-      <text x="28" y="98" fontSize="10" fill={GREY}>0%</text>
-      <text x="148" y="98" textAnchor="end" fontSize="10" fill={GREY}>100%</text>
+      <text x="28" y="98" fontSize="10" fill={GREY} style={microStyle}>0%</text>
+      <text x="148" y="98" textAnchor="end" fontSize="10" fill={GREY} style={microStyle}>100%</text>
       <text
         x={Math.min(150, Math.max(6, tick.x + (tt > 0.5 ? 8 : -8)))}
         y={Math.max(12, tick.y - 12)}
@@ -201,7 +202,7 @@ export function CentredGaugeMark({ m }: { m: Extract<L1Mark, { kind: 'centredGau
   const tone = L1_FILL[m.tone]
   const ink = L1_INK[m.tone]
   return (
-    <svg viewBox="0 0 176 112" width="100%" height="124" style={{ overflow: 'visible' }} aria-hidden>
+    <svg viewBox="0 0 176 112" width="100%" height="124" style={{ overflow: 'visible', ...numStyle }} aria-hidden>
       <path d={arc(0, 1)} fill="none" stroke={TRACK} strokeWidth="14" strokeLinecap="round" />
       {/* flat zones. They begin exactly where the sheet's tolerance ends — a
           smooth red-amber-green sweep would invent boundaries nobody set */}
@@ -216,11 +217,11 @@ export function CentredGaugeMark({ m }: { m: Extract<L1Mark, { kind: 'centredGau
         {m.value > 0 ? '+' : ''}
         {val(m.value, m.unit)}
       </text>
-      <text x="26" y="96" fontSize="10" fill={GREY}>−{m.span}%</text>
-      <text x="150" y="96" textAnchor="end" fontSize="10" fill={GREY}>+{m.span}%</text>
-      <text x={CX} y="10" textAnchor="middle" fontSize="10" fontWeight="700" fill={BRAND}>{m.zeroLabel}</text>
-      <text x="40" y="48" fontSize="10" fontWeight="600" fill={AMBER_INK}>under</text>
-      <text x="122" y="48" fontSize="10" fontWeight="600" fill="#b5493c">over</text>
+      <text x="26" y="96" fontSize="10" fill={GREY} style={microStyle}>−{m.span}%</text>
+      <text x="150" y="96" textAnchor="end" fontSize="10" fill={GREY} style={microStyle}>+{m.span}%</text>
+      <text x={CX} y="10" textAnchor="middle" fontSize="10" fontWeight="700" fill={BRAND} style={microStyle}>{m.zeroLabel}</text>
+      <text x="40" y="48" fontSize="10" fontWeight="600" fill={AMBER_INK} style={microStyle}>under</text>
+      <text x="122" y="48" fontSize="10" fontWeight="600" fill="#b5493c" style={microStyle}>over</text>
     </svg>
   )
 }
@@ -238,7 +239,7 @@ export function BareFigureMark({ m, note, compact }: { m: Extract<L1Mark, { kind
   if (compact) return null
   return (
     <div>
-      <div className="text-[30px] font-bold leading-none" style={{ color: '#1e2422' }}>
+      <div className="num text-[30px] font-bold leading-none" style={{ color: '#1e2422' }}>
         {val(m.value, m.unit)}
       </div>
       <p className="mt-1.5 text-[12px]" style={{ color: '#75787b' }}>
@@ -497,14 +498,14 @@ export function TwoValueMark({ m, hues = TREND_NEUTRAL, dark }: { m: Extract<L2M
       className="flex-1 rounded-input px-3.5 py-3"
       style={c.partial ? { border: `1px dashed ${BORDER}` } : { background: '#f4f2f8' }}
     >
-      <div className="text-[10px]" style={{ color: GREY }}>{c.label}</div>
+      <div className="text-[10px]" style={{ color: GREY, ...microStyle }}>{c.label}</div>
       {/* neutral ink, like every other L2 reading — in brand green these two
           figures read as a verdict on an indicator with too few readings to
           call a direction at all */}
-      <div className="text-[24px] font-bold leading-none" style={{ color: c.partial ? '#53565a' : skin.hues.now, marginTop: 4 }}>
+      <div className="num text-[24px] font-bold leading-none" style={{ color: c.partial ? '#53565a' : skin.hues.now, marginTop: 4 }}>
         {val(c.value, m.unit)}
       </div>
-      <div className="mt-1.5 text-[10px]" style={{ color: GREY }}>{c.span}</div>
+      <div className="mt-1.5 text-[10px]" style={{ color: GREY, ...microStyle }}>{c.span}</div>
     </div>
   )
   return <div className="flex gap-3">{[cell(m.a), cell(m.b)]}</div>
@@ -514,7 +515,7 @@ export function TwoValueMark({ m, hues = TREND_NEUTRAL, dark }: { m: Extract<L2M
 export function BaselineMark({ m }: { m: Extract<L2Mark, { kind: 'baseline' }> }) {
   return (
     <div>
-      <div className="text-[30px] font-bold leading-none" style={{ color: '#1e2422' }}>
+      <div className="num text-[30px] font-bold leading-none" style={{ color: '#1e2422' }}>
         {val(m.value, m.unit)}
       </div>
       <p className="mt-1.5 text-[12px]" style={{ color: '#75787b' }}>

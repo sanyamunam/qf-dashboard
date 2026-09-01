@@ -15,6 +15,7 @@
  */
 import { TrajectoryMark } from '../marks'
 import { SnapshotMark } from './SnapshotMark'
+import { BAR_RADIUS_CSS } from './chartType'
 import {
   completedYears,
   partialReading,
@@ -89,7 +90,7 @@ export function BarTrendMark({
               height: `${Math.max(2, (v / max) * 100)}%`,
               background: hue,
               opacity: i === lastIdx ? 1 : 0.38,
-              borderRadius: '3px 3px 0 0',
+              borderRadius: BAR_RADIUS_CSS,
             }}
           />
         ))}

@@ -10,6 +10,7 @@ import { obsForKpi } from '../../model/bridge'
 import { statusFor, statusForYear, paceMarkerFor, type DashStatus } from '../../model/status'
 import { L1_FILL, L1_INK, L1_MIN_FILL_PCT } from './l1Palette'
 import { AXIS, TOOLTIP, TARGET_LINE } from './EChart'
+import { BAR_RADIUS } from './chartType'
 
 export const SERIES_PALETTE = ['#034638', '#556bb4', '#0cc1e9', '#e5a823', '#5b2e8a', '#b9dc7a', '#c8c9c7']
 
@@ -71,7 +72,7 @@ function buildOption(group: Kpi[], hue: string): EChartsOption {
       type: (wantsLine ? 'line' : 'bar') as 'line' | 'bar',
       yAxisIndex: dualAxis ? i : 0,
       data: years.map((y) => r.get(y) ?? null),
-      itemStyle: { color: group.length === 1 ? hue : SERIES_PALETTE[i % SERIES_PALETTE.length], borderRadius: wantsLine ? 0 : [3, 3, 0, 0] },
+      itemStyle: { color: group.length === 1 ? hue : SERIES_PALETTE[i % SERIES_PALETTE.length], borderRadius: wantsLine ? 0 : BAR_RADIUS },
       lineStyle: wantsLine ? { width: 2.4 } : undefined,
       symbolSize: 7,
       connectNulls: false,
@@ -690,7 +691,7 @@ export function overlayTrendOption(group: Kpi[], hue: string): EChartsOption {
       type: 'bar',
       barMaxWidth: 22,
       data: AXIS_YEARS.map((y) => (y === '2026' ? q1Actual(k) : (k.actuals[y]?.value ?? null))),
-      itemStyle: { color, borderRadius: [3, 3, 0, 0] },
+      itemStyle: { color, borderRadius: BAR_RADIUS },
       label: {
         show: true,
         position: 'top',

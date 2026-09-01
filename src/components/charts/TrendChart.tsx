@@ -22,6 +22,7 @@ import { fmt } from '../../model/data'
 import type { TrendPoint, PartialReading } from '../../model/chartSelect'
 import type { TrendHues } from './trendPalette'
 import { TREND_TARGET, TREND_TARGET_DARK, TREND_RULE, TREND_RULE_DARK, TREND_AXIS_INK, TREND_AXIS_INK_DARK, TREND_DARK } from './trendPalette'
+import { BAR_RADIUS } from './chartType'
 
 const compact = (n: number) => {
   const a = Math.abs(n)
@@ -106,7 +107,7 @@ export function TrendChart({
   })
 
   /** the latest reported period carries the full hue; earlier ones the tint */
-  const actualStyle = (i: number) => ({ color: i === lastIdx ? series0.now : series0.past, borderRadius: [3, 3, 0, 0] as [number, number, number, number] })
+  const actualStyle = (i: number) => ({ color: i === lastIdx ? series0.now : series0.past, borderRadius: BAR_RADIUS })
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const series: any[] = (
@@ -126,7 +127,7 @@ export function TrendChart({
             type: 'bar',
             data: shown.map((p) => p.target),
             barMaxWidth: 24,
-            itemStyle: { color: 'transparent', borderColor: target, borderWidth: 1.4, borderType: 'dashed', borderRadius: [3, 3, 0, 0] },
+            itemStyle: { color: 'transparent', borderColor: target, borderWidth: 1.4, borderType: 'dashed', borderRadius: BAR_RADIUS },
             label: label(target, { off: narrow, hideIfSameAsActual: true }),
             labelLayout: { hideOverlap: true },
             z: 2,
@@ -154,7 +155,7 @@ export function TrendChart({
                   itemStyle: {
                     color: series0.now,
                     opacity: 0.55,
-                    borderRadius: [3, 3, 0, 0],
+                    borderRadius: BAR_RADIUS,
                     decal: { symbol: 'rect', symbolSize: 1, dashArrayX: [1, 0], dashArrayY: [3, 4], rotation: -Math.PI / 4, color: dark ? 'rgba(31,42,68,0.65)' : 'rgba(255,255,255,0.75)' },
                   },
                   label: label(series0.now),
