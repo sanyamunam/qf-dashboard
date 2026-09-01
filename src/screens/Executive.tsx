@@ -311,10 +311,22 @@ export function Executive({ onEvidence }: { onEvidence: (kpi: Kpi) => void }) {
               <span className="num mt-1.5 text-[26px] font-bold leading-none" style={{ color: list.length ? 'var(--color-ink)' : 'var(--color-ink-mute)' }}>
                 {String(list.length).padStart(2, '0')}
               </span>
-              <span className="mt-1.5 text-[11px] leading-snug text-ink-mute" style={{ minHeight: '2.6em' }}>
+              {/* Two different claims, so two lines. They used to run together
+                  as "no reading this period · 5 on this dashboard", and at
+                  card width the second half wrapped into the first and read as
+                  one clause — the sense of the status says what it MEANS, the
+                  line below says how many of the cards on this page carry it.
+                  The sense keeps a fixed height so the counts above it stay on
+                  one baseline across all five cards. */}
+              <span className="mt-1.5 block text-[11px] leading-snug text-ink-mute" style={{ minHeight: '2.6em' }}>
                 {STATUS_SENSE[st]}
-                {onDash > 0 && ` · ${onDash} on this dashboard`}
               </span>
+              {onDash > 0 && (
+                <span className="mt-auto flex items-center gap-1.5 pt-2 text-[10.5px] font-medium text-ink-soft">
+                  <span aria-hidden className="h-1 w-1 shrink-0 rounded-full bg-ink-mute/50" />
+                  {onDash} of the {dashTen.length} shown below
+                </span>
+              )}
             </motion.button>
           )
         })}
